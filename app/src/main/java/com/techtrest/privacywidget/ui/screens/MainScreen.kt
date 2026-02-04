@@ -69,16 +69,11 @@ fun MainScreen(viewModel: PrivacyViewModel = viewModel()) {
     var showInfoDialog by remember { mutableStateOf(false) }
     var showAboutDialog by remember { mutableStateOf(false) }
     var showScoringSystemScreen by remember { mutableStateOf(false) }
-    var showManualChecksScreen by remember { mutableStateOf(false) }
     var showGuideScreen by remember { mutableStateOf<ManualCheckType?>(null) }
     val sheetState = rememberModalBottomSheetState()
 
     // Handle back gesture with proper navigation hierarchy
     // Note: Guide screens handle their own back gesture via BackHandler in each guide
-    BackHandler(enabled = showManualChecksScreen) {
-        showManualChecksScreen = false
-    }
-    
     BackHandler(enabled = showScoringSystemScreen) {
         showScoringSystemScreen = false
     }
@@ -101,12 +96,6 @@ fun MainScreen(viewModel: PrivacyViewModel = viewModel()) {
         drawerState = drawerState,
         onScoringSystemClick = {
             showScoringSystemScreen = true
-            scope.launch {
-                drawerState.close()
-            }
-        },
-        onManualChecksClick = {
-            showManualChecksScreen = true
             scope.launch {
                 drawerState.close()
             }
@@ -206,7 +195,7 @@ fun MainScreen(viewModel: PrivacyViewModel = viewModel()) {
                                     },
                                     isRefreshing = scanState is PrivacyScanState.Scanning,
                                     onNavigateToManualChecks = {
-                                        showManualChecksScreen = true
+                                        navigationState.selectTab(NavigationTab.ACTIONS)
                                     }
                                 )
                             }
@@ -298,19 +287,6 @@ fun MainScreen(viewModel: PrivacyViewModel = viewModel()) {
     if (showScoringSystemScreen) {
         ScoringSystemScreen(
             onBackClick = { showScoringSystemScreen = false }
-        )
-    }
-
-    // Manual Checks Screen
-    if (showManualChecksScreen) {
-        ManualChecksScreen(
-            onBackClick = { showManualChecksScreen = false },
-            onNavigateToGuide = { checkType ->
-                showGuideScreen = checkType
-            },
-            onRefresh = {
-                viewModel.performScan()
-            }
         )
     }
 

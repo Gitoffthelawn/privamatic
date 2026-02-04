@@ -34,7 +34,6 @@ import androidx.compose.ui.unit.dp
 fun PrivacyNavigationDrawer(
     drawerState: DrawerState,
     onScoringSystemClick: () -> Unit,
-    onManualChecksClick: () -> Unit,
     onAboutClick: () -> Unit,
     content: @Composable () -> Unit
 ) {
@@ -62,21 +61,6 @@ fun PrivacyNavigationDrawer(
                     },
                     selected = false,
                     onClick = onScoringSystemClick,
-                    modifier = Modifier.padding(horizontal = 12.dp)
-                )
-
-                NavigationDrawerItem(
-                    label = {
-                        Text(text = "Manual Checks")
-                    },
-                    icon = {
-                        Icon(
-                            imageVector = Icons.Outlined.CheckCircle,
-                            contentDescription = null
-                        )
-                    },
-                    selected = false,
-                    onClick = onManualChecksClick,
                     modifier = Modifier.padding(horizontal = 12.dp)
                 )
 
