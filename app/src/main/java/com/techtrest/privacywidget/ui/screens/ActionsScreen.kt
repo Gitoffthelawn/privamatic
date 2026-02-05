@@ -31,10 +31,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -47,7 +44,6 @@ import com.techtrest.privacywidget.data.model.QuickWin
 import com.techtrest.privacywidget.data.model.QuickWinType
 import com.techtrest.privacywidget.data.model.ManualCheckState
 import com.techtrest.privacywidget.data.model.ManualCheckType
-import com.techtrest.privacywidget.ui.components.InstructionsDialog
 import com.techtrest.privacywidget.ui.components.ManualCheckCard
 
 @Composable
@@ -56,6 +52,7 @@ fun ActionsScreen(
     checkStates: List<ManualCheckState>,
     onNavigateToGuide: (ManualCheckType) -> Unit,
     onMarkCheckDone: (ManualCheckType) -> Unit,
+    onQuickWinSelected: (QuickWin) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -65,8 +62,6 @@ fun ActionsScreen(
     val quickWins = remember(privacyScore) {
         QuickWinsDetector.detectQuickWins(privacyScore)
     }
-
-    var selectedQuickWin by remember { mutableStateOf<QuickWin?>(null) }
 
     Column(
         modifier = modifier
@@ -91,7 +86,7 @@ fun ActionsScreen(
                 items(quickWins) { quickWin ->
                     QuickWinCompactTile(
                         quickWin = quickWin,
-                        onClick = { selectedQuickWin = quickWin }
+                        onClick = { onQuickWinSelected(quickWin) }
                     )
                 }
             } else {
@@ -115,14 +110,6 @@ fun ActionsScreen(
                 onMarkDone = { onMarkCheckDone(checkState.type) }
             )
         }
-    }
-
-    // Show Instructions Dialog
-    selectedQuickWin?.let { quickWin ->
-        InstructionsDialog(
-            quickWin = quickWin,
-            onDismiss = { selectedQuickWin = null }
-        )
     }
 }
 

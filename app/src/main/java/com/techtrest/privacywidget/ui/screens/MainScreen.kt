@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.techtrest.privacywidget.data.maintenance.MaintenanceManager
 import com.techtrest.privacywidget.data.model.ManualCheckType
+import com.techtrest.privacywidget.data.model.QuickWin
 import com.techtrest.privacywidget.ui.components.AboutDialog
 import com.techtrest.privacywidget.ui.components.BottomNavigationBar
 import com.techtrest.privacywidget.ui.components.PrivacyNavigationDrawer
@@ -70,6 +71,7 @@ fun MainScreen(viewModel: PrivacyViewModel = viewModel()) {
     var showAboutDialog by remember { mutableStateOf(false) }
     var showScoringSystemScreen by remember { mutableStateOf(false) }
     var showGuideScreen by remember { mutableStateOf<ManualCheckType?>(null) }
+    var showQuickWinDetail by remember { mutableStateOf<QuickWin?>(null) }
     val sheetState = rememberModalBottomSheetState()
 
     // Handle back gesture with proper navigation hierarchy
@@ -212,6 +214,9 @@ fun MainScreen(viewModel: PrivacyViewModel = viewModel()) {
                                             maintenanceManager.markCheckCompleted(checkType)
                                             viewModel.performScan()
                                         }
+                                    },
+                                    onQuickWinSelected = { quickWin ->
+                                        showQuickWinDetail = quickWin
                                     }
                                 )
                             }
@@ -329,5 +334,13 @@ fun MainScreen(viewModel: PrivacyViewModel = viewModel()) {
             )
         }
         null -> { /* No guide screen shown */ }
+    }
+
+    // Quick Win Detail Screen
+    showQuickWinDetail?.let { quickWin ->
+        QuickWinDetailScreen(
+            quickWin = quickWin,
+            onBackClick = { showQuickWinDetail = null }
+        )
     }
 }
