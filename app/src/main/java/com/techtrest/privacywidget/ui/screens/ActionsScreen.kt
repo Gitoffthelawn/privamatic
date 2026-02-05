@@ -68,53 +68,64 @@ fun ActionsScreen(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(scrollState)
-            .padding(16.dp)
     ) {
-        // 1. Quick Wins Section
-        Text(
-            text = "Quick Wins",
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Horizontal scroller with compact tiles
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = PaddingValues(horizontal = 0.dp)
+        // 1. Quick Wins Section - with horizontal padding
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 16.dp)
         ) {
-            if (quickWins.isNotEmpty()) {
-                items(quickWins) { quickWin ->
-                    QuickWinCompactTile(
-                        quickWin = quickWin,
-                        onClick = { onQuickWinSelected(quickWin) }
-                    )
-                }
-            } else {
-                item {
-                    QuickWinAllDoneTile()
+            Text(
+                text = "Quick Wins",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Horizontal scroller with compact tiles
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                contentPadding = PaddingValues(horizontal = 0.dp)
+            ) {
+                if (quickWins.isNotEmpty()) {
+                    items(quickWins) { quickWin ->
+                        QuickWinCompactTile(
+                            quickWin = quickWin,
+                            onClick = { onQuickWinSelected(quickWin) }
+                        )
+                    }
+                } else {
+                    item {
+                        QuickWinAllDoneTile()
+                    }
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // 2. Manual Checks Section
-        Text(
-            text = "Manual Checks",
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Edge-to-edge rows with no spacing between them
-        checkStates.forEach { checkState ->
-            ManualCheckGarminRow(
-                checkState = checkState,
-                onClick = { onNavigateToGuide(checkState.type) }
+        // 2. Manual Checks Section - edge-to-edge
+        Column(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            // Section title with padding
+            Text(
+                text = "Manual Checks",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(horizontal = 16.dp)
             )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Edge-to-edge rows with no spacing between them
+            checkStates.forEach { checkState ->
+                ManualCheckGarminRow(
+                    checkState = checkState,
+                    onClick = { onNavigateToGuide(checkState.type) }
+                )
+            }
         }
     }
 }
