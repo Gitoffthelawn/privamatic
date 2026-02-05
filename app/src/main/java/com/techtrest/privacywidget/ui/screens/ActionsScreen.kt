@@ -26,7 +26,6 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -369,13 +368,24 @@ private fun ManualCheckGarminRow(
                     color = MaterialTheme.colorScheme.onSurface
                 )
 
-                // Progress bar
-                LinearProgressIndicator(
-                    progress = { checkState.fillPercentage.coerceIn(0f, 1f) },
-                    modifier = Modifier.fillMaxWidth(),
-                    color = progressColor,
-                    trackColor = MaterialTheme.colorScheme.surfaceVariant
-                )
+                // Custom progress bar (fixes dot bug at 0% progress)
+                val progressValue = checkState.fillPercentage.coerceIn(0f, 1f)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(8.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    if (progressValue > 0f) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .fillMaxWidth(progressValue)
+                                .background(progressColor)
+                        )
+                    }
+                }
 
                 // Status text
                 Text(
