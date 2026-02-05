@@ -67,8 +67,7 @@ fun ActionsScreen(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(scrollState)
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+            .padding(16.dp)
     ) {
         // 1. Quick Wins Section
         Text(
@@ -76,6 +75,8 @@ fun ActionsScreen(
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface
         )
+
+        Spacer(modifier = Modifier.height(16.dp))
 
         // Horizontal scroller with compact tiles
         LazyRow(
@@ -96,6 +97,8 @@ fun ActionsScreen(
             }
         }
 
+        Spacer(modifier = Modifier.height(32.dp))
+
         // 2. Manual Checks Section
         Text(
             text = "Manual Checks",
@@ -103,11 +106,17 @@ fun ActionsScreen(
             color = MaterialTheme.colorScheme.onSurface
         )
 
-        checkStates.forEach { checkState ->
-            ManualCheckGarminRow(
-                checkState = checkState,
-                onClick = { onNavigateToGuide(checkState.type) }
-            )
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Column(
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            checkStates.forEach { checkState ->
+                ManualCheckGarminRow(
+                    checkState = checkState,
+                    onClick = { onNavigateToGuide(checkState.type) }
+                )
+            }
         }
     }
 }
