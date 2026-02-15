@@ -45,3 +45,8 @@ Thumbs.db
 lint-results*.xml
 lint-results*.html
 
+
+# IDE and tool files
+.idea/
+.claude/
+devcheck_decompiled/
