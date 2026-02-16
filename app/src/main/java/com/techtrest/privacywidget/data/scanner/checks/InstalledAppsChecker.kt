@@ -3,6 +3,7 @@ package com.techtrest.privacywidget.data.scanner.checks
 import android.content.Context
 import android.content.pm.PackageManager
 import android.util.Log
+import com.techtrest.privacywidget.data.model.PackageNames
 import com.techtrest.privacywidget.data.model.PrivacyCheck
 import com.techtrest.privacywidget.data.model.PrivacyIssue
 
@@ -10,183 +11,49 @@ class InstalledAppsChecker(private val context: Context) {
 
     private val packageManager: PackageManager = context.packageManager
 
-    // ===== GOOGLE APPS (MAJOR - 1.5 points each) =====
+    // ===== GOOGLE APPS (MAJOR) =====
 
-    fun checkGoogleChrome(): PrivacyIssue {
-        return checkAppInstalled(
-            check = PrivacyCheck.GOOGLE_CHROME,
-            packageName = "com.android.chrome",
-            pointDeduction = 1
-        )
-    }
+    fun checkGoogleChrome() = checkAppInstalled(PrivacyCheck.GOOGLE_CHROME)
+    fun checkGmailInstalled() = checkAppInstalled(PrivacyCheck.GMAIL_APP)
+    fun checkGoogleMapsInstalled() = checkAppInstalled(PrivacyCheck.GOOGLE_MAPS)
+    fun checkGooglePhotosInstalled() = checkAppInstalled(PrivacyCheck.GOOGLE_PHOTOS)
+    fun checkGoogleDriveInstalled() = checkAppInstalled(PrivacyCheck.GOOGLE_DRIVE)
 
-    fun checkGmailInstalled(): PrivacyIssue {
-        return checkAppInstalled(
-            check = PrivacyCheck.GMAIL_APP,
-            packageName = "com.google.android.gm",
-            pointDeduction = 1
-        )
-    }
+    // ===== GOOGLE APPS (MINOR) =====
 
-    fun checkGoogleMapsInstalled(): PrivacyIssue {
-        return checkAppInstalled(
-            check = PrivacyCheck.GOOGLE_MAPS,
-            packageName = "com.google.android.apps.maps",
-            pointDeduction = 1
-        )
-    }
+    fun checkYouTubeInstalled() = checkAppInstalled(PrivacyCheck.YOUTUBE)
+    fun checkGoogleCalendarInstalled() = checkAppInstalled(PrivacyCheck.GOOGLE_CALENDAR)
+    fun checkGoogleKeepInstalled() = checkAppInstalled(PrivacyCheck.GOOGLE_KEEP)
+    fun checkGoogleCameraInstalled() = checkAppInstalled(PrivacyCheck.GOOGLE_CAMERA)
+    fun checkGoogleDocsInstalled() = checkAppInstalled(PrivacyCheck.GOOGLE_DOCS)
 
-    fun checkGooglePhotosInstalled(): PrivacyIssue {
-        return checkAppInstalled(
-            check = PrivacyCheck.GOOGLE_PHOTOS,
-            packageName = "com.google.android.apps.photos",
-            pointDeduction = 1
-        )
-    }
+    // ===== META/FACEBOOK APPS =====
 
-    fun checkGoogleDriveInstalled(): PrivacyIssue {
-        return checkAppInstalled(
-            check = PrivacyCheck.GOOGLE_DRIVE,
-            packageName = "com.google.android.apps.docs",
-            pointDeduction = 1
-        )
-    }
-
-    // ===== GOOGLE APPS (MINOR - 0.5 points each) =====
-
-    fun checkYouTubeInstalled(): PrivacyIssue {
-        return checkAppInstalled(
-            check = PrivacyCheck.YOUTUBE,
-            packageName = "com.google.android.youtube",
-            pointDeduction = 0
-        )
-    }
-
-    fun checkGoogleCalendarInstalled(): PrivacyIssue {
-        return checkAppInstalled(
-            check = PrivacyCheck.GOOGLE_CALENDAR,
-            packageName = "com.google.android.calendar",
-            pointDeduction = 0
-        )
-    }
-
-    fun checkGoogleKeepInstalled(): PrivacyIssue {
-        return checkAppInstalled(
-            check = PrivacyCheck.GOOGLE_KEEP,
-            packageName = "com.google.android.keep",
-            pointDeduction = 0
-        )
-    }
-
-    fun checkGoogleCameraInstalled(): PrivacyIssue {
-        return checkAppInstalled(
-            check = PrivacyCheck.GOOGLE_CAMERA,
-            packageName = "com.google.android.GoogleCamera",
-            pointDeduction = 0
-        )
-    }
-
-    fun checkGoogleDocsInstalled(): PrivacyIssue {
-        return checkAppInstalled(
-            check = PrivacyCheck.GOOGLE_DOCS,
-            packageName = "com.google.android.apps.docs.editors.docs",
-            pointDeduction = 0
-        )
-    }
-
-    // ===== META/FACEBOOK APPS (1.5 points each) =====
-
-    fun checkFacebookInstalled(): PrivacyIssue {
-        return checkAppInstalled(
-            check = PrivacyCheck.FACEBOOK_APP,
-            packageName = "com.facebook.katana",
-            pointDeduction = 1
-        )
-    }
-
-    fun checkInstagramInstalled(): PrivacyIssue {
-        return checkAppInstalled(
-            check = PrivacyCheck.INSTAGRAM_APP,
-            packageName = "com.instagram.android",
-            pointDeduction = 1
-        )
-    }
-
-    fun checkWhatsAppInstalled(): PrivacyIssue {
-        return checkAppInstalled(
-            check = PrivacyCheck.WHATSAPP_APP,
-            packageName = "com.whatsapp",
-            pointDeduction = 1
-        )
-    }
-
-    fun checkMessengerInstalled(): PrivacyIssue {
-        return checkAppInstalled(
-            check = PrivacyCheck.MESSENGER_APP,
-            packageName = "com.facebook.orca",
-            pointDeduction = 1
-        )
-    }
+    fun checkFacebookInstalled() = checkAppInstalled(PrivacyCheck.FACEBOOK_APP)
+    fun checkInstagramInstalled() = checkAppInstalled(PrivacyCheck.INSTAGRAM_APP)
+    fun checkWhatsAppInstalled() = checkAppInstalled(PrivacyCheck.WHATSAPP_APP)
+    fun checkMessengerInstalled() = checkAppInstalled(PrivacyCheck.MESSENGER_APP)
 
     // ===== MICROSOFT APPS =====
 
-    fun checkEdgeInstalled(): PrivacyIssue {
-        return checkAppInstalled(
-            check = PrivacyCheck.EDGE_APP,
-            packageName = "com.microsoft.emmx",
-            pointDeduction = 1
-        )
-    }
-
-    fun checkOutlookInstalled(): PrivacyIssue {
-        return checkAppInstalled(
-            check = PrivacyCheck.OUTLOOK_APP,
-            packageName = "com.microsoft.office.outlook",
-            pointDeduction = 1
-        )
-    }
-
-    fun checkOneDriveInstalled(): PrivacyIssue {
-        return checkAppInstalled(
-            check = PrivacyCheck.ONEDRIVE_APP,
-            packageName = "com.microsoft.skydrive",
-            pointDeduction = 0
-        )
-    }
+    fun checkEdgeInstalled() = checkAppInstalled(PrivacyCheck.EDGE_APP)
+    fun checkOutlookInstalled() = checkAppInstalled(PrivacyCheck.OUTLOOK_APP)
+    fun checkOneDriveInstalled() = checkAppInstalled(PrivacyCheck.ONEDRIVE_APP)
 
     // ===== AMAZON APPS =====
 
-    fun checkAmazonShoppingInstalled(): PrivacyIssue {
-        return checkAppInstalled(
-            check = PrivacyCheck.AMAZON_SHOPPING,
-            packageName = "com.amazon.mShop.android.shopping",
-            pointDeduction = 1
-        )
-    }
-
-    fun checkPrimeVideoInstalled(): PrivacyIssue {
-        return checkAppInstalled(
-            check = PrivacyCheck.PRIME_VIDEO,
-            packageName = "com.amazon.avod.thirdpartyclient",
-            pointDeduction = 0
-        )
-    }
+    fun checkAmazonShoppingInstalled() = checkAppInstalled(PrivacyCheck.AMAZON_SHOPPING)
+    fun checkPrimeVideoInstalled() = checkAppInstalled(PrivacyCheck.PRIME_VIDEO)
 
     // ===== AI/LLM APPS =====
 
-    fun checkChatGPTInstalled(): PrivacyIssue {
-        return checkAppInstalled(
-            check = PrivacyCheck.CHATGPT_APP,
-            packageName = "com.openai.chatgpt",
-            pointDeduction = 1
-        )
-    }
+    fun checkChatGPTInstalled() = checkAppInstalled(PrivacyCheck.CHATGPT_APP)
 
     fun checkGoogleGeminiInstalled(): PrivacyIssue {
         // Google Gemini/Bard - check multiple possible package names
         val possiblePackages = listOf(
-            "com.google.android.apps.bard",
-            "com.google.android.apps.gemini"
+            PackageNames.GEMINI,
+            PackageNames.GEMINI_ALT
         )
 
         for (pkg in possiblePackages) {
@@ -195,8 +62,7 @@ class InstalledAppsChecker(private val context: Context) {
                     check = PrivacyCheck.GOOGLE_GEMINI,
                     isSecure = false,
                     currentStatus = "Installed and enabled",
-                    technicalDetails = "Package: $pkg",
-                    customPointDeduction = 1
+                    technicalDetails = "Package: $pkg"
                 )
             }
         }
@@ -205,79 +71,35 @@ class InstalledAppsChecker(private val context: Context) {
             check = PrivacyCheck.GOOGLE_GEMINI,
             isSecure = true,
             currentStatus = "Not installed or disabled",
-            technicalDetails = "Checked: ${possiblePackages.joinToString(", ")}",
-            customPointDeduction = 0
+            technicalDetails = "Checked: ${possiblePackages.joinToString(", ")}"
         )
     }
 
-    fun checkMicrosoftCopilotInstalled(): PrivacyIssue {
-        return checkAppInstalled(
-            check = PrivacyCheck.MICROSOFT_COPILOT,
-            packageName = "com.microsoft.copilot",
-            pointDeduction = 1
-        )
-    }
-
-    fun checkClaudeInstalled(): PrivacyIssue {
-        return checkAppInstalled(
-            check = PrivacyCheck.CLAUDE_APP,
-            packageName = "com.anthropic.claude",
-            pointDeduction = 1
-        )
-    }
-
-    fun checkPerplexityInstalled(): PrivacyIssue {
-        return checkAppInstalled(
-            check = PrivacyCheck.PERPLEXITY_APP,
-            packageName = "ai.perplexity.app.android",
-            pointDeduction = 0
-        )
-    }
-
-    fun checkMetaAIInstalled(): PrivacyIssue {
-        return checkAppInstalled(
-            check = PrivacyCheck.META_AI,
-            packageName = "com.meta.ai",
-            pointDeduction = 1
-        )
-    }
+    fun checkMicrosoftCopilotInstalled() = checkAppInstalled(PrivacyCheck.MICROSOFT_COPILOT)
+    fun checkClaudeInstalled() = checkAppInstalled(PrivacyCheck.CLAUDE_APP)
+    fun checkPerplexityInstalled() = checkAppInstalled(PrivacyCheck.PERPLEXITY_APP)
+    fun checkMetaAIInstalled() = checkAppInstalled(PrivacyCheck.META_AI)
 
     // ===== SOCIAL MEDIA =====
 
-    fun checkTikTokInstalled(): PrivacyIssue {
-        return checkAppInstalled(
-            check = PrivacyCheck.TIKTOK_APP,
-            packageName = "com.zhiliaoapp.musically",
-            pointDeduction = 1
-        )
-    }
-
-    fun checkTwitterInstalled(): PrivacyIssue {
-        return checkAppInstalled(
-            check = PrivacyCheck.TWITTER_APP,
-            packageName = "com.twitter.android",
-            pointDeduction = 1
-        )
-    }
-
-    fun checkRedditInstalled(): PrivacyIssue {
-        return checkAppInstalled(
-            check = PrivacyCheck.REDDIT_APP,
-            packageName = "com.reddit.frontpage",
-            pointDeduction = 0
-        )
-    }
+    fun checkTikTokInstalled() = checkAppInstalled(PrivacyCheck.TIKTOK_APP)
+    fun checkTwitterInstalled() = checkAppInstalled(PrivacyCheck.TWITTER_APP)
+    fun checkRedditInstalled() = checkAppInstalled(PrivacyCheck.REDDIT_APP)
 
     // ===== HELPER METHODS =====
 
     /**
-     * Generic method to check if an app is installed
+     * Check if an app is installed using package name and point deduction from the PrivacyCheck enum.
      */
-    private fun checkAppInstalled(
-        check: PrivacyCheck,
-        packageName: String,
-        pointDeduction: Int
-    ): PrivacyIssue {
+    private fun checkAppInstalled(check: PrivacyCheck): PrivacyIssue {
+        val packageName = check.packageName
+            ?: return PrivacyIssue(
+                check = check,
+                isSecure = true,
+                currentStatus = "Unable to determine",
+                technicalDetails = "No package name configured"
+            )
+
         return try {
             val isInstalled = isAppInstalled(packageName)
 
@@ -285,8 +107,7 @@ class InstalledAppsChecker(private val context: Context) {
                 check = check,
                 isSecure = !isInstalled,
                 currentStatus = if (isInstalled) "Installed" else "Not installed",
-                technicalDetails = "Package: $packageName",
-                customPointDeduction = if (isInstalled) pointDeduction else 0
+                technicalDetails = "Package: $packageName"
             )
         } catch (e: Exception) {
             Log.e(TAG, "Error checking ${check.displayName}", e)
@@ -294,15 +115,14 @@ class InstalledAppsChecker(private val context: Context) {
                 check = check,
                 isSecure = true,
                 currentStatus = "Unable to determine",
-                technicalDetails = "Error: ${e.message}",
-                customPointDeduction = 0
+                technicalDetails = "Error: ${e.message}"
             )
         }
     }
 
     /**
-     * Helper function to check if an app is installed AND enabled
-     * Only returns true if the app is both installed and enabled
+     * Helper function to check if an app is installed AND enabled.
+     * Only returns true if the app is both installed and enabled.
      */
     private fun isAppInstalled(packageName: String): Boolean {
         Log.d(TAG, "Checking for package: $packageName")

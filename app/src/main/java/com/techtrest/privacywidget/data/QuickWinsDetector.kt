@@ -1,5 +1,6 @@
 package com.techtrest.privacywidget.data
 
+import com.techtrest.privacywidget.data.model.ActionType
 import com.techtrest.privacywidget.data.model.PrivacyCheck
 import com.techtrest.privacywidget.data.model.PrivacyScore
 import com.techtrest.privacywidget.data.model.QuickWin
@@ -12,22 +13,78 @@ import com.techtrest.privacywidget.data.model.QuickWinType
 object QuickWinsDetector {
 
     /**
-     * Analyzes the privacy score and returns a list of available quick wins.
+     * Installed app checks eligible for Quick Wins: have a package name,
+     * use OPEN_APP_SETTINGS action, and have a non-zero point deduction.
+     */
+    private val installedAppChecks = PrivacyCheck.entries.filter {
+        it.actionType == ActionType.OPEN_APP_SETTINGS && it.pointDeduction > 0
+    }
+
+    /**
+     * Analyzes the privacy score and returns a list of available quick wins,
+     * sorted by impact (highest first).
      * Only includes wins where the related check is currently insecure.
      */
     fun detectQuickWins(privacyScore: PrivacyScore): List<QuickWin> {
         val quickWins = mutableListOf<QuickWin>()
 
-        // Check each potential quick win
+        // System service revocations (high impact)
+        checkNotificationListeners(privacyScore)?.let { quickWins.add(it) }
+        checkAccessibilityServices(privacyScore)?.let { quickWins.add(it) }
+        checkDeviceAdmins(privacyScore)?.let { quickWins.add(it) }
+
+        // Settings toggles
         checkWifiScanning(privacyScore)?.let { quickWins.add(it) }
         checkAdvertisingId(privacyScore)?.let { quickWins.add(it) }
         checkPrivateDns(privacyScore)?.let { quickWins.add(it) }
         checkFindMyDevice(privacyScore)?.let { quickWins.add(it) }
+
+        // Default app replacements
         checkDefaultBrowser(privacyScore)?.let { quickWins.add(it) }
         checkDefaultKeyboard(privacyScore)?.let { quickWins.add(it) }
+        checkDefaultSms(privacyScore)?.let { quickWins.add(it) }
+        checkDefaultEmail(privacyScore)?.let { quickWins.add(it) }
+        checkDefaultLauncher(privacyScore)?.let { quickWins.add(it) }
 
-        return quickWins
+        // Installed app uninstalls
+        quickWins.addAll(checkInstalledApps(privacyScore))
+
+        return quickWins.sortedByDescending { it.impact }
     }
+
+    // ===== SYSTEM SERVICE REVOCATIONS =====
+
+    private fun checkNotificationListeners(privacyScore: PrivacyScore): QuickWin? {
+        val issue = privacyScore.issues.find { it.check == PrivacyCheck.NOTIFICATION_LISTENER }
+        return if (issue != null && !issue.isSecure) {
+            QuickWin(
+                type = QuickWinType.REVOKE_NOTIFICATION_LISTENERS,
+                relatedCheck = PrivacyCheck.NOTIFICATION_LISTENER
+            )
+        } else null
+    }
+
+    private fun checkAccessibilityServices(privacyScore: PrivacyScore): QuickWin? {
+        val issue = privacyScore.issues.find { it.check == PrivacyCheck.ACCESSIBILITY_SERVICE }
+        return if (issue != null && !issue.isSecure) {
+            QuickWin(
+                type = QuickWinType.REVOKE_ACCESSIBILITY_SERVICES,
+                relatedCheck = PrivacyCheck.ACCESSIBILITY_SERVICE
+            )
+        } else null
+    }
+
+    private fun checkDeviceAdmins(privacyScore: PrivacyScore): QuickWin? {
+        val issue = privacyScore.issues.find { it.check == PrivacyCheck.DEVICE_ADMIN }
+        return if (issue != null && !issue.isSecure) {
+            QuickWin(
+                type = QuickWinType.REVOKE_DEVICE_ADMINS,
+                relatedCheck = PrivacyCheck.DEVICE_ADMIN
+            )
+        } else null
+    }
+
+    // ===== SETTINGS TOGGLES =====
 
     private fun checkWifiScanning(privacyScore: PrivacyScore): QuickWin? {
         val issue = privacyScore.issues.find { it.check == PrivacyCheck.WIFI_SCANNING }
@@ -69,15 +126,15 @@ object QuickWinsDetector {
         } else null
     }
 
+    // ===== DEFAULT APP REPLACEMENTS =====
+
     private fun checkDefaultBrowser(privacyScore: PrivacyScore): QuickWin? {
         val issue = privacyScore.issues.find { it.check == PrivacyCheck.DEFAULT_BROWSER }
         return if (issue != null && !issue.isSecure) {
-            // Extract browser name from currentStatus (e.g., "Using Chrome" -> "Chrome")
-            val browserName = extractAppName(issue.currentStatus)
             QuickWin(
                 type = QuickWinType.REPLACE_BROWSER,
                 relatedCheck = PrivacyCheck.DEFAULT_BROWSER,
-                currentAppName = browserName
+                currentAppName = extractAppName(issue.currentStatus)
             )
         } else null
     }
@@ -85,14 +142,60 @@ object QuickWinsDetector {
     private fun checkDefaultKeyboard(privacyScore: PrivacyScore): QuickWin? {
         val issue = privacyScore.issues.find { it.check == PrivacyCheck.DEFAULT_KEYBOARD }
         return if (issue != null && !issue.isSecure) {
-            // Extract keyboard name from currentStatus (e.g., "Using SwiftKey" -> "SwiftKey")
-            val keyboardName = extractAppName(issue.currentStatus)
             QuickWin(
                 type = QuickWinType.REPLACE_KEYBOARD,
                 relatedCheck = PrivacyCheck.DEFAULT_KEYBOARD,
-                currentAppName = keyboardName
+                currentAppName = extractAppName(issue.currentStatus)
             )
         } else null
+    }
+
+    private fun checkDefaultSms(privacyScore: PrivacyScore): QuickWin? {
+        val issue = privacyScore.issues.find { it.check == PrivacyCheck.DEFAULT_SMS }
+        return if (issue != null && !issue.isSecure) {
+            QuickWin(
+                type = QuickWinType.REPLACE_DEFAULT_SMS,
+                relatedCheck = PrivacyCheck.DEFAULT_SMS,
+                currentAppName = extractAppName(issue.currentStatus)
+            )
+        } else null
+    }
+
+    private fun checkDefaultEmail(privacyScore: PrivacyScore): QuickWin? {
+        val issue = privacyScore.issues.find { it.check == PrivacyCheck.DEFAULT_EMAIL }
+        return if (issue != null && !issue.isSecure) {
+            QuickWin(
+                type = QuickWinType.REPLACE_DEFAULT_EMAIL,
+                relatedCheck = PrivacyCheck.DEFAULT_EMAIL,
+                currentAppName = extractAppName(issue.currentStatus)
+            )
+        } else null
+    }
+
+    private fun checkDefaultLauncher(privacyScore: PrivacyScore): QuickWin? {
+        val issue = privacyScore.issues.find { it.check == PrivacyCheck.DEFAULT_LAUNCHER }
+        return if (issue != null && !issue.isSecure) {
+            QuickWin(
+                type = QuickWinType.REPLACE_DEFAULT_LAUNCHER,
+                relatedCheck = PrivacyCheck.DEFAULT_LAUNCHER,
+                currentAppName = extractAppName(issue.currentStatus)
+            )
+        } else null
+    }
+
+    // ===== INSTALLED APP UNINSTALLS =====
+
+    private fun checkInstalledApps(privacyScore: PrivacyScore): List<QuickWin> {
+        return installedAppChecks.mapNotNull { check ->
+            val issue = privacyScore.issues.find { it.check == check }
+            if (issue != null && !issue.isSecure) {
+                QuickWin(
+                    type = QuickWinType.UNINSTALL_APP,
+                    relatedCheck = check,
+                    currentAppName = check.displayName
+                )
+            } else null
+        }
     }
 
     /**

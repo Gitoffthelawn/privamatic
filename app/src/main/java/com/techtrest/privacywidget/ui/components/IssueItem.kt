@@ -13,9 +13,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,13 +27,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import com.techtrest.privacywidget.data.model.PrivacyIssue
+import com.techtrest.privacywidget.ui.utils.IntentHelper
 
 @Composable
 fun IssueItem(issue: PrivacyIssue, modifier: Modifier = Modifier) {
     var isExpanded by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
     Column(
         modifier = modifier
@@ -107,6 +112,32 @@ fun IssueItem(issue: PrivacyIssue, modifier: Modifier = Modifier) {
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+
+                            // Action button
+                            issue.check.actionType?.let { actionType ->
+                                Spacer(modifier = Modifier.height(8.dp))
+                                OutlinedButton(
+                                    onClick = {
+                                        IntentHelper.launchActionIntent(
+                                            context = context,
+                                            actionType = actionType,
+                                            packageName = issue.check.packageName
+                                        )
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Settings,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = issue.check.actionLabel ?: "Fix",
+                                        style = MaterialTheme.typography.labelMedium
+                                    )
+                                }
+                            }
                         }
 
                         issue.technicalDetails?.let { details ->

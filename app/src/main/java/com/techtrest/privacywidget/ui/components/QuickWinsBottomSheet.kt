@@ -5,15 +5,12 @@ import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -37,10 +34,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.techtrest.privacywidget.data.model.ActionType
 import com.techtrest.privacywidget.data.model.QuickWin
 import com.techtrest.privacywidget.data.model.QuickWinType
+import com.techtrest.privacywidget.ui.utils.IntentHelper
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -204,8 +204,15 @@ fun InstructionsDialog(
     val quickWinType = quickWin.type
     val configuration = LocalConfiguration.current
 
-    // Determine if this quick win needs store buttons (keyboard and browser replacements)
-    val needsStoreButtons = quickWinType == QuickWinType.REPLACE_KEYBOARD || quickWinType == QuickWinType.REPLACE_BROWSER
+    // Determine button style based on quick win type
+    val needsStoreButtons = quickWinType in listOf(
+        QuickWinType.REPLACE_KEYBOARD,
+        QuickWinType.REPLACE_BROWSER,
+        QuickWinType.REPLACE_DEFAULT_SMS,
+        QuickWinType.REPLACE_DEFAULT_EMAIL,
+        QuickWinType.REPLACE_DEFAULT_LAUNCHER
+    )
+    val needsAppSettings = quickWinType == QuickWinType.UNINSTALL_APP
 
     androidx.compose.material3.AlertDialog(
         onDismissRequest = onDismiss,
@@ -235,46 +242,72 @@ fun InstructionsDialog(
             }
         },
         confirmButton = {
-            if (needsStoreButtons) {
-                // For keyboard and browser: Show store buttons
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    // F-Droid button
-                    androidx.compose.material3.OutlinedButton(
-                        onClick = {
-                            val searchTerm = if (quickWinType == QuickWinType.REPLACE_KEYBOARD) {
-                                "keyboard"
-                            } else {
-                                "browser"
-                            }
-                            openFDroid(context, searchTerm)
-                        }
+            when {
+                needsStoreButtons -> {
+                    // For default app replacements: Show store buttons
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text("F-Droid")
-                    }
-                    // Play Store button
-                    androidx.compose.material3.FilledTonalButton(
-                        onClick = {
-                            val searchQuery = if (quickWinType == QuickWinType.REPLACE_KEYBOARD) {
-                                "privacy keyboard"
-                            } else {
-                                "privacy browser"
+                        // F-Droid button
+                        androidx.compose.material3.OutlinedButton(
+                            onClick = {
+                                val searchTerm = when (quickWinType) {
+                                    QuickWinType.REPLACE_KEYBOARD -> "keyboard"
+                                    QuickWinType.REPLACE_BROWSER -> "browser"
+                                    QuickWinType.REPLACE_DEFAULT_SMS -> "sms messaging"
+                                    QuickWinType.REPLACE_DEFAULT_EMAIL -> "email"
+                                    QuickWinType.REPLACE_DEFAULT_LAUNCHER -> "launcher"
+                                    else -> ""
+                                }
+                                openFDroid(context, searchTerm)
                             }
-                            openPlayStore(context, searchQuery)
+                        ) {
+                            Text("F-Droid")
                         }
-                    ) {
-                        Text("Play Store")
+                        // Play Store button
+                        androidx.compose.material3.FilledTonalButton(
+                            onClick = {
+                                val searchQuery = when (quickWinType) {
+                                    QuickWinType.REPLACE_KEYBOARD -> "privacy keyboard"
+                                    QuickWinType.REPLACE_BROWSER -> "privacy browser"
+                                    QuickWinType.REPLACE_DEFAULT_SMS -> "privacy sms messaging"
+                                    QuickWinType.REPLACE_DEFAULT_EMAIL -> "privacy email client"
+                                    QuickWinType.REPLACE_DEFAULT_LAUNCHER -> "privacy launcher"
+                                    else -> ""
+                                }
+                                openPlayStore(context, searchQuery)
+                            }
+                        ) {
+                            Text("Play Store")
+                        }
                     }
                 }
-            } else {
-                // For other quick wins: Show "Open Settings" button
-                androidx.compose.material3.FilledTonalButton(
-                    onClick = {
-                        openSettings(context, quickWinType)
+                needsAppSettings -> {
+                    // For app uninstalls: Open the specific app's settings page
+                    androidx.compose.material3.FilledTonalButton(
+                        onClick = {
+                            val packageName = quickWin.relatedCheck?.packageName
+                            if (packageName != null) {
+                                IntentHelper.launchActionIntent(
+                                    context = context,
+                                    actionType = ActionType.OPEN_APP_SETTINGS,
+                                    packageName = packageName
+                                )
+                            }
+                        }
+                    ) {
+                        Text("Open App Settings")
                     }
-                ) {
-                    Text("Open Settings")
+                }
+                else -> {
+                    // For settings toggles and system service revocations
+                    androidx.compose.material3.FilledTonalButton(
+                        onClick = {
+                            openSettings(context, quickWinType)
+                        }
+                    ) {
+                        Text("Open Settings")
+                    }
                 }
             }
         },
@@ -354,6 +387,15 @@ private fun openSettings(context: Context, quickWinType: QuickWinType) {
                 Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
             }
             QuickWinType.DISABLE_FIND_MY_DEVICE -> {
+                Intent(Settings.ACTION_SECURITY_SETTINGS)
+            }
+            QuickWinType.REVOKE_NOTIFICATION_LISTENERS -> {
+                Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
+            }
+            QuickWinType.REVOKE_ACCESSIBILITY_SERVICES -> {
+                Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+            }
+            QuickWinType.REVOKE_DEVICE_ADMINS -> {
                 Intent(Settings.ACTION_SECURITY_SETTINGS)
             }
             else -> {

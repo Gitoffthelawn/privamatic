@@ -140,6 +140,21 @@ private fun SecurityChecksSection() {
         Column(
             modifier = Modifier.padding(16.dp)
         ) {
+            // Security checks
+            val securityChecks = listOf(
+                PrivacyCheck.SCREEN_LOCK,
+                PrivacyCheck.DEVICE_ENCRYPTION,
+                PrivacyCheck.NOTIFICATION_LISTENER,
+                PrivacyCheck.ACCESSIBILITY_SERVICE,
+                PrivacyCheck.USB_DEBUGGING,
+                PrivacyCheck.DEVICE_ADMIN,
+                PrivacyCheck.DEVELOPER_OPTIONS,
+                PrivacyCheck.BIOMETRIC_AUTH
+            )
+
+            val securityMaxPoints = securityChecks.sumOf { it.pointDeduction }
+            val sortedSecurityChecks = securityChecks.sortedByDescending { it.pointDeduction }
+
             // Section Header
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -153,7 +168,7 @@ private fun SecurityChecksSection() {
                 )
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
-                    text = "Security (55 points max)",
+                    text = "Security ($securityMaxPoints points max)",
                     style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -161,24 +176,12 @@ private fun SecurityChecksSection() {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Security checks
-            val securityChecks = listOf(
-                PrivacyCheck.SCREEN_LOCK,
-                PrivacyCheck.DEVICE_ENCRYPTION,
-                PrivacyCheck.NOTIFICATION_LISTENER,
-                PrivacyCheck.ACCESSIBILITY_SERVICE,
-                PrivacyCheck.USB_DEBUGGING,
-                PrivacyCheck.DEVICE_ADMIN,
-                PrivacyCheck.DEVELOPER_OPTIONS,
-                PrivacyCheck.BIOMETRIC_AUTH
-            ).sortedByDescending { it.pointDeduction }
-
-            securityChecks.forEachIndexed { index, check ->
+            sortedSecurityChecks.forEachIndexed { index, check ->
                 CheckPointItem(
                     checkName = check.displayName,
                     points = check.pointDeduction
                 )
-                if (index < securityChecks.size - 1) {
+                if (index < sortedSecurityChecks.size - 1) {
                     Spacer(modifier = Modifier.height(8.dp))
                 }
             }
@@ -198,27 +201,6 @@ private fun SurveillanceChecksSection() {
         Column(
             modifier = Modifier.padding(16.dp)
         ) {
-            // Section Header
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Visibility,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = "Surveillance & Tracking (56 points max)",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
             // Surveillance checks
             val surveillanceChecks = listOf(
                 PrivacyCheck.PRIVATE_DNS,
@@ -251,14 +233,38 @@ private fun SurveillanceChecksSection() {
                 PrivacyCheck.TIKTOK_APP,
                 PrivacyCheck.TWITTER_APP,
                 PrivacyCheck.AMAZON_SHOPPING
-            ).sortedByDescending { it.pointDeduction }
+            )
 
-            surveillanceChecks.forEachIndexed { index, check ->
+            val surveillanceMaxPoints = surveillanceChecks.sumOf { it.pointDeduction }
+            val sortedSurveillanceChecks = surveillanceChecks.sortedByDescending { it.pointDeduction }
+
+            // Section Header
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Visibility,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = "Surveillance & Tracking ($surveillanceMaxPoints points max)",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            sortedSurveillanceChecks.forEachIndexed { index, check ->
                 CheckPointItem(
                     checkName = check.displayName,
                     points = check.pointDeduction
                 )
-                if (index < surveillanceChecks.size - 1) {
+                if (index < sortedSurveillanceChecks.size - 1) {
                     Spacer(modifier = Modifier.height(8.dp))
                 }
             }

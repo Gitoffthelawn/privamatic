@@ -241,12 +241,19 @@ private fun QuickWinCompactTile(
 
             // Short name (1-2 words)
             val shortName = when (quickWin.type) {
+                QuickWinType.REVOKE_NOTIFICATION_LISTENERS -> "Listeners"
+                QuickWinType.REVOKE_ACCESSIBILITY_SERVICES -> "Accessibility"
+                QuickWinType.REVOKE_DEVICE_ADMINS -> "Admins"
                 QuickWinType.DISABLE_WIFI_SCANNING -> "Wi-Fi Scan"
                 QuickWinType.DISABLE_ADVERTISING_ID -> "Ad ID"
                 QuickWinType.ENABLE_PRIVATE_DNS -> "DNS"
                 QuickWinType.DISABLE_FIND_MY_DEVICE -> "Find Device"
                 QuickWinType.REPLACE_BROWSER -> quickWin.currentAppName ?: "Browser"
                 QuickWinType.REPLACE_KEYBOARD -> quickWin.currentAppName ?: "Keyboard"
+                QuickWinType.REPLACE_DEFAULT_SMS -> quickWin.currentAppName ?: "SMS"
+                QuickWinType.REPLACE_DEFAULT_EMAIL -> quickWin.currentAppName ?: "Email"
+                QuickWinType.REPLACE_DEFAULT_LAUNCHER -> quickWin.currentAppName ?: "Launcher"
+                QuickWinType.UNINSTALL_APP -> quickWin.currentAppName ?: "App"
             }
 
             Text(

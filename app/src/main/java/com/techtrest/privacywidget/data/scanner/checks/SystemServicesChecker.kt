@@ -93,7 +93,7 @@ class SystemServicesChecker(private val context: Context) {
                 )
             } else {
                 val appNames = nonSystemListeners.map { getAppName(it) }
-                val pointDeduction = nonSystemListeners.size * 7
+                val pointDeduction = nonSystemListeners.size * PrivacyCheck.NOTIFICATION_LISTENER.pointDeduction
 
                 PrivacyIssue(
                     check = PrivacyCheck.NOTIFICATION_LISTENER,
@@ -165,7 +165,7 @@ class SystemServicesChecker(private val context: Context) {
                 )
             } else {
                 val appNames = suspiciousServices.map { getAppName(it) }
-                val pointDeduction = suspiciousServices.size * 7
+                val pointDeduction = suspiciousServices.size * PrivacyCheck.ACCESSIBILITY_SERVICE.pointDeduction
 
                 PrivacyIssue(
                     check = PrivacyCheck.ACCESSIBILITY_SERVICE,
@@ -217,7 +217,7 @@ class SystemServicesChecker(private val context: Context) {
                 )
             } else {
                 val appNames = nonSystemAdmins.map { getAppName(it.packageName) }
-                val pointDeduction = nonSystemAdmins.size * 5
+                val pointDeduction = nonSystemAdmins.size * PrivacyCheck.DEVICE_ADMIN.pointDeduction
 
                 PrivacyIssue(
                     check = PrivacyCheck.DEVICE_ADMIN,

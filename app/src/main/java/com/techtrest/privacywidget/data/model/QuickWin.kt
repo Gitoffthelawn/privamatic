@@ -1,12 +1,19 @@
 package com.techtrest.privacywidget.data.model
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Accessibility
 import androidx.compose.material.icons.filled.AdUnits
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Explore
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.LocationOff
+import androidx.compose.material.icons.filled.NotificationsOff
 import androidx.compose.material.icons.filled.PhoneAndroid
+import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.Sms
 import androidx.compose.ui.graphics.vector.ImageVector
 
 enum class QuickWinType(
@@ -16,6 +23,66 @@ enum class QuickWinType(
     val icon: ImageVector,
     val instructions: String
 ) {
+    // ===== SYSTEM SERVICE REVOCATIONS =====
+
+    REVOKE_NOTIFICATION_LISTENERS(
+        title = "Revoke Notification Listeners",
+        description = "Non-system apps can read ALL your notifications",
+        timeEstimate = "1 minute",
+        icon = Icons.Default.NotificationsOff,
+        instructions = """
+            Apps with notification listener access can read ALL your notifications, including 2FA codes and private messages.
+
+            Steps:
+            1. Open Settings app
+            2. Go to 'Apps' → 'Special app access'
+            3. Tap 'Notification access'
+            4. Review the list and disable access for non-essential apps
+
+            After completing this, rescan to see your improved score!
+        """.trimIndent()
+    ),
+
+    REVOKE_ACCESSIBILITY_SERVICES(
+        title = "Revoke Accessibility Services",
+        description = "Non-essential apps can control your entire device",
+        timeEstimate = "1 minute",
+        icon = Icons.Default.Accessibility,
+        instructions = """
+            Apps with accessibility service access can control your entire device and potentially log keystrokes.
+
+            Steps:
+            1. Open Settings app
+            2. Go to 'Accessibility'
+            3. Review 'Downloaded apps' or 'Installed services'
+            4. Disable any services you don't actively need
+
+            Note: Keep accessibility services that you genuinely use (password managers, screen readers).
+
+            After completing this, rescan to see your improved score!
+        """.trimIndent()
+    ),
+
+    REVOKE_DEVICE_ADMINS(
+        title = "Revoke Device Administrators",
+        description = "Non-system apps have elevated device control",
+        timeEstimate = "1 minute",
+        icon = Icons.Default.Security,
+        instructions = """
+            Apps with device administrator privileges have elevated control over your device.
+
+            Steps:
+            1. Open Settings app
+            2. Go to 'Security' → 'Device admin apps'
+            3. Review the list of device administrators
+            4. Deactivate any that you don't recognize or need
+
+            After completing this, rescan to see your improved score!
+        """.trimIndent()
+    ),
+
+    // ===== SETTINGS TOGGLES =====
+
     DISABLE_WIFI_SCANNING(
         title = "Disable Background Wi-Fi Scanning",
         description = "Prevents location tracking via Wi-Fi networks",
@@ -101,6 +168,8 @@ enum class QuickWinType(
         """.trimIndent()
     ),
 
+    // ===== DEFAULT APP REPLACEMENTS =====
+
     REPLACE_BROWSER(
         title = "Replace Browser",
         description = "Switch to privacy-focused browser",
@@ -156,6 +225,97 @@ enum class QuickWinType(
 
             After completing this, rescan to see your improved score!
         """.trimIndent()
+    ),
+
+    REPLACE_DEFAULT_SMS(
+        title = "Replace SMS App",
+        description = "Switch to privacy-focused messaging app",
+        timeEstimate = "2 minutes",
+        icon = Icons.Default.Sms,
+        instructions = """
+            Your current SMS app may collect your messaging data and contacts.
+
+            Recommended alternatives:
+            • Fossify Messages (F-Droid & Play Store)
+              Open source, privacy-focused, no ads
+            • QKSMS (F-Droid)
+              Lightweight and private
+
+            Steps:
+            1. Install a privacy-focused messaging app
+            2. Open Settings → Apps → Default apps
+            3. Tap 'SMS app'
+            4. Select your new messaging app
+
+            After completing this, rescan to see your improved score!
+        """.trimIndent()
+    ),
+
+    REPLACE_DEFAULT_EMAIL(
+        title = "Replace Email App",
+        description = "Switch to privacy-focused email client",
+        timeEstimate = "2 minutes",
+        icon = Icons.Default.Email,
+        instructions = """
+            Your current email app may scan your emails for advertising and data collection.
+
+            Recommended alternatives:
+            • K-9 Mail (F-Droid & Play Store) - Open source
+            • FairEmail (F-Droid & Play Store) - Privacy-focused
+            • ProtonMail (Play Store) - Encrypted email
+
+            Steps:
+            1. Install a privacy-focused email app
+            2. Open Settings → Apps → Default apps
+            3. Tap 'Email app' (if available)
+            4. Select your new email app
+
+            After completing this, rescan to see your improved score!
+        """.trimIndent()
+    ),
+
+    REPLACE_DEFAULT_LAUNCHER(
+        title = "Replace Launcher",
+        description = "Switch to privacy-focused launcher",
+        timeEstimate = "2 minutes",
+        icon = Icons.Default.Home,
+        instructions = """
+            Your current launcher may collect usage patterns, app habits, and behavioral data.
+
+            Recommended alternatives:
+            • Lawnchair (F-Droid & Play Store) - Modern and customizable
+            • KISS Launcher (F-Droid & Play Store) - Lightweight
+            • Neo Launcher (F-Droid) - Feature-rich
+
+            Steps:
+            1. Install a privacy-focused launcher
+            2. Open Settings → Apps → Default apps
+            3. Tap 'Home app'
+            4. Select your new launcher
+
+            After completing this, rescan to see your improved score!
+        """.trimIndent()
+    ),
+
+    // ===== APP UNINSTALLS =====
+
+    UNINSTALL_APP(
+        title = "Uninstall App",
+        description = "Remove a privacy-invasive app from your device",
+        timeEstimate = "30 seconds",
+        icon = Icons.Default.Delete,
+        instructions = """
+            You can improve your privacy by uninstalling or disabling this app.
+
+            Steps:
+            1. Tap 'Open App Settings' below
+            2. Tap 'Uninstall' or 'Disable'
+            3. Confirm
+
+            If the app came pre-installed, you may only be able to disable it rather than fully uninstall it.
+
+            After completing this, rescan to see your improved score!
+        """.trimIndent()
     )
 }
 
@@ -167,11 +327,18 @@ data class QuickWin(
     /**
      * Get dynamic title based on current app name
      * e.g., "Replace SwiftKey" instead of generic "Replace Keyboard"
+     * e.g., "Uninstall Chrome" instead of generic "Uninstall App"
      */
     val displayTitle: String
         get() = when {
-            currentAppName != null && (type == QuickWinType.REPLACE_KEYBOARD || type == QuickWinType.REPLACE_BROWSER) -> {
-                "Replace $currentAppName"
+            currentAppName != null -> when (type) {
+                QuickWinType.UNINSTALL_APP -> "Uninstall $currentAppName"
+                QuickWinType.REPLACE_BROWSER,
+                QuickWinType.REPLACE_KEYBOARD,
+                QuickWinType.REPLACE_DEFAULT_SMS,
+                QuickWinType.REPLACE_DEFAULT_EMAIL,
+                QuickWinType.REPLACE_DEFAULT_LAUNCHER -> "Replace $currentAppName"
+                else -> type.title
             }
             else -> type.title
         }
