@@ -94,7 +94,7 @@ fun MainScreen(viewModel: PrivacyViewModel = viewModel()) {
     var showScoringSystemScreen by remember { mutableStateOf(false) }
     var showManualCheckDetail by remember { mutableStateOf<ManualCheckType?>(null) }
     var showQuickWinDetail by remember { mutableStateOf<QuickWin?>(null) }
-    val sheetState = rememberModalBottomSheetState()
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     val pagerState = rememberPagerState(pageCount = { NavigationTab.entries.size })
 

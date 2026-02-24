@@ -50,6 +50,23 @@ fun ScoringInfoDialog(
                     subtitle = rating.subtitle
                 )
             }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(
+                text = "Why can't I reach 100?",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.SemiBold
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "Some deductions reflect deliberate trade-offs — keeping USB Debugging on for development, or allowing a trusted app notification access. These are your informed choices, not privacy gaps.\n\nA perfect 100 is theoretically possible on a fully de-Googled device with no privacy trade-offs.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
