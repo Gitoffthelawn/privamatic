@@ -1,12 +1,13 @@
 package com.techtrest.privacywidget.ui.screens
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -20,8 +21,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -35,14 +34,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.techtrest.privacywidget.data.model.PrivacyCategory
 import com.techtrest.privacywidget.data.model.PrivacyCheck
@@ -64,6 +60,13 @@ fun ScoringSystemScreen(
 
     val informationalChecks = remember {
         PrivacyCheck.entries.filter { it.isInformational }
+    }
+
+    // The highest single-category max is used as the denominator so the top-weighted
+    // category always fills the full bar width and all others are proportional to it.
+    val globalMaxPoints = remember(scoringCategories) {
+        scoringCategories.maxOfOrNull { (_, checks) -> checks.sumOf { it.pointDeduction } }
+            ?.coerceAtLeast(1) ?: 1
     }
 
     Scaffold(
@@ -107,7 +110,8 @@ fun ScoringSystemScreen(
                 CategorySection(
                     categoryName = category.displayName,
                     categoryIcon = category.icon,
-                    checks = checks
+                    checks = checks,
+                    globalMaxPoints = globalMaxPoints
                 )
             }
 
@@ -140,10 +144,11 @@ private fun CategorySection(
     categoryName: String,
     categoryIcon: ImageVector,
     checks: List<PrivacyCheck>,
+    globalMaxPoints: Int,
     modifier: Modifier = Modifier
 ) {
     val categoryMaxPoints = remember(checks) { checks.sumOf { it.pointDeduction } }
-    var expanded by remember { mutableStateOf(false) }
+    val barFraction = (categoryMaxPoints.toFloat() / globalMaxPoints.toFloat()).coerceIn(0f, 1f)
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -152,14 +157,12 @@ private fun CategorySection(
             containerColor = MaterialTheme.colorScheme.surface
         )
     ) {
-        Column {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { expanded = !expanded }
-                    .padding(16.dp)
-            ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Header row: icon + name + point badge
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = categoryIcon,
                     contentDescription = null,
@@ -184,26 +187,28 @@ private fun CategorySection(
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     )
                 }
-                Spacer(modifier = Modifier.width(8.dp))
-                Icon(
-                    imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                    contentDescription = if (expanded) "Collapse" else "Expand",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(20.dp)
+            }
+
+            // Weight bar: filled portion proportional to globalMaxPoints
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(fraction = barFraction)
+                        .fillMaxHeight()
+                        .background(MaterialTheme.colorScheme.primary)
                 )
             }
-            AnimatedVisibility(visible = expanded) {
-                Column(
-                    modifier = Modifier
-                        .padding(horizontal = 16.dp)
-                        .padding(bottom = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    HorizontalDivider()
-                    Spacer(modifier = Modifier.height(4.dp))
-                    checks.forEach { check ->
-                        CheckPointRow(check = check)
-                    }
+
+            // Individual checks — flat, non-interactive
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                checks.forEach { check ->
+                    CheckPointRow(check = check)
                 }
             }
         }
@@ -221,7 +226,7 @@ private fun CheckPointRow(
     ) {
         Text(
             text = check.displayName,
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.weight(1f)
         )
@@ -232,9 +237,8 @@ private fun CheckPointRow(
         ) {
             Text(
                 text = "-${check.pointDeduction}",
-                style = MaterialTheme.typography.labelMedium,
+                style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
             )
         }

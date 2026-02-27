@@ -77,6 +77,15 @@ fun QuickWinDetailScreen(
                         )
                     }
                 },
+                actions = {
+                    TextButton(onClick = onDismiss) {
+                        Text(
+                            text = "Ignore",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)
+                        )
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     titleContentColor = MaterialTheme.colorScheme.onPrimary,
@@ -181,18 +190,6 @@ fun QuickWinDetailScreen(
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
-            }
-
-            // Dismiss — low-prominence text button, discoverable but not accidental
-            TextButton(
-                onClick = onDismiss,
-                modifier = Modifier.align(Alignment.CenterHorizontally)
-            ) {
-                Text(
-                    text = "Not interested",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
             }
         }
     }
