@@ -249,13 +249,15 @@ class DefaultAppsChecker(private val context: Context) {
             }
 
             // Everything else is non-privacy-friendly (including Gboard, SwiftKey, Samsung, Xiaomi, Huawei, etc.)
-            val appName = getAppName(currentKeyboard.substringBefore('/'))
+            val keyboardPackage = currentKeyboard.substringBefore('/')
+            val appName = getAppName(keyboardPackage)
             return PrivacyIssue(
                 check = PrivacyCheck.DEFAULT_KEYBOARD,
                 isSecure = false,
                 currentStatus = "Using $appName",
                 technicalDetails = "IME: $currentKeyboard",
-                customPointDeduction = 3
+                customPointDeduction = 3,
+                flaggedPackages = listOf(keyboardPackage)
             )
         } catch (e: Exception) {
             if (BuildConfig.DEBUG) Log.e(TAG, "Error checking default keyboard", e)
