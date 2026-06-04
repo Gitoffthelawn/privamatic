@@ -32,7 +32,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.techtrest.privamatic.data.model.PrivacyCategory
 import com.techtrest.privamatic.data.model.PrivacyScore
@@ -41,14 +40,24 @@ import com.techtrest.privamatic.data.model.PrivacyScore
 fun CategoryGroup(
     category: PrivacyCategory,
     privacyScore: PrivacyScore,
-    statusColor: Color,
     trustedPackages: Set<String> = emptySet(),
     modifier: Modifier = Modifier
 ) {
     val issues = PrivacyCategory.getIssuesForCategory(category, privacyScore)
+    val totalCount = issues.size
+
+    val issuesCount = remember(privacyScore, trustedPackages) {
+        issues.count { issue ->
+            !issue.isSecure &&
+            !issue.check.isInformational &&
+            !(issue.flaggedPackages.isNotEmpty() && issue.flaggedPackages.all { it in trustedPackages })
+        }
+    }
+
+    val statusColor = if (issuesCount > 0) MaterialTheme.colorScheme.error
+                      else MaterialTheme.colorScheme.primary
 
     var isExpanded by remember { mutableStateOf(false) }
-    val (issuesCount, totalCount) = PrivacyCategory.getIssuesCount(category, privacyScore)
 
     Card(
         modifier = modifier.fillMaxWidth(),

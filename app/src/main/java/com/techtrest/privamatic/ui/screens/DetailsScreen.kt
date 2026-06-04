@@ -36,7 +36,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.platform.LocalContext
@@ -122,11 +121,9 @@ private fun ChecksContent(
         }
 
         items(securityCategories, key = { it.name }) { category ->
-            val statusColor = getCategoryStatusColor(category, privacyScore)
             CategoryGroup(
                 category = category,
                 privacyScore = privacyScore,
-                statusColor = statusColor,
                 trustedPackages = trustedPackages
             )
         }
@@ -141,11 +138,9 @@ private fun ChecksContent(
         }
 
         items(surveillanceCategories, key = { it.name }) { category ->
-            val statusColor = getCategoryStatusColor(category, privacyScore)
             CategoryGroup(
                 category = category,
                 privacyScore = privacyScore,
-                statusColor = statusColor,
                 trustedPackages = trustedPackages
             )
         }
@@ -331,12 +326,3 @@ private fun AppTrustRow(
     }
 }
 
-@Composable
-private fun getCategoryStatusColor(category: PrivacyCategory, privacyScore: PrivacyScore): Color {
-    val (issuesCount, _) = PrivacyCategory.getIssuesCount(category, privacyScore)
-    return if (issuesCount > 0) {
-        MaterialTheme.colorScheme.error
-    } else {
-        MaterialTheme.colorScheme.primary
-    }
-}
