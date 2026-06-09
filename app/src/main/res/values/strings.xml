@@ -139,6 +139,8 @@
     <string name="privacy_check_google_play_services_description">Google Play Services has deep access to your device and enables extensive tracking and data collection across all apps</string>
     <string name="privacy_check_google_play_services_recommendation">Consider using GrapheneOS to run Google Play Services with limited access, significantly reducing its reach on your device.</string>
     <string name="privacy_check_google_play_services_action">Open App Settings</string>
+    <string name="status_google_play_services_microg">MicroG installed (privacy-friendly replacement)</string>
+    <string name="status_google_play_services_sandboxed">Installed (sandboxed)</string>
 
     <!-- ============================================================ -->
     <!-- PRIVACY CHECKS — DEFAULT APPS -->
