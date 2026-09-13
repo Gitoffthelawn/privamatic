@@ -142,6 +142,13 @@ Checking a single package is insufficient.
 - Purpose: microG-related detection/behaviour tests only (e.g. `MicroGDetectionDeviceTest`).
   It is NOT a general Google-APIs test device — AOSP was chosen precisely because Google
   APIs images ship a real `com.google.android.gms`, which blocks installing microG over it
+- Snapshot `gcam_photos_shim_installed` = `microg_installed_baseline` plus Gcam Services
+  Provider v1.6.1 *photosonly* (`app-photosonly-release.apk` from the project's GitHub
+  releases, signer `CN=Lukas Pieper`, SHA-256 `357c243c…`) installed as
+  `com.google.android.apps.photos`. Purpose: `GooglePhotosShimDeviceTest` positive path (#20).
+  Gotcha: the *photos* flavor cannot be installed here — its `com.google.android.gsf.gservices`
+  provider conflicts with microG's (`INSTALL_FAILED_CONFLICTING_PROVIDER`); *photosonly*
+  is also the only flavor GrapheneOS users run
 - Gotcha: the default renderer (SwiftShader, also `-gpu off`/`auto` headless) segfaults on
   this machine — always launch with `-gpu host`:
   `~/Android/Sdk/emulator/emulator -avd microg_test_api35 -no-window -gpu host -no-audio -no-boot-anim`
