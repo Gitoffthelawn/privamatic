@@ -8,7 +8,7 @@ Whether you're just starting to take privacy seriously or you're already running
 - Surveillance apps (Google, Meta, Microsoft, TikTok, AI assistants)
 - Default apps (browser, keyboard, launcher, email)
 
-microG is detected and not penalised, GrapheneOS sandboxed Play is recognised, and checks that don't apply to your setup are automatically skipped.
+microG is detected and not penalised, GrapheneOS sandboxed Play is recognised, camera-compatibility shims are not mistaken for real Google apps, and checks that do not apply to your setup are automatically skipped.
 
 Quick Wins surface the easiest improvements first — each one includes plain-English instructions and a direct link to the relevant Settings page so you never have to hunt around.
 
@@ -25,7 +25,7 @@ Manual Checks remind you to periodically review location permissions, camera and
 A home screen widget keeps your privacy score visible at a glance, with Material You theming that adapts to your wallpaper.
 
 Privacy is built in:
-- Fully offline — no network requests, ever
+- Fully offline — no network requests, ever. Privamatic never requests the INTERNET permission, so Android will not let it connect even if it tried; check F-Droid's permission list or the open source code yourself.
 - No accounts, no cloud sync, no analytics
 - All data stays on your device
 - Open source (GPLv3)

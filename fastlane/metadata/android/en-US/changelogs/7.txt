@@ -1,0 +1,3 @@
+Fixed: microG was sometimes flagged as full Google Play Services with system privileges, even though it's a privacy-friendly replacement. This affected CalyxOS and LineageOS-for-microG users.
+
+Fixed: camera compatibility shims (like Gcam Services Provider) were mistaken for the real Google Photos app, capping some scores at 99%.
