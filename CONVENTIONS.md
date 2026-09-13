@@ -133,6 +133,21 @@ Checking a single package is insufficient.
 - Release keystore at `~/privamatic-release.jks`
 - Passwords via env vars `PRIVAMATIC_STORE_PASSWORD` / `PRIVAMATIC_KEY_PASSWORD`
 
+**microG test emulator (MiniPC):**
+- AVD `microg_test_api35`: AOSP x86_64 API 35 (`system-images;android-35;default;x86_64`),
+  **no Google APIs**, with microG GmsCore 0.3.16.252432 sideloaded from the official
+  microG F-Droid repo (`https://repo.microg.org/fdroid/repo`, signer `O=NOGAPPS Project`)
+- Snapshot `microg_installed_baseline` = clean boot with microG installed; load it with
+  `-snapshot microg_installed_baseline` (or restore via `adb emu avd snapshot load`)
+- Purpose: microG-related detection/behaviour tests only (e.g. `MicroGDetectionDeviceTest`).
+  It is NOT a general Google-APIs test device — AOSP was chosen precisely because Google
+  APIs images ship a real `com.google.android.gms`, which blocks installing microG over it
+- Gotcha: the default renderer (SwiftShader, also `-gpu off`/`auto` headless) segfaults on
+  this machine — always launch with `-gpu host`:
+  `~/Android/Sdk/emulator/emulator -avd microg_test_api35 -no-window -gpu host -no-audio -no-boot-anim`
+- Scope Gradle to it with `ANDROID_SERIAL=emulator-5554 ./gradlew connectedDebugAndroidTest`
+  when the Pixel 8 is also attached
+
 **Git discipline:**
 - Feature branches always — never commit directly to `master`
 - `git diff → git status → git add → git commit` — always in this order
