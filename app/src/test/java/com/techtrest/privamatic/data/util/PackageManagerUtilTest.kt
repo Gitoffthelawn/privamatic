@@ -1,9 +1,13 @@
 package com.techtrest.privamatic.data.util
 
+import android.Manifest
+import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.mockito.Mockito.mock
@@ -17,6 +21,7 @@ class PackageManagerUtilTest {
 
     private companion object {
         const val GMS = "com.google.android.gms"
+        const val PHOTOS = "com.google.android.apps.photos"
     }
 
     /** android.jar stubs throw on construction, so build the PM data objects as mocks with fields set. */
@@ -29,6 +34,19 @@ class PackageManagerUtilTest {
         }
         val pm = mock(PackageManager::class.java)
         `when`(pm.getPackageInfo(GMS, PackageManager.GET_ACTIVITIES)).thenReturn(info)
+        return pm
+    }
+
+    /** A package under Google Photos' name requesting [permissions], with or without a launcher activity. */
+    private fun packageManagerWithPhotos(
+        permissions: Array<String>?,
+        hasLauncher: Boolean
+    ): PackageManager {
+        val info = mock(PackageInfo::class.java).apply { requestedPermissions = permissions }
+        val pm = mock(PackageManager::class.java)
+        `when`(pm.getPackageInfo(PHOTOS, PackageManager.GET_PERMISSIONS)).thenReturn(info)
+        `when`(pm.getLaunchIntentForPackage(PHOTOS))
+            .thenReturn(if (hasLauncher) mock(Intent::class.java) else null)
         return pm
     }
 
@@ -97,5 +115,73 @@ class PackageManagerUtilTest {
         assertTrue(PackageManagerUtil.isMicroGPackage(GMS, isMicroGInstalled = true))
         assertFalse(PackageManagerUtil.isMicroGPackage(GMS, isMicroGInstalled = false))
         assertFalse(PackageManagerUtil.isMicroGPackage("com.google.android.gsf", isMicroGInstalled = true))
+    }
+
+    // -------------------------------------------------------------------------
+    // googlePhotosShimReason / isGooglePhotosShim (#20)
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun `real Google Photos requesting INTERNET with a launcher is genuine`() {
+        val pm = packageManagerWithPhotos(
+            permissions = arrayOf(
+                Manifest.permission.INTERNET,
+                Manifest.permission.CAMERA,
+                Manifest.permission.READ_MEDIA_IMAGES
+            ),
+            hasLauncher = true
+        )
+        assertNull(PackageManagerUtil.googlePhotosShimReason(pm))
+        assertFalse(PackageManagerUtil.isGooglePhotosShim(pm))
+    }
+
+    @Test
+    fun `Gcam Services Provider photosonly flavor requests nothing and is a shim`() {
+        // photosonly ships no <uses-permission> at all and a Theme.NoDisplay activity
+        val pm = packageManagerWithPhotos(permissions = null, hasLauncher = false)
+        assertEquals(
+            "does not request android.permission.INTERNET",
+            PackageManagerUtil.googlePhotosShimReason(pm)
+        )
+        assertTrue(PackageManagerUtil.isGooglePhotosShim(pm))
+    }
+
+    @Test
+    fun `CalyxOS GCamPhotosPreview requesting only QUERY_ALL_PACKAGES is a shim`() {
+        val pm = packageManagerWithPhotos(
+            permissions = arrayOf(Manifest.permission.QUERY_ALL_PACKAGES),
+            hasLauncher = false
+        )
+        assertEquals(
+            "does not request android.permission.INTERNET",
+            PackageManagerUtil.googlePhotosShimReason(pm)
+        )
+        assertTrue(PackageManagerUtil.isGooglePhotosShim(pm))
+    }
+
+    @Test
+    fun `headless package requesting INTERNET is still flagged by the launcher signal`() {
+        val pm = packageManagerWithPhotos(
+            permissions = arrayOf(Manifest.permission.INTERNET),
+            hasLauncher = false
+        )
+        assertEquals("has no launcher activity", PackageManagerUtil.googlePhotosShimReason(pm))
+    }
+
+    @Test
+    fun `photos package not installed is not reported as a shim`() {
+        val pm = mock(PackageManager::class.java)
+        `when`(pm.getPackageInfo(PHOTOS, PackageManager.GET_PERMISSIONS))
+            .thenThrow(PackageManager.NameNotFoundException(PHOTOS))
+        assertNull(PackageManagerUtil.googlePhotosShimReason(pm))
+        assertFalse(PackageManagerUtil.isGooglePhotosShim(pm))
+    }
+
+    @Test
+    fun `package manager failure degrades to genuine rather than crashing the scan`() {
+        val pm = mock(PackageManager::class.java)
+        `when`(pm.getPackageInfo(PHOTOS, PackageManager.GET_PERMISSIONS))
+            .thenThrow(RuntimeException("binder transaction too large"))
+        assertFalse(PackageManagerUtil.isGooglePhotosShim(pm))
     }
 }

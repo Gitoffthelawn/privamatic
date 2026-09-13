@@ -248,6 +248,22 @@ class InstalledAppsChecker(private val context: Context) {
             // VARIANT_PACKAGES entry resolve to the primary package alone, unchanged.
             val candidates = listOf(packageName) + PackageNames.VARIANT_PACKAGES[packageName].orEmpty()
             val installedPackage = candidates.firstOrNull { isAppInstalled(it) }
+
+            // Gcam photo-preview shims (Gcam Services Provider, CalyxOS) install
+            // under Google Photos' package name so Gcam's "view last photo" button
+            // works. They are headless, offline stubs, not Google Photos (#20).
+            if (check == PrivacyCheck.GOOGLE_PHOTOS && installedPackage != null) {
+                val shimReason = PackageManagerUtil.googlePhotosShimReason(packageManager)
+                if (shimReason != null) {
+                    return PrivacyIssue(
+                        check = check,
+                        isSecure = true,
+                        currentStatus = "Not installed (Gcam photo-preview shim detected, not Google Photos)",
+                        technicalDetails = "Package: $installedPackage $shimReason"
+                    )
+                }
+            }
+
             val isSystem = installedPackage != null &&
                 PackageManagerUtil.isSystemApp(packageManager, installedPackage)
 
