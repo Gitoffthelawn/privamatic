@@ -36,20 +36,23 @@ object PackageManagerUtil {
     }
 
     /**
-     * Whether microG is installed, detected by the presence of any of its companion
-     * packages. microG itself installs under Google's package name via signature
-     * spoofing, so [MICROG_SPOOFED_PACKAGE] alone proves nothing — the companions do.
+     * Whether microG is installed. microG installs under Google's package name via
+     * signature spoofing, but spoofing only fakes the certificate — the manifest is
+     * microG's own, so its components live in the `org.microg.` namespace (e.g.
+     * `org.microg.gms.ui.SettingsActivity`). Real Play Services never ships such
+     * components. Sibling packages (droidguard, nlp) are no longer a usable signal:
+     * modern microG compiles them into GmsCore itself (#11, #19).
      *
      * This lookup hits the PackageManager; call it once per scan, not per package.
      */
     fun isMicroGInstalled(packageManager: PackageManager): Boolean {
-        return MICROG_COMPANION_PACKAGES.any { pkg ->
-            try {
-                packageManager.getApplicationInfo(pkg, 0)
-                true
-            } catch (e: PackageManager.NameNotFoundException) {
-                false
-            }
+        return try {
+            val info = packageManager.getPackageInfo(
+                MICROG_SPOOFED_PACKAGE, PackageManager.GET_ACTIVITIES
+            )
+            info.activities?.any { it.name.startsWith(MICROG_COMPONENT_PREFIX) } == true
+        } catch (_: Exception) {
+            false
         }
     }
 
@@ -64,9 +67,6 @@ object PackageManagerUtil {
     /** The Google package name microG installs itself under. */
     private const val MICROG_SPOOFED_PACKAGE = "com.google.android.gms"
 
-    private val MICROG_COMPANION_PACKAGES = listOf(
-        "org.microg.gms.self",       // microG Settings — most reliable, present in all standard builds
-        "org.microg.gms.droidguard", // SafetyNet module — optional
-        "org.microg.nlp"             // Network location provider — older builds
-    )
+    /** Class-name prefix shared by every component in microG's manifest. */
+    private const val MICROG_COMPONENT_PREFIX = "org.microg."
 }
