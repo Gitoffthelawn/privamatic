@@ -4,9 +4,13 @@
 - **Package**: `com.techtrest.privamatic` (NOT `com.techtrest.privacywidget` — grep before prompting)
 - **Source root**: `app/src/main/java/com/techtrest/privamatic/`
 - **Project path**: `~/Local App Projects/Privamatic` — always quote in shell commands (spaces)
-- **Build command (MiniPC)**: `JAVA_HOME=/opt/android-studio/jbr ./gradlew compileDebugKotlin`
+- **Build command (MiniPC)**: `JAVA_HOME=/home/techtresthome/.local/share/jdk/temurin-21 ./gradlew compileDebugKotlin`
+  — pinned Temurin 21.0.7 (extracted from Gradle's downloaded tarball, Sept 2026). The Android Studio JBR at
+  `/opt/android-studio/jbr` was upgraded to Java 25, which Gradle 8.10 rejects (`IllegalArgumentException: 25.0.2`);
+  `~/.gradle/jdks/` is an auto-managed toolchain cache, so don't depend on it.
 - **Build command (Framework laptop)**: `JAVA_HOME=/home/techtrest/.local/share/android-studio/jbr ./gradlew compileDebugKotlin`
-  — system JDK 25 breaks Kotlin parser on both machines; never omit JAVA_HOME prefix
+  — if that JBR has also moved to 25, replicate the MiniPC fix (extract a JDK 21 to `~/.local/share/jdk/temurin-21`)
+- System JDK 25 breaks Kotlin parser on both machines; never omit JAVA_HOME prefix
 - **Default branch**: `master` (not `main`)
 
 ## File Structure
@@ -118,7 +122,7 @@ Checking a single package is insufficient.
 - `isMinifyEnabled = true` and `isShrinkResources = true` on release builds
 - All response/model DTOs explicitly listed in `proguard-rules.pro`
   (R8 silently breaks Gson/Retrofit in release; symptoms never appear in debug)
-- Test `JAVA_HOME=/opt/android-studio/jbr ./gradlew assembleRelease` before every tag
+- Test `JAVA_HOME=/home/techtresthome/.local/share/jdk/temurin-21 ./gradlew assembleRelease` before every tag
 
 **Versioning:**
 - Always bump `versionCode` before tagging — F-Droid uses versionCode to detect releases
