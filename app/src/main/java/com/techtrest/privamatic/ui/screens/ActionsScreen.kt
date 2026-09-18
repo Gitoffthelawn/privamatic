@@ -496,7 +496,7 @@ private fun ManualCheckGarminRow(
                         .fillMaxWidth()
                         .height(8.dp)
                         .clip(RoundedCornerShape(8.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .background(MaterialTheme.colorScheme.outline)
                 ) {
                     if (progressValue > 0f) {
                         Box(
