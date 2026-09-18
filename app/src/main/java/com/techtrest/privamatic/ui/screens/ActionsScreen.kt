@@ -455,7 +455,7 @@ private fun ManualCheckGarminRow(
     Surface(
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surface
+        color = MaterialTheme.colorScheme.surfaceContainerHighest
     ) {
         Row(
             modifier = Modifier
