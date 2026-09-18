@@ -5,6 +5,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,9 +27,9 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -185,26 +186,40 @@ fun ActionsScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 2. Manual Checks Section - edge-to-edge
+        // 2. Manual Checks Section - rounded card matching Quick Wins / tip card
         Column(
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
         ) {
-            // Section title with padding
             Text(
                 text = stringResource(R.string.label_actions_manual_checks),
                 style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(horizontal = 16.dp)
+                color = MaterialTheme.colorScheme.onSurface
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            // Edge-to-edge rows with no spacing between them
-            checkStates.forEach { checkState ->
-                ManualCheckGarminRow(
-                    checkState = checkState,
-                    onClick = { onNavigateToGuide(checkState.type) }
-                )
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                ),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+            ) {
+                checkStates.forEachIndexed { index, checkState ->
+                    ManualCheckGarminRow(
+                        checkState = checkState,
+                        onClick = { onNavigateToGuide(checkState.type) }
+                    )
+                    if (index < checkStates.lastIndex) {
+                        HorizontalDivider(
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                        )
+                    }
+                }
             }
         }
 
@@ -234,8 +249,9 @@ private fun PrivacyTipCard(
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
         ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
@@ -356,9 +372,10 @@ private fun QuickWinCompactTile(
         onClick = onClick,
         modifier = modifier.aspectRatio(1f),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
             modifier = Modifier
@@ -438,9 +455,8 @@ private fun QuickWinAllDoneCard(
 }
 
 /**
- * Garmin-style full-width row for Manual Checks.
- * Icon vertically centered on left, title/progress/status on right.
- * No card elevation, subtle press state, edge-to-edge layout.
+ * Row for a single Manual Check, laid out inside the Manual Checks card.
+ * Icon in a leading column, title/progress/status filling the rest.
  */
 @Composable
 private fun ManualCheckGarminRow(
@@ -452,69 +468,60 @@ private fun ManualCheckGarminRow(
     val progressColor = getProgressColor(checkState)
     val statusText = getStatusText(checkState, context)
 
-    Surface(
-        onClick = onClick,
-        modifier = modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surface
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
+        // Icon - leading column
+        Icon(
+            imageVector = checkState.type.icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(32.dp)
+        )
+
+        Spacer(modifier = Modifier.width(16.dp))
+
+        // Content - title, progress, status
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            // Icon - vertically centered on left with start padding
-            Icon(
-                imageVector = checkState.type.icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier
-                    .size(32.dp)
-                    .padding(start = 16.dp)
+            // Title
+            Text(
+                text = stringResource(checkState.type.displayName),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface
             )
 
-            Spacer(modifier = Modifier.width(16.dp))
-
-            // Content - title, progress, status
-            Column(
+            // Custom progress bar (fixes dot bug at 0% progress)
+            val progressValue = checkState.fillPercentage.coerceIn(0f, 1f)
+            Box(
                 modifier = Modifier
-                    .weight(1f)
-                    .padding(end = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                    .fillMaxWidth()
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.outlineVariant)
             ) {
-                // Title
-                Text(
-                    text = stringResource(checkState.type.displayName),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-
-                // Custom progress bar (fixes dot bug at 0% progress)
-                val progressValue = checkState.fillPercentage.coerceIn(0f, 1f)
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(8.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                ) {
-                    if (progressValue > 0f) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxHeight()
-                                .fillMaxWidth(progressValue)
-                                .background(progressColor)
-                        )
-                    }
+                if (progressValue > 0f) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .fillMaxWidth(progressValue)
+                            .background(progressColor)
+                    )
                 }
-
-                // Status text
-                Text(
-                    text = statusText,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
             }
+
+            // Status text
+            Text(
+                text = statusText,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }

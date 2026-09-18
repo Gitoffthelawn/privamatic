@@ -4,21 +4,21 @@ import android.content.Context
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
-import com.techtrest.privamatic.Amber
 import com.techtrest.privamatic.R
 import com.techtrest.privamatic.data.model.ManualCheckState
 
 /**
  * Progress bar colour for a manual check based on how close it is to its review window.
- * Overdue checks (>= 1f) and freshly completed checks (< 0.86f) both use primary; the
- * intermediate bands warn with tertiary then Amber as the review date approaches.
+ * A hard switch, not a gradient: secondary (calm) while time remains, tertiary (the app's
+ * existing "attention" role, also used for warning icons in IssueItem/DetailsScreen) once
+ * the check is due, matching the point where the status text switches to "Review needed".
  */
 @Composable
 fun getProgressColor(checkState: ManualCheckState): Color {
-    return when {
-        checkState.fillPercentage >= 0.96f && checkState.fillPercentage < 1f -> MaterialTheme.colorScheme.tertiary
-        checkState.fillPercentage >= 0.86f && checkState.fillPercentage < 0.96f -> Amber
-        else -> MaterialTheme.colorScheme.primary
+    return if (checkState.fillPercentage >= 1f) {
+        MaterialTheme.colorScheme.tertiary
+    } else {
+        MaterialTheme.colorScheme.secondary
     }
 }
 
