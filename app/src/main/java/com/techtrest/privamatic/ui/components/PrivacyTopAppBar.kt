@@ -9,9 +9,9 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -88,10 +88,11 @@ fun PrivacyTopAppBar(
                     }
                 )
             }
-            // Info button
+            // Info button - outlined glyph so it matches the stroke weight of Refresh
+            // (the filled Info glyph is a solid disc and reads as a filled button)
             IconButton(onClick = onInfoClick) {
                 Icon(
-                    imageVector = Icons.Default.Info,
+                    imageVector = Icons.Outlined.Info,
                     contentDescription = stringResource(R.string.label_topbar_scoring_info)
                 )
             }
