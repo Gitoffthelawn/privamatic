@@ -3,6 +3,7 @@ package com.techtrest.privamatic.ui.components
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
@@ -10,6 +11,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
+import com.techtrest.privamatic.BuildConfig
 import com.techtrest.privamatic.R
 
 @Composable
@@ -35,10 +37,16 @@ fun AboutDialog(
             )
         },
         text = {
-            Text(
-                text = stringResource(R.string.copy_about_body),
-                style = MaterialTheme.typography.bodyMedium
-            )
+            Column {
+                Text(
+                    text = stringResource(R.string.copy_about_body),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Text(
+                    text = stringResource(R.string.fmt_about_version, BuildConfig.VERSION_NAME),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
