@@ -910,6 +910,7 @@
     <!-- FORMAT STRINGS -->
     <!-- ============================================================ -->
     <string name="fmt_widget_opacity">Opacity: %d%%</string>
+    <string name="fmt_about_version">Version %s</string>
     <string name="fmt_score_delta_up">↑%d pts</string>
     <string name="fmt_score_delta_down">↓%d pts</string>
     <string name="fmt_widget_delta_up">↑%d</string>
