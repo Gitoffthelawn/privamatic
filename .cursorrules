@@ -4,8 +4,10 @@
 - **Package**: `com.techtrest.privamatic` (NOT `com.techtrest.privacywidget` — grep before prompting)
 - **Source root**: `app/src/main/java/com/techtrest/privamatic/`
 - **Project path**: `~/Local App Projects/Privamatic` — always quote in shell commands (spaces)
-- **Build command**: `JAVA_HOME=/opt/android-studio/jbr ./gradlew compileDebugKotlin`
-  — system JDK 25 breaks Kotlin parser; never omit JAVA_HOME prefix
+- **Build command (MiniPC)**: `JAVA_HOME=/home/techtresthome/.local/share/jdk/temurin-21 ./gradlew compileDebugKotlin`
+  — Framework laptop has its own separate JDK path (see CONVENTIONS.md); system JDK 25
+  breaks Kotlin parser, so `/opt/android-studio/jbr` is not a valid build JDK; never omit
+  JAVA_HOME prefix
 - **Default branch**: `master` (not `main`)
 
 ## File Structure
@@ -117,7 +119,7 @@ Checking a single package is insufficient.
 - `isMinifyEnabled = true` and `isShrinkResources = true` on release builds
 - All response/model DTOs explicitly listed in `proguard-rules.pro`
   (R8 silently breaks Gson/Retrofit in release; symptoms never appear in debug)
-- Test `JAVA_HOME=/opt/android-studio/jbr ./gradlew assembleRelease` before every tag
+- Test `JAVA_HOME=/home/techtresthome/.local/share/jdk/temurin-21 ./gradlew assembleRelease` before every tag
 
 **Versioning:**
 - Always bump `versionCode` before tagging — F-Droid uses versionCode to detect releases
