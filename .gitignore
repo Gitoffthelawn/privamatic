@@ -50,3 +50,8 @@ lint-results*.html
 .idea/
 .claude/
 devcheck_decompiled/
+
+# Aider local session state
+.aider.chat.history.md
+.aider.input.history
+.aider.tags.cache.v4/
