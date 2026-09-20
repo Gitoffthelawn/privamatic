@@ -311,7 +311,7 @@ private fun ScoreLineChart(
     val density = LocalDensity.current
     val primaryColor = MaterialTheme.colorScheme.primary
     val gridColor = MaterialTheme.colorScheme.outlineVariant
-    val selectedColor = MaterialTheme.colorScheme.secondary
+    val selectedColor = MaterialTheme.colorScheme.tertiary
     val axisLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
 
     val scores = snapshots.map { it.score }
