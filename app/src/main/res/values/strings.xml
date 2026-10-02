@@ -49,7 +49,7 @@
     <!-- PRIVACY CATEGORIES -->
     <!-- ============================================================ -->
     <string name="privacy_category_system_security_name">System Security</string>
-    <string name="privacy_category_network_privacy_name">Network &amp; Tracking Privacy</string>
+    <string name="privacy_category_network_privacy_name">Network &amp; Tracking</string>
     <string name="privacy_category_google_services_name">Google Services</string>
     <string name="privacy_category_default_apps_name">Default Apps</string>
     <string name="privacy_category_google_apps_name">Google Apps</string>
