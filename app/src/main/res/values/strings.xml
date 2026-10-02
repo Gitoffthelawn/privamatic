@@ -915,7 +915,6 @@
     <string name="fmt_score_delta_down">↓%d pts</string>
     <string name="fmt_widget_delta_up">↑%d</string>
     <string name="fmt_widget_delta_down">↓%d</string>
-    <string name="fmt_category_count">(%1$d/%2$d)</string>
     <string name="fmt_cd_collapse">Collapse %s</string>
     <string name="fmt_cd_expand">Expand %s</string>
     <string name="fmt_review_period">Review every %d days</string>
@@ -938,6 +937,16 @@
     <plurals name="plural_issue_count">
         <item quantity="one">1 Issue</item>
         <item quantity="other">%d Issues</item>
+    </plurals>
+
+    <plurals name="plural_category_issues">
+        <item quantity="one">%d issue</item>
+        <item quantity="other">%d issues</item>
+    </plurals>
+
+    <plurals name="plural_category_pass">
+        <item quantity="one">%d pass</item>
+        <item quantity="other">%d pass</item>
     </plurals>
 
     <plurals name="plural_action_count">
