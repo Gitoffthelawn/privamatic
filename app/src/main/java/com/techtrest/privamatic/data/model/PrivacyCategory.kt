@@ -2,14 +2,14 @@ package com.techtrest.privamatic.data.model
 
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Apps
-import androidx.compose.material.icons.filled.Business
-import androidx.compose.material.icons.filled.Cloud
-import androidx.compose.material.icons.filled.Computer
-import androidx.compose.material.icons.filled.Language
-import androidx.compose.material.icons.filled.People
-import androidx.compose.material.icons.filled.Security
-import androidx.compose.material.icons.filled.SmartToy
+import androidx.compose.material.icons.outlined.Apps
+import androidx.compose.material.icons.outlined.Business
+import androidx.compose.material.icons.outlined.Cloud
+import androidx.compose.material.icons.outlined.Computer
+import androidx.compose.material.icons.outlined.Language
+import androidx.compose.material.icons.outlined.People
+import androidx.compose.material.icons.outlined.Shield
+import androidx.compose.material.icons.outlined.SmartToy
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.techtrest.privamatic.R
 
@@ -20,7 +20,7 @@ enum class PrivacyCategory(
 ) {
     SYSTEM_SECURITY(
         displayName = R.string.privacy_category_system_security_name,
-        icon = Icons.Filled.Security,
+        icon = Icons.Outlined.Shield,
         checks = listOf(
             PrivacyCheck.SCREEN_LOCK,
             PrivacyCheck.DEVICE_ENCRYPTION,
@@ -37,7 +37,7 @@ enum class PrivacyCategory(
     ),
     NETWORK_PRIVACY(
         displayName = R.string.privacy_category_network_privacy_name,
-        icon = Icons.Filled.Language,
+        icon = Icons.Outlined.Language,
         checks = listOf(
             PrivacyCheck.VPN_CONNECTION,
             PrivacyCheck.PRIVATE_DNS,
@@ -47,7 +47,7 @@ enum class PrivacyCategory(
     ),
     GOOGLE_SERVICES(
         displayName = R.string.privacy_category_google_services_name,
-        icon = Icons.Filled.Cloud,
+        icon = Icons.Outlined.Cloud,
         checks = listOf(
             PrivacyCheck.FIND_MY_DEVICE,
             PrivacyCheck.GOOGLE_PLAY_SERVICES
@@ -55,7 +55,7 @@ enum class PrivacyCategory(
     ),
     DEFAULT_APPS(
         displayName = R.string.privacy_category_default_apps_name,
-        icon = Icons.Filled.Apps,
+        icon = Icons.Outlined.Apps,
         checks = listOf(
             PrivacyCheck.DEFAULT_BROWSER,
             PrivacyCheck.DEFAULT_KEYBOARD,
@@ -66,7 +66,7 @@ enum class PrivacyCategory(
     ),
     GOOGLE_APPS(
         displayName = R.string.privacy_category_google_apps_name,
-        icon = Icons.Filled.Business,
+        icon = Icons.Outlined.Business,
         checks = listOf(
             PrivacyCheck.GOOGLE_CHROME,
             PrivacyCheck.GMAIL_APP,
@@ -82,7 +82,7 @@ enum class PrivacyCategory(
     ),
     META_FACEBOOK_APPS(
         displayName = R.string.privacy_category_meta_facebook_name,
-        icon = Icons.Filled.People,
+        icon = Icons.Outlined.People,
         checks = listOf(
             PrivacyCheck.FACEBOOK_APP,
             PrivacyCheck.INSTAGRAM_APP,
@@ -92,7 +92,7 @@ enum class PrivacyCategory(
     ),
     MICROSOFT_APPS(
         displayName = R.string.privacy_category_microsoft_name,
-        icon = Icons.Filled.Computer,
+        icon = Icons.Outlined.Computer,
         checks = listOf(
             PrivacyCheck.EDGE_APP,
             PrivacyCheck.OUTLOOK_APP,
@@ -101,7 +101,7 @@ enum class PrivacyCategory(
     ),
     AI_AND_OTHER_APPS(
         displayName = R.string.privacy_category_ai_other_name,
-        icon = Icons.Filled.SmartToy,
+        icon = Icons.Outlined.SmartToy,
         checks = listOf(
             PrivacyCheck.CHATGPT_APP,
             PrivacyCheck.GOOGLE_GEMINI,

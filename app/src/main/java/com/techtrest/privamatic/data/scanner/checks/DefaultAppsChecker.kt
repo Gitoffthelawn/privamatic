@@ -103,6 +103,7 @@ class DefaultAppsChecker(private val context: Context) {
                 PrivacyIssue(
                     check = PrivacyCheck.DEFAULT_BROWSER,
                     isSecure = true,
+                    isUnknown = true,
                     currentStatus = "Using $appName (unknown, 0 pts)",
                     technicalDetails = "Package: $finalPackage",
                     customPointDeduction = 0
@@ -113,6 +114,7 @@ class DefaultAppsChecker(private val context: Context) {
             PrivacyIssue(
                 check = PrivacyCheck.DEFAULT_BROWSER,
                 isSecure = true,
+                isUnknown = true,
                 currentStatus = "Unable to determine default browser",
                 technicalDetails = "Error: ${e.message}",
                 customPointDeduction = 0
@@ -187,6 +189,7 @@ class DefaultAppsChecker(private val context: Context) {
                 PrivacyIssue(
                     check = PrivacyCheck.DEFAULT_SMS,
                     isSecure = true,
+                    isUnknown = true,
                     currentStatus = "Using $appName (unknown, 0 pts)",
                     technicalDetails = "Package: $defaultSmsPackage",
                     customPointDeduction = 0
@@ -197,6 +200,7 @@ class DefaultAppsChecker(private val context: Context) {
             PrivacyIssue(
                 check = PrivacyCheck.DEFAULT_SMS,
                 isSecure = true,
+                isUnknown = true,
                 currentStatus = "Unable to determine default SMS app",
                 technicalDetails = "Error: ${e.message}",
                 customPointDeduction = 0
@@ -265,6 +269,7 @@ class DefaultAppsChecker(private val context: Context) {
             PrivacyIssue(
                 check = PrivacyCheck.DEFAULT_KEYBOARD,
                 isSecure = true,
+                isUnknown = true,
                 currentStatus = "Unable to determine default keyboard",
                 technicalDetails = "Error: ${e.message}",
                 customPointDeduction = 0
@@ -342,6 +347,7 @@ class DefaultAppsChecker(private val context: Context) {
                 PrivacyIssue(
                     check = PrivacyCheck.DEFAULT_EMAIL,
                     isSecure = true,
+                    isUnknown = true,
                     currentStatus = "Using $appName (unknown, 0 pts)",
                     technicalDetails = "Package: $packageName",
                     customPointDeduction = 0
@@ -352,6 +358,7 @@ class DefaultAppsChecker(private val context: Context) {
             PrivacyIssue(
                 check = PrivacyCheck.DEFAULT_EMAIL,
                 isSecure = true,
+                isUnknown = true,
                 currentStatus = "Unable to determine default email app",
                 technicalDetails = "Error: ${e.message}",
                 customPointDeduction = 0
@@ -430,6 +437,7 @@ class DefaultAppsChecker(private val context: Context) {
                 PrivacyIssue(
                     check = PrivacyCheck.DEFAULT_LAUNCHER,
                     isSecure = true,
+                    isUnknown = true,
                     currentStatus = "Using $appName (unknown, 0 pts)",
                     technicalDetails = "Package: $packageName",
                     customPointDeduction = 0
@@ -440,6 +448,7 @@ class DefaultAppsChecker(private val context: Context) {
             PrivacyIssue(
                 check = PrivacyCheck.DEFAULT_LAUNCHER,
                 isSecure = true,
+                isUnknown = true,
                 currentStatus = "Unable to determine default launcher",
                 technicalDetails = "Error: ${e.message}",
                 customPointDeduction = 0

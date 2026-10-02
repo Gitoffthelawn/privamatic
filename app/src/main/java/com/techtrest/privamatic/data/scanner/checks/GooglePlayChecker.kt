@@ -13,6 +13,7 @@ class GooglePlayChecker(private val context: Context) {
                 ?: return PrivacyIssue(
                     check = PrivacyCheck.WIFI_SCANNING,
                     isSecure = true,
+                    isUnknown = true,
                     currentStatus = "Unable to determine",
                     technicalDetails = "Wi-Fi service not available on this device"
                 )
@@ -28,6 +29,7 @@ class GooglePlayChecker(private val context: Context) {
             PrivacyIssue(
                 check = PrivacyCheck.WIFI_SCANNING,
                 isSecure = true, // Don't penalize on error
+                isUnknown = true,
                 currentStatus = "Unable to determine",
                 technicalDetails = "Error: ${e.message}"
             )

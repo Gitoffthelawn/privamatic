@@ -162,6 +162,7 @@ class InstalledAppsChecker(private val context: Context) {
             PrivacyIssue(
                 check = PrivacyCheck.BACKGROUND_LOCATION_APPS,
                 isSecure = true,
+                isUnknown = true,
                 currentStatus = "Unable to determine",
                 technicalDetails = "Error: ${e.message}"
             )
@@ -222,6 +223,7 @@ class InstalledAppsChecker(private val context: Context) {
             PrivacyIssue(
                 check = PrivacyCheck.OLD_TARGET_SDK,
                 isSecure = true,
+                isUnknown = true,
                 currentStatus = "Unable to determine",
                 technicalDetails = "Error: ${e.message}"
             )
@@ -238,6 +240,7 @@ class InstalledAppsChecker(private val context: Context) {
             ?: return PrivacyIssue(
                 check = check,
                 isSecure = true,
+                isUnknown = true,
                 currentStatus = "Unable to determine",
                 technicalDetails = "No package name configured"
             )
@@ -285,6 +288,7 @@ class InstalledAppsChecker(private val context: Context) {
             PrivacyIssue(
                 check = check,
                 isSecure = true,
+                isUnknown = true,
                 currentStatus = "Unable to determine",
                 technicalDetails = "Error: ${e.message}"
             )

@@ -30,6 +30,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
+import androidx.compose.material3.TabRowDefaults
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -43,6 +45,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
+import com.techtrest.privamatic.Cream
 import com.techtrest.privamatic.R
 import com.techtrest.privamatic.data.model.FlaggedApp
 import com.techtrest.privamatic.data.model.PrivacyCategory
@@ -69,11 +72,25 @@ fun DetailsScreen(
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier.fillMaxSize()) {
-        TabRow(selectedTabIndex = selectedTab.ordinal) {
+        // Tabs sit on the app bar colour so app bar + tabs read as one header.
+        TabRow(
+            selectedTabIndex = selectedTab.ordinal,
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary,
+            indicator = { tabPositions ->
+                TabRowDefaults.SecondaryIndicator(
+                    modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab.ordinal]),
+                    color = Cream
+                )
+            },
+            divider = {}
+        ) {
             DetailsTab.entries.forEach { tab ->
                 Tab(
                     selected = selectedTab == tab,
                     onClick = { onTabSelected(tab) },
+                    selectedContentColor = MaterialTheme.colorScheme.onPrimary,
+                    unselectedContentColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
                     // TabRow splits width evenly, so at large font scales the longest
                     // label ("Breakdown") would wrap and make its tab taller than the
                     // rest. Truncate instead of wrapping to keep the row even.

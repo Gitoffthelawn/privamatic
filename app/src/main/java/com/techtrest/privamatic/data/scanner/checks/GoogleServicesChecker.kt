@@ -86,6 +86,7 @@ class GoogleServicesChecker(private val context: Context) {
             PrivacyIssue(
                 check = PrivacyCheck.GOOGLE_PLAY_SERVICES,
                 isSecure = true,
+                isUnknown = true,
                 currentStatus = "Unable to determine",
                 technicalDetails = "Error: ${e.message}"
             )
@@ -106,6 +107,7 @@ class GoogleServicesChecker(private val context: Context) {
             return PrivacyIssue(
                 check = PrivacyCheck.FIND_MY_DEVICE,
                 isSecure = true,
+                isUnknown = true,
                 customPointDeduction = 0,
                 currentStatus = "Cannot detect — verify in Settings > Security > Find Hub"
             )
@@ -134,6 +136,7 @@ class GoogleServicesChecker(private val context: Context) {
             PrivacyIssue(
                 check = PrivacyCheck.FIND_MY_DEVICE,
                 isSecure = true,
+                isUnknown = true,
                 currentStatus = "Unable to determine",
                 technicalDetails = "Error: ${e.message}"
             )
