@@ -39,9 +39,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
@@ -71,6 +73,11 @@ fun DetailsScreen(
     onRunSdkScan: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Dark primary is the lighter brand green (#00854A): onPrimary at 0.8 alpha only reaches
+    // 3.6:1 on it, so dark mode keeps unselected labels at full onPrimary (4.7:1) and marks
+    // the selected tab with the Cream indicator plus a heavier weight instead.
+    val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+
     Column(modifier = modifier.fillMaxSize()) {
         // Tabs sit on the app bar colour so app bar + tabs read as one header.
         TabRow(
@@ -90,7 +97,8 @@ fun DetailsScreen(
                     selected = selectedTab == tab,
                     onClick = { onTabSelected(tab) },
                     selectedContentColor = MaterialTheme.colorScheme.onPrimary,
-                    unselectedContentColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
+                    unselectedContentColor = if (isDark) MaterialTheme.colorScheme.onPrimary
+                                             else MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
                     // TabRow splits width evenly, so at large font scales the longest
                     // label ("Breakdown") would wrap and make its tab taller than the
                     // rest. Truncate instead of wrapping to keep the row even.
@@ -98,7 +106,12 @@ fun DetailsScreen(
                         Text(
                             text = stringResource(tab.label),
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            overflow = TextOverflow.Ellipsis,
+                            fontWeight = when {
+                                !isDark -> null
+                                selectedTab == tab -> FontWeight.SemiBold
+                                else -> FontWeight.Normal
+                            }
                         )
                     }
                 )
