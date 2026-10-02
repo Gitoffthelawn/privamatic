@@ -1,6 +1,10 @@
 package com.techtrest.privamatic.data.scanner.checks
 
+import com.techtrest.privamatic.data.scanner.checks.DefaultAppsChecker.Companion.friendlyBrowser
+import com.techtrest.privamatic.data.scanner.checks.DefaultAppsChecker.Companion.friendlyEmail
+import com.techtrest.privamatic.data.scanner.checks.DefaultAppsChecker.Companion.friendlyKeyboard
 import com.techtrest.privamatic.data.scanner.checks.DefaultAppsChecker.Companion.friendlyLauncher
+import com.techtrest.privamatic.data.scanner.checks.DefaultAppsChecker.Companion.friendlySms
 import com.techtrest.privamatic.data.scanner.checks.DefaultAppsChecker.Companion.invasiveBrowser
 import com.techtrest.privamatic.data.scanner.checks.DefaultAppsChecker.Companion.invasiveEmail
 import com.techtrest.privamatic.data.scanner.checks.DefaultAppsChecker.Companion.invasiveLauncher
@@ -61,5 +65,104 @@ class DefaultAppsCheckerTest {
     @Test
     fun `Samsung Email is detected by its current package`() {
         assertEquals(Triple(1, "Samsung Email", false), invasiveEmail("com.samsung.android.email.provider"))
+    }
+
+    // ===== Keyboard: match the package part of "package/class" only =====
+
+    @Test
+    fun `Gboard on Pixel 8 is not mistaken for the AOSP keyboard`() {
+        // Exact Settings.Secure.DEFAULT_INPUT_METHOD value read from a Pixel 8
+        assertNull(friendlyKeyboard("com.google.android.inputmethod.latin/com.android.inputmethod.latin.LatinIME"))
+    }
+
+    @Test
+    fun `AOSP keyboard is privacy-friendly`() {
+        assertEquals("AOSP Keyboard", friendlyKeyboard("com.android.inputmethod.latin/.LatinIME"))
+    }
+
+    @Test
+    fun `FlorisBoard is privacy-friendly`() {
+        assertEquals("FlorisBoard", friendlyKeyboard("dev.patrickgold.florisboard/.FlorisImeService"))
+        assertEquals("FlorisBoard", friendlyKeyboard("dev.patrickgold.florisboard.beta/dev.patrickgold.florisboard.FlorisImeService"))
+    }
+
+    @Test
+    fun `HeliBoard is privacy-friendly`() {
+        assertEquals("HeliBoard", friendlyKeyboard("helium314.keyboard/helium314.keyboard.latin.LatinIME"))
+    }
+
+    @Test
+    fun `AnySoftKeyboard is privacy-friendly`() {
+        assertEquals("AnySoftKeyboard", friendlyKeyboard("com.menny.android.anysoftkeyboard/.SoftKeyboard"))
+    }
+
+    @Test
+    fun `Simple Keyboard is privacy-friendly`() {
+        assertEquals("Simple Keyboard", friendlyKeyboard("rkr.simplekeyboard.inputmethod/.latin.LatinIME"))
+    }
+
+    @Test
+    fun `FUTO Keyboard is privacy-friendly in both builds`() {
+        assertEquals("FUTO Keyboard", friendlyKeyboard("org.futo.inputmethod.latin/.LatinIME"))
+        assertEquals("FUTO Keyboard", friendlyKeyboard("org.futo.inputmethod.latin.playstore/org.futo.inputmethod.latin.LatinIME"))
+    }
+
+    @Test
+    fun `Unexpected Keyboard is privacy-friendly`() {
+        assertEquals("Unexpected Keyboard", friendlyKeyboard("juloo.keyboard2/.Keyboard2"))
+    }
+
+    @Test
+    fun `OpenBoard is privacy-friendly`() {
+        assertEquals("OpenBoard", friendlyKeyboard("org.dslul.openboard.inputmethod.latin/.LatinIME"))
+    }
+
+    @Test
+    fun `a keyboard is never identified by its class name`() {
+        assertNull(friendlyKeyboard("com.example.ime/dev.patrickgold.florisboard.FlorisImeService"))
+    }
+
+    // ===== Substring collisions fixed in the same audit =====
+
+    @Test
+    fun `Play Services is not mistaken for Gmail`() {
+        assertNull(invasiveEmail("com.google.android.gms"))
+        assertEquals(2, invasiveEmail("com.google.android.gm")?.first)
+    }
+
+    @Test
+    fun `Chromium builds are not mistaken for Chrome`() {
+        assertNull(invasiveBrowser("org.chromium.chrome"))
+        assertEquals("Chrome", invasiveBrowser("com.android.chrome")?.second)
+        assertEquals("Chrome", invasiveBrowser("com.chrome.beta")?.second)
+    }
+
+    @Test
+    fun `generic words in browser packages do not match`() {
+        assertNull(friendlyBrowser("com.example.navigator.browser"))   // "tor" + "browser"
+        assertNull(friendlyBrowser("com.example.focus"))
+        assertNull(invasiveBrowser("com.microsoft.knowledge.browser"))  // "edge" + "microsoft"
+        assertNull(invasiveBrowser("com.cooperative.browser"))          // "opera"
+        assertEquals("Tor Browser", friendlyBrowser("org.torproject.torbrowser"))
+        assertEquals("Firefox Focus", friendlyBrowser("org.mozilla.focus"))
+    }
+
+    @Test
+    fun `Mull is matched by its real package, not Mullvad Browser`() {
+        assertEquals("Mull", friendlyBrowser("us.spotco.fennec_dos"))
+        assertNull(friendlyBrowser("net.mullvad.mullvadbrowser"))
+    }
+
+    @Test
+    fun `Signal and Silence are matched by their real packages`() {
+        assertEquals("Signal", friendlySms("org.thoughtcrime.securesms"))
+        assertEquals("Silence", friendlySms("org.smssecure.smssecure"))
+        assertNull(friendlySms("com.example.signalstrength"))
+    }
+
+    @Test
+    fun `privacy-friendly email apps match exact packages`() {
+        assertEquals("K-9 Mail", friendlyEmail("com.fsck.k9"))
+        assertEquals("Thunderbird", friendlyEmail("net.thunderbird.android.beta"))
     }
 }
