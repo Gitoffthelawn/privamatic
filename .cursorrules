@@ -77,6 +77,10 @@ Never identify an app by its activity, service or IME class name: split componen
 Gboard inherits AOSP's `com.android.inputmethod.latin.LatinIME` class.
 Class/component names are the signal only where that is the design: microG detection
 (microG spoofs Google's package name) and `SdkScanner` tracker signatures.
+Documented exception: the data-broker blacklist (`FlaggedApp.BLACKLIST_PREFIXES`) matches by
+vendor prefix by design — it blocks whole vendors, not specific apps. A package matches when it
+is the vendor namespace itself or sits under it (`com.whatsapp`, `com.whatsapp.w4b`), never a
+lookalike (`com.whatsappfoo`).
 Every addition to a detection list gets a unit test using the real package (or
 `package/class`) string, verified against F-Droid, IzzyOnDroid or vendor sources
 (the APK manifest when the class matters). Cite the source in the commit message.
