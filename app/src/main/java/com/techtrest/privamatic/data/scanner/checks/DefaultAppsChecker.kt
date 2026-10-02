@@ -45,14 +45,7 @@ class DefaultAppsChecker(private val context: Context) {
             val finalPackage = packageName ?: "none"
 
             // Privacy-invasive browsers
-            val invasive = when {
-                finalPackage.contains("chrome", ignoreCase = true) -> Triple(3, "Chrome", false)
-                finalPackage.contains("edge", ignoreCase = true) && finalPackage.contains("microsoft") -> Triple(3, "Microsoft Edge", false)
-                finalPackage.contains("opera", ignoreCase = true) -> Triple(3, "Opera", false)
-                finalPackage.contains("ucbrowser", ignoreCase = true) || finalPackage.contains("uc.browser", ignoreCase = true) -> Triple(3, "UC Browser", false)
-                finalPackage.contains("sec.android.app.sbrowser", ignoreCase = true) -> Triple(2, "Samsung Internet", false)
-                else -> null
-            }
+            val invasive = invasiveBrowser(finalPackage)
 
             if (invasive != null) {
                 val (points, name, _) = invasive
@@ -66,17 +59,7 @@ class DefaultAppsChecker(private val context: Context) {
             }
 
             // Privacy-friendly browsers
-            val friendly = when {
-                finalPackage.contains("brave", ignoreCase = true) -> "Brave"
-                finalPackage.contains("firefox", ignoreCase = true) -> "Firefox"
-                finalPackage.contains("focus", ignoreCase = true) -> "Firefox Focus"
-                finalPackage.contains("duckduckgo", ignoreCase = true) -> "DuckDuckGo Browser"
-                finalPackage.contains("vanadium", ignoreCase = true) -> "Vanadium"
-                finalPackage.contains("cromite", ignoreCase = true) -> "Cromite"
-                finalPackage.contains("mull", ignoreCase = true) -> "Mull"
-                finalPackage.contains("tor", ignoreCase = true) && finalPackage.contains("browser") -> "Tor Browser"
-                else -> null
-            }
+            val friendly = friendlyBrowser(finalPackage)
 
             if (friendly != null) {
                 return PrivacyIssue(
@@ -133,13 +116,7 @@ class DefaultAppsChecker(private val context: Context) {
             val defaultSmsPackage = Telephony.Sms.getDefaultSmsPackage(context) ?: "none"
 
             // Privacy-invasive messaging apps
-            val invasive = when {
-                defaultSmsPackage.contains("google.android.apps.messaging", ignoreCase = true) -> Triple(2, "Google Messages", false)
-                defaultSmsPackage.contains("facebook.orca", ignoreCase = true) -> Triple(3, "Facebook Messenger", false)
-                defaultSmsPackage.contains("whatsapp", ignoreCase = true) -> Triple(3, "WhatsApp", false)
-                defaultSmsPackage.contains("sec.android.messaging", ignoreCase = true) -> Triple(2, "Samsung Messages", false)
-                else -> null
-            }
+            val invasive = invasiveSms(defaultSmsPackage)
 
             if (invasive != null) {
                 val (points, name, _) = invasive
@@ -153,17 +130,7 @@ class DefaultAppsChecker(private val context: Context) {
             }
 
             // Privacy-friendly messaging apps
-            val friendly = when {
-                defaultSmsPackage.contains("fossify", ignoreCase = true) && defaultSmsPackage.contains("messages", ignoreCase = true) -> "Fossify Messages"
-                defaultSmsPackage.contains("signal", ignoreCase = true) || defaultSmsPackage.contains("securesms", ignoreCase = true) -> "Signal"
-                defaultSmsPackage.contains("molly", ignoreCase = true) -> "Molly"
-                defaultSmsPackage.contains("asms", ignoreCase = true) -> "aSMS"
-                defaultSmsPackage.contains("qksms", ignoreCase = true) -> "QKSMS"
-                defaultSmsPackage.contains("simplex", ignoreCase = true) -> "SimpleX Chat"
-                defaultSmsPackage.contains("partisan", ignoreCase = true) -> "Partisan SMS"
-                defaultSmsPackage.contains("silence", ignoreCase = true) -> "Silence"
-                else -> null
-            }
+            val friendly = friendlySms(defaultSmsPackage)
 
             if (friendly != null) {
                 return PrivacyIssue(
@@ -293,13 +260,7 @@ class DefaultAppsChecker(private val context: Context) {
             val packageName = resolveInfo?.activityInfo?.packageName ?: "none"
 
             // Privacy-invasive email apps
-            val invasive = when {
-                packageName.contains("google.android.gm", ignoreCase = true) -> Triple(2, "Gmail", false)
-                packageName.contains("microsoft.office.outlook", ignoreCase = true) -> Triple(2, "Outlook", false)
-                packageName.contains("yahoo.mobile", ignoreCase = true) -> Triple(2, "Yahoo Mail", false)
-                packageName.contains("sec.android.email", ignoreCase = true) -> Triple(1, "Samsung Email", false)
-                else -> null
-            }
+            val invasive = invasiveEmail(packageName)
 
             if (invasive != null) {
                 val (points, name, _) = invasive
@@ -313,15 +274,7 @@ class DefaultAppsChecker(private val context: Context) {
             }
 
             // Privacy-friendly email apps
-            val friendly = when {
-                packageName.contains("fsck.k9", ignoreCase = true) -> "K-9 Mail"
-                packageName.contains("faircode.email", ignoreCase = true) -> "FairEmail"
-                packageName.contains("protonmail", ignoreCase = true) -> "ProtonMail"
-                packageName.contains("tutanota", ignoreCase = true) -> "Tutanota"
-                packageName.contains("net.thunderbird.android", ignoreCase = true) -> "Thunderbird"
-                packageName.contains("simple.mail", ignoreCase = true) -> "Simple Mail"
-                else -> null
-            }
+            val friendly = friendlyEmail(packageName)
 
             if (friendly != null) {
                 return PrivacyIssue(
@@ -368,7 +321,7 @@ class DefaultAppsChecker(private val context: Context) {
 
     /**
      * Check default launcher with three-tier detection
-     * Privacy-invasive: Nova Launcher (-2), Microsoft Launcher (-2), Samsung/Xiaomi with ads (-2)
+     * Privacy-invasive: Nova Launcher (-2), Microsoft Launcher (-2), Samsung/Xiaomi with ads (-2), Pixel Launcher (-2)
      * Privacy-friendly: Lawnchair, KISS Launcher, etc. (0)
      * Unknown: Everything else (0, displayed as unknown)
      */
@@ -382,13 +335,7 @@ class DefaultAppsChecker(private val context: Context) {
             val packageName = resolveInfo?.activityInfo?.packageName ?: "none"
 
             // Privacy-invasive launchers
-            val invasive = when {
-                packageName.contains("teslacoilsw.launcher", ignoreCase = true) -> Triple(2, "Nova Launcher", false)
-                packageName.contains("microsoft.launcher", ignoreCase = true) -> Triple(2, "Microsoft Launcher", false)
-                packageName.contains("sec.android.app.launcher", ignoreCase = true) -> Triple(2, "Samsung Launcher", false)
-                packageName.contains("miui.home", ignoreCase = true) -> Triple(2, "Xiaomi Launcher", false)
-                else -> null
-            }
+            val invasive = invasiveLauncher(packageName)
 
             if (invasive != null) {
                 val (points, name, _) = invasive
@@ -402,16 +349,7 @@ class DefaultAppsChecker(private val context: Context) {
             }
 
             // Privacy-friendly launchers
-            val friendly = when {
-                packageName.contains("lawnchair", ignoreCase = true) -> "Lawnchair"
-                packageName.contains("kiss", ignoreCase = true) && packageName.contains("launcher") -> "KISS Launcher"
-                packageName.contains("neolauncher", ignoreCase = true) -> "Neo Launcher"
-                packageName.contains("de.mm20.launcher2", ignoreCase = true) -> "Kvaesitso"
-                packageName.contains("olauncher", ignoreCase = true) -> "Olauncher"
-                packageName.contains("grapheneos", ignoreCase = true) && packageName.contains("launcher") -> "GrapheneOS Launcher"
-                packageName.contains("launcher3", ignoreCase = true) && packageName.contains("android") -> "AOSP Launcher"
-                else -> null
-            }
+            val friendly = friendlyLauncher(packageName)
 
             if (friendly != null) {
                 return PrivacyIssue(
@@ -458,5 +396,95 @@ class DefaultAppsChecker(private val context: Context) {
 
     companion object {
         private const val TAG = "DefaultAppsChecker"
+
+        // Package classifiers, kept pure so they can be unit-tested without PackageManager.
+        // invasive*() returns (points, display name, unused); friendly*() returns the display name.
+
+        internal fun invasiveBrowser(packageName: String): Triple<Int, String, Boolean>? = when {
+            packageName.contains("chrome", ignoreCase = true) -> Triple(3, "Chrome", false)
+            packageName.contains("edge", ignoreCase = true) && packageName.contains("microsoft") -> Triple(3, "Microsoft Edge", false)
+            // Edge ships as com.microsoft.emmx (plus .beta/.dev/.canary), which contains no "edge"
+            packageName.startsWith("com.microsoft.emmx") -> Triple(3, "Microsoft Edge", false)
+            packageName.contains("opera", ignoreCase = true) -> Triple(3, "Opera", false)
+            packageName.contains("ucbrowser", ignoreCase = true) || packageName.contains("uc.browser", ignoreCase = true) -> Triple(3, "UC Browser", false)
+            packageName.contains("sec.android.app.sbrowser", ignoreCase = true) -> Triple(2, "Samsung Internet", false)
+            else -> null
+        }
+
+        internal fun friendlyBrowser(packageName: String): String? = when {
+            packageName.contains("brave", ignoreCase = true) -> "Brave"
+            packageName.contains("firefox", ignoreCase = true) -> "Firefox"
+            packageName.contains("focus", ignoreCase = true) -> "Firefox Focus"
+            packageName.contains("duckduckgo", ignoreCase = true) -> "DuckDuckGo Browser"
+            packageName.contains("vanadium", ignoreCase = true) -> "Vanadium"
+            packageName.contains("cromite", ignoreCase = true) -> "Cromite"
+            packageName.contains("mull", ignoreCase = true) -> "Mull"
+            packageName.contains("tor", ignoreCase = true) && packageName.contains("browser") -> "Tor Browser"
+            else -> null
+        }
+
+        internal fun invasiveSms(packageName: String): Triple<Int, String, Boolean>? = when {
+            packageName.contains("google.android.apps.messaging", ignoreCase = true) -> Triple(2, "Google Messages", false)
+            packageName.contains("facebook.orca", ignoreCase = true) -> Triple(3, "Facebook Messenger", false)
+            packageName.contains("whatsapp", ignoreCase = true) -> Triple(3, "WhatsApp", false)
+            packageName.contains("sec.android.messaging", ignoreCase = true) -> Triple(2, "Samsung Messages", false)
+            packageName == "com.samsung.android.messaging" -> Triple(2, "Samsung Messages", false)
+            else -> null
+        }
+
+        internal fun friendlySms(packageName: String): String? = when {
+            packageName.contains("fossify", ignoreCase = true) && packageName.contains("messages", ignoreCase = true) -> "Fossify Messages"
+            packageName.contains("signal", ignoreCase = true) || packageName.contains("securesms", ignoreCase = true) -> "Signal"
+            packageName.contains("molly", ignoreCase = true) -> "Molly"
+            packageName.contains("asms", ignoreCase = true) -> "aSMS"
+            packageName.contains("qksms", ignoreCase = true) -> "QKSMS"
+            packageName.contains("simplex", ignoreCase = true) -> "SimpleX Chat"
+            packageName.contains("partisan", ignoreCase = true) -> "Partisan SMS"
+            packageName.contains("silence", ignoreCase = true) -> "Silence"
+            else -> null
+        }
+
+        internal fun invasiveEmail(packageName: String): Triple<Int, String, Boolean>? = when {
+            packageName.contains("google.android.gm", ignoreCase = true) -> Triple(2, "Gmail", false)
+            packageName.contains("microsoft.office.outlook", ignoreCase = true) -> Triple(2, "Outlook", false)
+            packageName.contains("yahoo.mobile", ignoreCase = true) -> Triple(2, "Yahoo Mail", false)
+            packageName.contains("sec.android.email", ignoreCase = true) -> Triple(1, "Samsung Email", false)
+            packageName == "com.samsung.android.email.provider" -> Triple(1, "Samsung Email", false)
+            else -> null
+        }
+
+        internal fun friendlyEmail(packageName: String): String? = when {
+            packageName.contains("fsck.k9", ignoreCase = true) -> "K-9 Mail"
+            packageName.contains("faircode.email", ignoreCase = true) -> "FairEmail"
+            packageName.contains("protonmail", ignoreCase = true) -> "ProtonMail"
+            packageName.contains("tutanota", ignoreCase = true) -> "Tutanota"
+            packageName.contains("net.thunderbird.android", ignoreCase = true) -> "Thunderbird"
+            packageName.contains("simple.mail", ignoreCase = true) -> "Simple Mail"
+            else -> null
+        }
+
+        // Launchers match on exact package names so the result never depends on branch
+        // order ("olauncher" is a substring of other launcher packages).
+        internal fun invasiveLauncher(packageName: String): Triple<Int, String, Boolean>? = when (packageName) {
+            "com.teslacoilsw.launcher" -> Triple(2, "Nova Launcher", false)
+            "com.microsoft.launcher" -> Triple(2, "Microsoft Launcher", false)
+            "com.sec.android.app.launcher" -> Triple(2, "Samsung Launcher", false)
+            "com.miui.home" -> Triple(2, "Xiaomi Launcher", false)
+            "com.google.android.apps.nexuslauncher" -> Triple(2, "Pixel Launcher", false)
+            else -> null
+        }
+
+        internal fun friendlyLauncher(packageName: String): String? = when {
+            packageName == "fr.neamar.kiss" -> "KISS Launcher"
+            packageName == "com.saggitt.omega" -> "Neo Launcher"
+            packageName == "app.olauncher" || packageName == "app.olaunchercf" -> "Olauncher"
+            packageName == "com.android.launcher3" -> "AOSP Launcher"
+            // Lawnchair has shipped as app.lawnchair, app.lawnchair.play and
+            // ch.deletescape.lawnchair.* (v2 / CI builds), so it keeps a substring match
+            packageName.contains("lawnchair", ignoreCase = true) -> "Lawnchair"
+            // Kvaesitso publishes release and nightly builds as de.mm20.launcher2.<channel>
+            packageName.startsWith("de.mm20.launcher2.") -> "Kvaesitso"
+            else -> null
+        }
     }
 }
