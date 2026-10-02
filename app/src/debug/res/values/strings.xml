@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Debug launcher label, so debug and F-Droid installs are easy to tell apart -->
+    <string name="app_name">Privamatic Debug</string>
+</resources>

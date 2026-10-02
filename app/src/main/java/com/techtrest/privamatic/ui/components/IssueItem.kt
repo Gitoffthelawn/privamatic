@@ -41,8 +41,9 @@ import com.techtrest.privamatic.ui.utils.IntentHelper
 internal enum class IssueDisplayStatus { PASS, FAIL, INFO }
 
 /**
- * Unknown results and installed informational apps are INFO, never PASS, even though
- * unknown results carry isSecure = true for scoring. Trust only turns a FAIL into a PASS.
+ * Unknown results and installed informational apps are INFO, never PASS or FAIL, whatever
+ * their isSecure value (which only drives quick wins and tips). Trust only turns a FAIL
+ * into a PASS.
  */
 internal fun PrivacyIssue.displayStatus(trustedPackages: Set<String>): IssueDisplayStatus = when {
     isUnknown -> IssueDisplayStatus.INFO
@@ -117,8 +118,8 @@ fun IssueItem(
                 )
             }
 
-            // Point deduction badge - not shown for informational or effectively-trusted items
-            if (!effectivelySecure && !isInformational) {
+            // Point deduction badge - not shown for informational, unknown or effectively-trusted items
+            if (!effectivelySecure && !isInformational && !issue.isUnknown) {
                 Surface(
                     color = MaterialTheme.colorScheme.errorContainer.copy(alpha = StatusTintAlpha),
                     shape = RoundedCornerShape(8.dp)

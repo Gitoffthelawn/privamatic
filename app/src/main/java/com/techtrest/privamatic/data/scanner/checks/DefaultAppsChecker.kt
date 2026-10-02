@@ -43,16 +43,17 @@ class DefaultAppsChecker(private val context: Context) {
             }
 
             val finalPackage = packageName ?: "none"
+            val browserPackage = vanadiumAlias(finalPackage) {
+                try {
+                    packageManager.getApplicationInfo(VANADIUM_WEBVIEW_PACKAGE, 0)
+                    true
+                } catch (e: PackageManager.NameNotFoundException) {
+                    false
+                }
+            }
 
             // Privacy-invasive browsers
-            val invasive = when {
-                finalPackage.contains("chrome", ignoreCase = true) -> Triple(3, "Chrome", false)
-                finalPackage.contains("edge", ignoreCase = true) && finalPackage.contains("microsoft") -> Triple(3, "Microsoft Edge", false)
-                finalPackage.contains("opera", ignoreCase = true) -> Triple(3, "Opera", false)
-                finalPackage.contains("ucbrowser", ignoreCase = true) || finalPackage.contains("uc.browser", ignoreCase = true) -> Triple(3, "UC Browser", false)
-                finalPackage.contains("sec.android.app.sbrowser", ignoreCase = true) -> Triple(2, "Samsung Internet", false)
-                else -> null
-            }
+            val invasive = invasiveBrowser(browserPackage)
 
             if (invasive != null) {
                 val (points, name, _) = invasive
@@ -66,17 +67,7 @@ class DefaultAppsChecker(private val context: Context) {
             }
 
             // Privacy-friendly browsers
-            val friendly = when {
-                finalPackage.contains("brave", ignoreCase = true) -> "Brave"
-                finalPackage.contains("firefox", ignoreCase = true) -> "Firefox"
-                finalPackage.contains("focus", ignoreCase = true) -> "Firefox Focus"
-                finalPackage.contains("duckduckgo", ignoreCase = true) -> "DuckDuckGo Browser"
-                finalPackage.contains("vanadium", ignoreCase = true) -> "Vanadium"
-                finalPackage.contains("cromite", ignoreCase = true) -> "Cromite"
-                finalPackage.contains("mull", ignoreCase = true) -> "Mull"
-                finalPackage.contains("tor", ignoreCase = true) && finalPackage.contains("browser") -> "Tor Browser"
-                else -> null
-            }
+            val friendly = friendlyBrowser(browserPackage)
 
             if (friendly != null) {
                 return PrivacyIssue(
@@ -133,13 +124,7 @@ class DefaultAppsChecker(private val context: Context) {
             val defaultSmsPackage = Telephony.Sms.getDefaultSmsPackage(context) ?: "none"
 
             // Privacy-invasive messaging apps
-            val invasive = when {
-                defaultSmsPackage.contains("google.android.apps.messaging", ignoreCase = true) -> Triple(2, "Google Messages", false)
-                defaultSmsPackage.contains("facebook.orca", ignoreCase = true) -> Triple(3, "Facebook Messenger", false)
-                defaultSmsPackage.contains("whatsapp", ignoreCase = true) -> Triple(3, "WhatsApp", false)
-                defaultSmsPackage.contains("sec.android.messaging", ignoreCase = true) -> Triple(2, "Samsung Messages", false)
-                else -> null
-            }
+            val invasive = invasiveSms(defaultSmsPackage)
 
             if (invasive != null) {
                 val (points, name, _) = invasive
@@ -153,17 +138,7 @@ class DefaultAppsChecker(private val context: Context) {
             }
 
             // Privacy-friendly messaging apps
-            val friendly = when {
-                defaultSmsPackage.contains("fossify", ignoreCase = true) && defaultSmsPackage.contains("messages", ignoreCase = true) -> "Fossify Messages"
-                defaultSmsPackage.contains("signal", ignoreCase = true) || defaultSmsPackage.contains("securesms", ignoreCase = true) -> "Signal"
-                defaultSmsPackage.contains("molly", ignoreCase = true) -> "Molly"
-                defaultSmsPackage.contains("asms", ignoreCase = true) -> "aSMS"
-                defaultSmsPackage.contains("qksms", ignoreCase = true) -> "QKSMS"
-                defaultSmsPackage.contains("simplex", ignoreCase = true) -> "SimpleX Chat"
-                defaultSmsPackage.contains("partisan", ignoreCase = true) -> "Partisan SMS"
-                defaultSmsPackage.contains("silence", ignoreCase = true) -> "Silence"
-                else -> null
-            }
+            val friendly = friendlySms(defaultSmsPackage)
 
             if (friendly != null) {
                 return PrivacyIssue(
@@ -210,7 +185,8 @@ class DefaultAppsChecker(private val context: Context) {
 
     /**
      * Check default keyboard with allowlist approach
-     * Privacy-friendly (allowlist): OpenBoard, FlorisBoard, AnySoftKeyboard, HeliBoard, Simple Keyboard, FUTO, Unexpected Keyboard (0 pts)
+     * Privacy-friendly (allowlist, see friendlyKeyboard): AOSP, OpenBoard, FlorisBoard, AnySoftKeyboard, HeliBoard,
+     * Simple Keyboard, FUTO, Unexpected Keyboard, Thumb-Key, Fossify Keyboard, Fcitx5, Trime, Indic Keyboard (0 pts)
      * Everything else: Insecure (-3 pts)
      *
      * This catches ALL non-privacy keyboards including: Gboard, SwiftKey, Samsung, Xiaomi, Huawei, OnePlus, Oppo, Vivo, and any OEM keyboard
@@ -220,17 +196,7 @@ class DefaultAppsChecker(private val context: Context) {
             val currentKeyboard = Settings.Secure.getString(context.contentResolver, Settings.Secure.DEFAULT_INPUT_METHOD) ?: "none"
 
             // Privacy-friendly keyboards (allowlist)
-            val friendly = when {
-                currentKeyboard.contains("florisboard", ignoreCase = true) || currentKeyboard.contains("dev.patrickgold.florisboard", ignoreCase = true) -> "FlorisBoard"
-                currentKeyboard.contains("heliboard", ignoreCase = true) || currentKeyboard.contains("helium314.keyboard", ignoreCase = true) -> "HeliBoard"
-                currentKeyboard.contains("anysoftkeyboard", ignoreCase = true) -> "AnySoftKeyboard"
-                currentKeyboard.contains("simplekeyboard", ignoreCase = true) || currentKeyboard.contains("rkr.simplekeyboard.inputmethod", ignoreCase = true) -> "Simple Keyboard"
-                currentKeyboard.contains("futo", ignoreCase = true) || currentKeyboard.contains("org.futo.inputmethod.latin", ignoreCase = true) -> "FUTO Keyboard"
-                currentKeyboard.contains("unexpected", ignoreCase = true) && currentKeyboard.contains("keyboard") || currentKeyboard.contains("juloo.keyboard2", ignoreCase = true) -> "Unexpected Keyboard"
-                currentKeyboard.contains("openboard", ignoreCase = true) || currentKeyboard.contains("org.dslul.openboard.inputmethod.latin", ignoreCase = true) -> "OpenBoard"
-                currentKeyboard.contains("android.inputmethod.latin", ignoreCase = true) || currentKeyboard.contains("com.android.inputmethod", ignoreCase = true) -> "AOSP Keyboard"
-                else -> null
-            }
+            val friendly = friendlyKeyboard(currentKeyboard)
 
             if (friendly != null) {
                 return PrivacyIssue(
@@ -293,13 +259,7 @@ class DefaultAppsChecker(private val context: Context) {
             val packageName = resolveInfo?.activityInfo?.packageName ?: "none"
 
             // Privacy-invasive email apps
-            val invasive = when {
-                packageName.contains("google.android.gm", ignoreCase = true) -> Triple(2, "Gmail", false)
-                packageName.contains("microsoft.office.outlook", ignoreCase = true) -> Triple(2, "Outlook", false)
-                packageName.contains("yahoo.mobile", ignoreCase = true) -> Triple(2, "Yahoo Mail", false)
-                packageName.contains("sec.android.email", ignoreCase = true) -> Triple(1, "Samsung Email", false)
-                else -> null
-            }
+            val invasive = invasiveEmail(packageName)
 
             if (invasive != null) {
                 val (points, name, _) = invasive
@@ -313,15 +273,7 @@ class DefaultAppsChecker(private val context: Context) {
             }
 
             // Privacy-friendly email apps
-            val friendly = when {
-                packageName.contains("fsck.k9", ignoreCase = true) -> "K-9 Mail"
-                packageName.contains("faircode.email", ignoreCase = true) -> "FairEmail"
-                packageName.contains("protonmail", ignoreCase = true) -> "ProtonMail"
-                packageName.contains("tutanota", ignoreCase = true) -> "Tutanota"
-                packageName.contains("net.thunderbird.android", ignoreCase = true) -> "Thunderbird"
-                packageName.contains("simple.mail", ignoreCase = true) -> "Simple Mail"
-                else -> null
-            }
+            val friendly = friendlyEmail(packageName)
 
             if (friendly != null) {
                 return PrivacyIssue(
@@ -368,7 +320,7 @@ class DefaultAppsChecker(private val context: Context) {
 
     /**
      * Check default launcher with three-tier detection
-     * Privacy-invasive: Nova Launcher (-2), Microsoft Launcher (-2), Samsung/Xiaomi with ads (-2)
+     * Privacy-invasive: Nova Launcher (-2), Microsoft Launcher (-2), Samsung/Xiaomi with ads (-2), Pixel Launcher (-2)
      * Privacy-friendly: Lawnchair, KISS Launcher, etc. (0)
      * Unknown: Everything else (0, displayed as unknown)
      */
@@ -382,13 +334,7 @@ class DefaultAppsChecker(private val context: Context) {
             val packageName = resolveInfo?.activityInfo?.packageName ?: "none"
 
             // Privacy-invasive launchers
-            val invasive = when {
-                packageName.contains("teslacoilsw.launcher", ignoreCase = true) -> Triple(2, "Nova Launcher", false)
-                packageName.contains("microsoft.launcher", ignoreCase = true) -> Triple(2, "Microsoft Launcher", false)
-                packageName.contains("sec.android.app.launcher", ignoreCase = true) -> Triple(2, "Samsung Launcher", false)
-                packageName.contains("miui.home", ignoreCase = true) -> Triple(2, "Xiaomi Launcher", false)
-                else -> null
-            }
+            val invasive = invasiveLauncher(packageName)
 
             if (invasive != null) {
                 val (points, name, _) = invasive
@@ -402,16 +348,7 @@ class DefaultAppsChecker(private val context: Context) {
             }
 
             // Privacy-friendly launchers
-            val friendly = when {
-                packageName.contains("lawnchair", ignoreCase = true) -> "Lawnchair"
-                packageName.contains("kiss", ignoreCase = true) && packageName.contains("launcher") -> "KISS Launcher"
-                packageName.contains("neolauncher", ignoreCase = true) -> "Neo Launcher"
-                packageName.contains("de.mm20.launcher2", ignoreCase = true) -> "Kvaesitso"
-                packageName.contains("olauncher", ignoreCase = true) -> "Olauncher"
-                packageName.contains("grapheneos", ignoreCase = true) && packageName.contains("launcher") -> "GrapheneOS Launcher"
-                packageName.contains("launcher3", ignoreCase = true) && packageName.contains("android") -> "AOSP Launcher"
-                else -> null
-            }
+            val friendly = friendlyLauncher(packageName)
 
             if (friendly != null) {
                 return PrivacyIssue(
@@ -458,5 +395,150 @@ class DefaultAppsChecker(private val context: Context) {
 
     companion object {
         private const val TAG = "DefaultAppsChecker"
+
+        // Package classifiers, kept pure so they can be unit-tested without PackageManager.
+        // invasive*() returns (points, display name, unused); friendly*() returns the display name.
+
+        // Package-name rules: exact names, or a documented prefix where one app ships under
+        // several packages. Generic words ("tor", "focus", "edge", "chrome") are never matched
+        // as substrings, since they collide with unrelated packages.
+        internal fun invasiveBrowser(packageName: String): Triple<Int, String, Boolean>? = when {
+            // Stable is com.android.chrome; Beta/Dev/Canary are com.chrome.<channel>
+            packageName == "com.android.chrome" || packageName.startsWith("com.chrome.") -> Triple(3, "Chrome", false)
+            // Edge ships as com.microsoft.emmx (plus .beta/.dev/.canary)
+            packageName.startsWith("com.microsoft.emmx") -> Triple(3, "Microsoft Edge", false)
+            // Opera publishes several browsers under com.opera.* (browser, mini.native, gx, ...)
+            packageName.startsWith("com.opera.") -> Triple(3, "Opera", false)
+            // UC Browser is com.UCMobile.intl; UC Mini and regional builds are com.uc.browser.*
+            packageName == "com.UCMobile.intl" || packageName.startsWith("com.uc.browser.") -> Triple(3, "UC Browser", false)
+            // Samsung Internet stable and .beta
+            packageName.startsWith("com.sec.android.app.sbrowser") -> Triple(2, "Samsung Internet", false)
+            else -> null
+        }
+
+        private const val VANADIUM_PACKAGE = "app.vanadium.browser"
+        private const val VANADIUM_LEGACY_PACKAGE = "org.chromium.chrome"
+        private const val VANADIUM_WEBVIEW_PACKAGE = "app.vanadium.webview"
+
+        /**
+         * Vanadium's app id is app.vanadium.browser (GrapheneOS Vanadium args.gn), but its
+         * patch 0118 declares original-package org.chromium.chrome, so installs that predate
+         * the Nov 2022 rename keep running as org.chromium.chrome. Other Chromium builds use
+         * that id too; Vanadium's WebView (app.vanadium.webview, no legacy id, GrapheneOS-only)
+         * tells them apart. [hasVanadiumWebView] is only evaluated for the legacy id.
+         */
+        internal fun vanadiumAlias(packageName: String, hasVanadiumWebView: () -> Boolean): String =
+            if (packageName == VANADIUM_LEGACY_PACKAGE && hasVanadiumWebView()) VANADIUM_PACKAGE else packageName
+
+        internal fun friendlyBrowser(packageName: String): String? = when {
+            // Brave stable, _beta and _nightly
+            packageName.startsWith("com.brave.browser") -> "Brave"
+            // Firefox stable and _beta
+            packageName.startsWith("org.mozilla.firefox") -> "Firefox"
+            // Focus ships as Klar in German-speaking markets
+            packageName == "org.mozilla.focus" || packageName == "org.mozilla.klar" -> "Firefox Focus"
+            packageName == "com.duckduckgo.mobile.android" -> "DuckDuckGo Browser"
+            packageName == VANADIUM_PACKAGE -> "Vanadium"
+            packageName == "org.cromite.cromite" -> "Cromite"
+            packageName == "us.spotco.fennec_dos" -> "Mull"
+            // Tor Browser stable and _alpha
+            packageName.startsWith("org.torproject.torbrowser") -> "Tor Browser"
+            else -> null
+        }
+
+        internal fun invasiveSms(packageName: String): Triple<Int, String, Boolean>? = when {
+            packageName == "com.google.android.apps.messaging" -> Triple(2, "Google Messages", false)
+            packageName == "com.facebook.orca" -> Triple(3, "Facebook Messenger", false)
+            packageName == "com.whatsapp" || packageName == "com.whatsapp.w4b" -> Triple(3, "WhatsApp", false)
+            packageName == "com.samsung.android.messaging" -> Triple(2, "Samsung Messages", false)
+            // Legacy Samsung token kept from the original list; its exact package is unverified
+            packageName.contains("sec.android.messaging", ignoreCase = true) -> Triple(2, "Samsung Messages", false)
+            else -> null
+        }
+
+        internal fun friendlySms(packageName: String): String? = when {
+            packageName == "org.fossify.messages" -> "Fossify Messages"
+            packageName == "org.thoughtcrime.securesms" -> "Signal"
+            packageName == "im.molly.app" -> "Molly"
+            packageName == "com.moez.QKSMS" -> "QKSMS"
+            packageName == "chat.simplex.app" -> "SimpleX Chat"
+            packageName == "org.smssecure.smssecure" -> "Silence"
+            // Exact packages for these two are unverified, so they keep the original tokens
+            packageName.contains("asms", ignoreCase = true) -> "aSMS"
+            packageName.contains("partisan", ignoreCase = true) -> "Partisan SMS"
+            else -> null
+        }
+
+        internal fun invasiveEmail(packageName: String): Triple<Int, String, Boolean>? = when {
+            // Exact: "google.android.gm" is also a substring of Play Services (com.google.android.gms)
+            packageName == "com.google.android.gm" || packageName == "com.google.android.gm.lite" -> Triple(2, "Gmail", false)
+            packageName == "com.microsoft.office.outlook" -> Triple(2, "Outlook", false)
+            packageName == "com.yahoo.mobile.client.android.mail" -> Triple(2, "Yahoo Mail", false)
+            packageName == "com.samsung.android.email.provider" -> Triple(1, "Samsung Email", false)
+            // Legacy Samsung token kept from the original list; its exact package is unverified
+            packageName.contains("sec.android.email", ignoreCase = true) -> Triple(1, "Samsung Email", false)
+            else -> null
+        }
+
+        internal fun friendlyEmail(packageName: String): String? = when {
+            packageName == "com.fsck.k9" -> "K-9 Mail"
+            packageName == "eu.faircode.email" -> "FairEmail"
+            packageName == "ch.protonmail.android" -> "ProtonMail"
+            packageName == "de.tutao.tutanota" -> "Tutanota"
+            // Thunderbird stable and .beta
+            packageName.startsWith("net.thunderbird.android") -> "Thunderbird"
+            // Exact package unverified, so it keeps the original token
+            packageName.contains("simple.mail", ignoreCase = true) -> "Simple Mail"
+            else -> null
+        }
+
+        /**
+         * [imeId] is Settings.Secure.DEFAULT_INPUT_METHOD ("package/class"). Only the package
+         * is matched: Gboard (com.google.android.inputmethod.latin) inherits AOSP's
+         * com.android.inputmethod.latin.LatinIME class, so class names can't identify a keyboard.
+         */
+        internal fun friendlyKeyboard(imeId: String): String? = when (imeId.substringBefore('/')) {
+            "com.android.inputmethod.latin" -> "AOSP Keyboard"
+            // FlorisBoard publishes a stable track and a .beta preview track
+            "dev.patrickgold.florisboard", "dev.patrickgold.florisboard.beta" -> "FlorisBoard"
+            // HeliBoard attaches its .debug build to every GitHub release alongside release/nouserlib
+            "helium314.keyboard", "helium314.keyboard.debug" -> "HeliBoard"
+            "com.menny.android.anysoftkeyboard" -> "AnySoftKeyboard"
+            "rkr.simplekeyboard.inputmethod" -> "Simple Keyboard"
+            // FUTO ships its direct download and its Play Store build under different packages
+            "org.futo.inputmethod.latin", "org.futo.inputmethod.latin.playstore" -> "FUTO Keyboard"
+            "juloo.keyboard2" -> "Unexpected Keyboard"
+            "org.dslul.openboard.inputmethod.latin" -> "OpenBoard"
+            "com.dessalines.thumbkey" -> "Thumb-Key"
+            "org.fossify.keyboard" -> "Fossify Keyboard"
+            "org.fcitx.fcitx5.android" -> "Fcitx5"
+            "com.osfans.trime" -> "Trime"
+            "org.smc.inputmethod.indic" -> "Indic Keyboard"
+            else -> null
+        }
+
+        // Launchers match on exact package names so the result never depends on branch
+        // order ("olauncher" is a substring of other launcher packages).
+        internal fun invasiveLauncher(packageName: String): Triple<Int, String, Boolean>? = when (packageName) {
+            "com.teslacoilsw.launcher" -> Triple(2, "Nova Launcher", false)
+            "com.microsoft.launcher" -> Triple(2, "Microsoft Launcher", false)
+            "com.sec.android.app.launcher" -> Triple(2, "Samsung Launcher", false)
+            "com.miui.home" -> Triple(2, "Xiaomi Launcher", false)
+            "com.google.android.apps.nexuslauncher" -> Triple(2, "Pixel Launcher", false)
+            else -> null
+        }
+
+        internal fun friendlyLauncher(packageName: String): String? = when {
+            packageName == "fr.neamar.kiss" -> "KISS Launcher"
+            packageName == "com.saggitt.omega" -> "Neo Launcher"
+            packageName == "app.olauncher" || packageName == "app.olaunchercf" -> "Olauncher"
+            packageName == "com.android.launcher3" -> "AOSP Launcher"
+            // Lawnchair has shipped as app.lawnchair, app.lawnchair.play and
+            // ch.deletescape.lawnchair.* (v2 / CI builds), so it keeps a substring match
+            packageName.contains("lawnchair", ignoreCase = true) -> "Lawnchair"
+            // Kvaesitso publishes release and nightly builds as de.mm20.launcher2.<channel>
+            packageName.startsWith("de.mm20.launcher2.") -> "Kvaesitso"
+            else -> null
+        }
     }
 }

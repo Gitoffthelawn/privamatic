@@ -29,6 +29,10 @@ android {
             )
             signingConfig = null
         }
+        debug {
+            // Lets debug builds install alongside the F-Droid release on the same device
+            applicationIdSuffix = ".debug"
+        }
     }
 
     compileOptions {

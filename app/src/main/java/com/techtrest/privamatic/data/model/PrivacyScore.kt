@@ -28,6 +28,7 @@ fun PrivacyScore.getTrackingIssuesCount() =
         it.check !in PrivacyCategory.systemSecurityChecksSet
         && !it.isSecure
         && !it.check.isInformational
+        && !it.isUnknown
         && it.pointDeduction > 0
     }
 
@@ -38,5 +39,6 @@ fun PrivacyScore.getSecurityIssuesCount() =
     issues.count {
         it.check in PrivacyCategory.systemSecurityChecksSet
         && !it.isSecure
+        && !it.isUnknown
         && it.pointDeduction > 0
     }
