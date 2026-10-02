@@ -221,6 +221,9 @@ Locale folder: `en-US` (hyphen not underscore).
 - Widget ARGB colors as named constants, never inline hex
 - Material Design spacing: 4dp, 8dp, 12dp, 16dp, 24dp, 32dp — no arbitrary values
 - Corner radius: 8dp small, 12dp standard
-- `Icons.Default.*` only — no emoji in production UI
+- Material icons only — `Icons.Default.*` or `Icons.Outlined.*` (plus `Icons.AutoMirrored.*`
+  for directional arrows); no emoji in production UI. Status and category icons
+  (row status, category chips, category headers) use `Icons.Outlined.*` for consistency
+  with the chips
 
 *Last updated: 2026-10-02*
