@@ -43,9 +43,17 @@ class DefaultAppsChecker(private val context: Context) {
             }
 
             val finalPackage = packageName ?: "none"
+            val browserPackage = vanadiumAlias(finalPackage) {
+                try {
+                    packageManager.getApplicationInfo(VANADIUM_WEBVIEW_PACKAGE, 0)
+                    true
+                } catch (e: PackageManager.NameNotFoundException) {
+                    false
+                }
+            }
 
             // Privacy-invasive browsers
-            val invasive = invasiveBrowser(finalPackage)
+            val invasive = invasiveBrowser(browserPackage)
 
             if (invasive != null) {
                 val (points, name, _) = invasive
@@ -59,7 +67,7 @@ class DefaultAppsChecker(private val context: Context) {
             }
 
             // Privacy-friendly browsers
-            val friendly = friendlyBrowser(finalPackage)
+            val friendly = friendlyBrowser(browserPackage)
 
             if (friendly != null) {
                 return PrivacyIssue(
@@ -408,6 +416,20 @@ class DefaultAppsChecker(private val context: Context) {
             else -> null
         }
 
+        private const val VANADIUM_PACKAGE = "app.vanadium.browser"
+        private const val VANADIUM_LEGACY_PACKAGE = "org.chromium.chrome"
+        private const val VANADIUM_WEBVIEW_PACKAGE = "app.vanadium.webview"
+
+        /**
+         * Vanadium's app id is app.vanadium.browser (GrapheneOS Vanadium args.gn), but its
+         * patch 0118 declares original-package org.chromium.chrome, so installs that predate
+         * the Nov 2022 rename keep running as org.chromium.chrome. Other Chromium builds use
+         * that id too; Vanadium's WebView (app.vanadium.webview, no legacy id, GrapheneOS-only)
+         * tells them apart. [hasVanadiumWebView] is only evaluated for the legacy id.
+         */
+        internal fun vanadiumAlias(packageName: String, hasVanadiumWebView: () -> Boolean): String =
+            if (packageName == VANADIUM_LEGACY_PACKAGE && hasVanadiumWebView()) VANADIUM_PACKAGE else packageName
+
         internal fun friendlyBrowser(packageName: String): String? = when {
             // Brave stable, _beta and _nightly
             packageName.startsWith("com.brave.browser") -> "Brave"
@@ -416,7 +438,7 @@ class DefaultAppsChecker(private val context: Context) {
             // Focus ships as Klar in German-speaking markets
             packageName == "org.mozilla.focus" || packageName == "org.mozilla.klar" -> "Firefox Focus"
             packageName == "com.duckduckgo.mobile.android" -> "DuckDuckGo Browser"
-            packageName == "app.vanadium.browser" -> "Vanadium"
+            packageName == VANADIUM_PACKAGE -> "Vanadium"
             packageName == "org.cromite.cromite" -> "Cromite"
             packageName == "us.spotco.fennec_dos" -> "Mull"
             // Tor Browser stable and _alpha

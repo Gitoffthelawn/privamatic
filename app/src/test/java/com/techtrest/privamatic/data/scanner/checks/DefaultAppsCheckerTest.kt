@@ -9,6 +9,7 @@ import com.techtrest.privamatic.data.scanner.checks.DefaultAppsChecker.Companion
 import com.techtrest.privamatic.data.scanner.checks.DefaultAppsChecker.Companion.invasiveEmail
 import com.techtrest.privamatic.data.scanner.checks.DefaultAppsChecker.Companion.invasiveLauncher
 import com.techtrest.privamatic.data.scanner.checks.DefaultAppsChecker.Companion.invasiveSms
+import com.techtrest.privamatic.data.scanner.checks.DefaultAppsChecker.Companion.vanadiumAlias
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -199,5 +200,29 @@ class DefaultAppsCheckerTest {
     fun `privacy-friendly email apps match exact packages`() {
         assertEquals("K-9 Mail", friendlyEmail("com.fsck.k9"))
         assertEquals("Thunderbird", friendlyEmail("net.thunderbird.android.beta"))
+    }
+
+    // ===== Vanadium (GrapheneOS) =====
+
+    @Test
+    fun `Vanadium is privacy-friendly under its current app id`() {
+        assertEquals("Vanadium", friendlyBrowser(vanadiumAlias("app.vanadium.browser") { false }))
+    }
+
+    @Test
+    fun `pre-2022 Vanadium installs running as org chromium chrome are Vanadium`() {
+        assertEquals("Vanadium", friendlyBrowser(vanadiumAlias("org.chromium.chrome") { true }))
+    }
+
+    @Test
+    fun `other Chromium builds using org chromium chrome stay unmatched`() {
+        val pkg = vanadiumAlias("org.chromium.chrome") { false }
+        assertNull(friendlyBrowser(pkg))
+        assertNull(invasiveBrowser(pkg))
+    }
+
+    @Test
+    fun `the Vanadium WebView lookup only runs for the legacy id`() {
+        assertEquals("com.android.chrome", vanadiumAlias("com.android.chrome") { error("must not be called") })
     }
 }
