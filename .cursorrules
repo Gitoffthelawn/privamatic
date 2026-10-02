@@ -63,7 +63,49 @@ ViewModel and widget both derive from the same enum values. No dead code drift.
 Filter: `pointDeduction > 0`. Sorted descending by deduction.
 
 **`effectivelySecure`** — `issue.isSecure || allPackagesTrusted` — pure UI derivation,
-no data model changes. Category header counts use the same logic.
+no data model changes. Row icons and category chip counts go through
+`PrivacyIssue.displayStatus()` (`IssueItem.kt`), which applies `isUnknown` first, then trust.
+
+## Detection & Scoring Rules
+
+**Package detection** — match exact package names. Prefix or `contains()` matching only
+where an app genuinely ships under several package variants (e.g. Lawnchair, Kvaesitso,
+Chrome/Edge channels), always with a code comment saying why. Variants of an installed-app
+check go in `PackageNames.VARIANT_PACKAGES`.
+Never identify an app by its activity, service or IME class name: split component strings
+(`package/class`, e.g. `default_input_method`) on `/` and match the package part only —
+Gboard inherits AOSP's `com.android.inputmethod.latin.LatinIME` class.
+Class/component names are the signal only where that is the design: microG detection
+(microG spoofs Google's package name) and `SdkScanner` tracker signatures.
+Every addition to a detection list gets a unit test using the real package (or
+`package/class`) string, verified against F-Droid, IzzyOnDroid or vendor sources
+(the APK manifest when the class matters). Cite the source in the commit message.
+
+**Allowlist checks** — where an unmatched app costs points (default keyboard: anything not
+in `friendlyKeyboard()` is −3), a privacy-friendly app missing from the list is penalised.
+Any change to matching must check which previously-passing apps would now fail — run the
+old and new matcher against real package/class strings — and report them.
+
+**Unknown results** — if a check cannot determine its result, it sets `isUnknown = true`
+and costs 0 points (`customPointDeduction = 0` when `isSecure = false`); its status text
+tells the user to verify manually. `isUnknown` controls display and counting everywhere:
+info icon, excluded from pass AND issue counts (category chips, Dashboard tiles, Breakdown).
+`isSecure` only controls whether quick wins and tips appear.
+Documented exception: Advertising ID keeps its −5 until the user confirms — a deliberate
+nudge, since the state can't be read without Google's AD_ID permission. It stays
+`isUnknown = false` with "Not verified — confirm in Actions"; see the comment at
+`NetworkSecurityChecker.checkAdvertisingId()`.
+
+**Play Services presence** — absent / disabled / microG / privileged / sandboxed comes only
+from `GoogleServicesChecker.playServicesState()` (`PlayServicesState`). Never add a separate
+`com.google.android.gms` package lookup. Whether a Google Advertising ID exists is
+`PlayServicesState.servesAdvertisingId` (used by the Ad ID scan row and the Ad ID manual check).
+- Stock vs sandboxed: `MATCH_SYSTEM_ONLY` resolves only genuine system-partition GMS
+  (GrapheneOS sets `FLAG_SYSTEM` on sandboxed GMS, so flags/UID are not trustworthy)
+- microG: `PackageManagerUtil.isMicroGInstalled()` — microG installs as
+  `com.google.android.gms`, but its components live in the `org.microg.` namespace.
+  Companion packages (`org.microg.gms.droidguard`, `org.microg.nlp`) are not a signal:
+  modern microG compiles them into GmsCore (#11, #19)
 
 ## Strings & Localisation
 
@@ -102,14 +144,6 @@ Sensitive data (package names, device fingerprints) never in logs, even debug.
 - `maintenance_prefs` (DataStore)
 Declared in both `data_extraction_rules.xml` and `backup_rules.xml`.
 
-**GMS detection pattern** — use `MATCH_SYSTEM_ONLY` to distinguish stock GMS
-from sandboxed Play on GrapheneOS.
-microG detection requires all three companion packages:
-- `org.microg.gms.self` (most reliable)
-- `org.microg.gms.droidguard` (optional SafetyNet)
-- `org.microg.nlp` (older builds)
-Checking a single package is insufficient.
-
 ## Build & Release Rules
 
 **F-Droid requirements:**
@@ -129,6 +163,17 @@ Checking a single package is insufficient.
 **Keystore:**
 - Release keystore at `~/privamatic-release.jks`
 - Passwords via env vars `PRIVAMATIC_STORE_PASSWORD` / `PRIVAMATIC_KEY_PASSWORD`
+
+**On-device comparison against the F-Droid release:**
+- Debug builds use `applicationIdSuffix = ".debug"` (`com.techtrest.privamatic.debug`,
+  label "Privamatic Debug") and install alongside the F-Droid release
+- Never uninstall the F-Droid install or clear its data for testing. On multi-user
+  devices (GrapheneOS profiles) install with `adb install --user 0`
+- Compare row by row (Checks rows, Breakdown, manual checks in Actions) and attribute
+  every difference: this branch (cite the commit), fresh debug-app state (trusted apps,
+  manual checks, Ad ID confirmation), or unexpected
+- With several devices attached, identify each by serial and pass `-s <serial>` to every
+  adb command
 
 **Git discipline:**
 - Feature branches always — never commit directly to `master`
@@ -151,6 +196,9 @@ Locale folder: `en-US` (hyphen not underscore).
 - Widget ARGB colors as named constants, never inline hex
 - Material Design spacing: 4dp, 8dp, 12dp, 16dp, 24dp, 32dp — no arbitrary values
 - Corner radius: 8dp small, 12dp standard
-- `Icons.Default.*` only — no emoji in production UI
+- Material icons only — `Icons.Default.*` or `Icons.Outlined.*` (plus `Icons.AutoMirrored.*`
+  for directional arrows); no emoji in production UI. Status and category icons
+  (row status, category chips, category headers) use `Icons.Outlined.*` for consistency
+  with the chips
 
-*Last updated: 2026-06-18*
+*Last updated: 2026-10-02*
