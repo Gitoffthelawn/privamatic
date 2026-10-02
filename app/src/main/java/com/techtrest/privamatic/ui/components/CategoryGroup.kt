@@ -14,7 +14,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.RemoveCircleOutline
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -29,6 +30,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -127,9 +129,14 @@ fun CategoryGroup(
 }
 
 /**
- * Category header status: "N issues" on errorContainer when the group has failures,
- * otherwise "N pass" on primaryContainer (the most chromatic green container role,
- * so it separates from the near-neutral card fill by hue).
+ * Alpha for status tints (category chips, point badges): the container role is
+ * laid over the card surface as a pale wash rather than a solid fill.
+ */
+internal const val StatusTintAlpha = 0.5f
+
+/**
+ * Category header status: "N issues" in error on a pale errorContainer tint when the
+ * group has failures, otherwise "N pass" in green on a pale primaryContainer tint.
  */
 @Composable
 private fun CategoryStatusChip(
@@ -138,26 +145,30 @@ private fun CategoryStatusChip(
     modifier: Modifier = Modifier
 ) {
     val hasIssues = issuesCount > 0
+    val colorScheme = MaterialTheme.colorScheme
+    // Dark primary is pinned to the mid-green brand colour (#00854A), which only reaches
+    // ~2.5:1 on the dark tint at any alpha, so dark mode uses onPrimaryContainer instead.
+    val isDark = colorScheme.surface.luminance() < 0.5f
+    val passColor = if (isDark) colorScheme.onPrimaryContainer else colorScheme.primary
+
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(8.dp),
-        color = if (hasIssues) MaterialTheme.colorScheme.errorContainer
-                else MaterialTheme.colorScheme.primaryContainer,
-        contentColor = if (hasIssues) MaterialTheme.colorScheme.onErrorContainer
-                       else MaterialTheme.colorScheme.onPrimaryContainer
+        color = (if (hasIssues) colorScheme.errorContainer else colorScheme.primaryContainer)
+            .copy(alpha = StatusTintAlpha),
+        contentColor = if (hasIssues) colorScheme.error else passColor
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            if (hasIssues) {
-                Icon(
-                    imageVector = Icons.Default.Warning,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-            }
+            Icon(
+                imageVector = if (hasIssues) Icons.Outlined.RemoveCircleOutline
+                              else Icons.Outlined.CheckCircle,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp)
+            )
+            Spacer(modifier = Modifier.width(4.dp))
             Text(
                 text = if (hasIssues) {
                     pluralStringResource(R.plurals.plural_category_issues, issuesCount, issuesCount)
