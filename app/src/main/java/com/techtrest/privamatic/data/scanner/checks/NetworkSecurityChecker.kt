@@ -1,7 +1,6 @@
 package com.techtrest.privamatic.data.scanner.checks
 
 import android.content.Context
-import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
@@ -154,7 +153,8 @@ class NetworkSecurityChecker(private val context: Context) {
     /**
      * Check if advertising ID has been manually verified as deleted.
      * Reads a persisted boolean from SharedPreferences written by AdIdVerificationScreen.
-     * Auto-passes on devices without Google Play Services — the setting does not exist.
+     * Auto-passes when Play Services is absent, disabled or replaced by microG — there is no
+     * Google-served Advertising ID to delete.
      *
      * Deliberate exception to the unknown rule (unknown = 0 points): the Ad ID state can't
      * be read without declaring Google's AD_ID permission (apps targeting Android 13+ that
@@ -163,17 +163,19 @@ class NetworkSecurityChecker(private val context: Context) {
      * user-reported. The status says "not verified", never that the Ad ID was found active.
      */
     fun checkAdvertisingId(): PrivacyIssue {
-        val isGmsInstalled = try {
-            context.packageManager.getApplicationInfo(GMS_PACKAGE, 0)
-            true
-        } catch (e: PackageManager.NameNotFoundException) {
-            false
+        // Only real, enabled Play Services serves a Google Advertising ID. Absent, disabled
+        // and microG are read through GoogleServicesChecker so both checks agree.
+        val notApplicableStatus = when (GoogleServicesChecker(context).playServicesState()) {
+            PlayServicesState.ABSENT -> R.string.status_ad_id_not_applicable
+            PlayServicesState.MICROG -> R.string.status_ad_id_not_applicable_microg
+            PlayServicesState.DISABLED -> R.string.status_ad_id_not_applicable_disabled
+            PlayServicesState.PRIVILEGED, PlayServicesState.SANDBOXED -> null
         }
-        if (!isGmsInstalled) {
+        if (notApplicableStatus != null) {
             return PrivacyIssue(
                 check = PrivacyCheck.ADVERTISING_ID,
                 isSecure = true,
-                currentStatus = context.getString(R.string.status_ad_id_not_applicable)
+                currentStatus = context.getString(notApplicableStatus)
             )
         }
 
@@ -198,6 +200,5 @@ class NetworkSecurityChecker(private val context: Context) {
         internal const val AD_ID_PREFS_NAME = "ad_id_prefs"
         internal const val KEY_AD_ID_VERIFIED = "ad_id_verified"
         internal const val KEY_AD_ID_TIMESTAMP = "ad_id_verified_timestamp"
-        private const val GMS_PACKAGE = "com.google.android.gms"
     }
 }

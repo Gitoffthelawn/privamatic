@@ -33,48 +33,33 @@ class GoogleServicesChecker(private val context: Context) {
      */
     fun checkGooglePlayServices(): PrivacyIssue {
         return try {
-            val appInfo = try {
-                packageManager.getApplicationInfo(GMS_PACKAGE, 0)
-            } catch (e: PackageManager.NameNotFoundException) {
-                null
-            }
-
-            val isMicroG = PackageManagerUtil.isMicroGInstalled(packageManager)
-
-            val isRealSystemApp = try {
-                packageManager.getApplicationInfo(GMS_PACKAGE, PackageManager.MATCH_SYSTEM_ONLY)
-                true
-            } catch (e: PackageManager.NameNotFoundException) {
-                false
-            }
-
-            when {
-                appInfo == null -> PrivacyIssue(
+            when (playServicesState()) {
+                PlayServicesState.ABSENT -> PrivacyIssue(
                     check = PrivacyCheck.GOOGLE_PLAY_SERVICES,
                     isSecure = true,
                     currentStatus = "Not installed",
                     technicalDetails = "$GMS_PACKAGE is not installed"
                 )
-                isMicroG -> PrivacyIssue(
+                PlayServicesState.MICROG -> PrivacyIssue(
                     check = PrivacyCheck.GOOGLE_PLAY_SERVICES,
                     isSecure = true,
                     currentStatus = context.getString(R.string.status_google_play_services_microg),
                     technicalDetails = "MicroG is an open-source Google Play Services replacement"
                 )
-                !appInfo.enabled -> PrivacyIssue(
+                PlayServicesState.DISABLED -> PrivacyIssue(
                     check = PrivacyCheck.GOOGLE_PLAY_SERVICES,
                     isSecure = true,
                     currentStatus = context.getString(R.string.status_google_play_services_disabled),
                     technicalDetails = "$GMS_PACKAGE is installed but disabled and cannot run"
                 )
-                isRealSystemApp -> PrivacyIssue(
+                PlayServicesState.PRIVILEGED -> PrivacyIssue(
                     check = PrivacyCheck.GOOGLE_PLAY_SERVICES,
                     isSecure = false,
                     isSystemApp = true,
                     currentStatus = "Installed with full system privileges",
                     technicalDetails = "Google Play Services has deep system access and telemetry"
                 )
-                else -> PrivacyIssue(
+                PlayServicesState.SANDBOXED -> PrivacyIssue(
                     check = PrivacyCheck.GOOGLE_PLAY_SERVICES,
                     isSecure = true,
                     currentStatus = context.getString(R.string.status_google_play_services_sandboxed),
@@ -90,6 +75,36 @@ class GoogleServicesChecker(private val context: Context) {
                 currentStatus = "Unable to determine",
                 technicalDetails = "Error: ${e.message}"
             )
+        }
+    }
+
+    /**
+     * Which com.google.android.gms is on the device, using the stages documented on
+     * [checkGooglePlayServices]. Shared with the Advertising ID check so both read
+     * Play Services the same way. May throw; callers own error handling.
+     */
+    fun playServicesState(): PlayServicesState {
+        val appInfo = try {
+            packageManager.getApplicationInfo(GMS_PACKAGE, 0)
+        } catch (e: PackageManager.NameNotFoundException) {
+            null
+        }
+
+        val isMicroG = PackageManagerUtil.isMicroGInstalled(packageManager)
+
+        val isRealSystemApp = try {
+            packageManager.getApplicationInfo(GMS_PACKAGE, PackageManager.MATCH_SYSTEM_ONLY)
+            true
+        } catch (e: PackageManager.NameNotFoundException) {
+            false
+        }
+
+        return when {
+            appInfo == null -> PlayServicesState.ABSENT
+            isMicroG -> PlayServicesState.MICROG
+            !appInfo.enabled -> PlayServicesState.DISABLED
+            isRealSystemApp -> PlayServicesState.PRIVILEGED
+            else -> PlayServicesState.SANDBOXED
         }
     }
 
@@ -148,4 +163,18 @@ class GoogleServicesChecker(private val context: Context) {
         private const val GMS_PACKAGE = "com.google.android.gms"
         private const val FIND_MY_DEVICE_PACKAGE = "com.google.android.apps.adm"
     }
+}
+
+/** State of the com.google.android.gms package, as decided by [GoogleServicesChecker.playServicesState]. */
+enum class PlayServicesState {
+    /** Not installed. */
+    ABSENT,
+    /** microG installed under Google's package name. */
+    MICROG,
+    /** Real Play Services, installed but disabled. */
+    DISABLED,
+    /** Real Play Services in the system partition. */
+    PRIVILEGED,
+    /** Real Play Services without system privileges (e.g. GrapheneOS sandboxed Play). */
+    SANDBOXED
 }

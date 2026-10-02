@@ -2,7 +2,9 @@ package com.techtrest.privamatic.data.scanner.checks
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.content.pm.ActivityInfo
 import android.content.pm.ApplicationInfo
+import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.os.Build
 import com.techtrest.privamatic.R
@@ -30,6 +32,8 @@ class NetworkSecurityCheckerTest {
         const val DNS_UNKNOWN = "Cannot detect — verify Private DNS in Settings"
         const val AD_ID_NOT_VERIFIED = "Not verified — confirm in Actions"
         const val AD_ID_NOT_APPLICABLE = "Not applicable — no Google Play Services"
+        const val AD_ID_MICROG = "Not applicable — microG in use"
+        const val AD_ID_DISABLED = "Not applicable — Play Services disabled"
     }
 
     private fun context(): Context = mock(Context::class.java).also {
@@ -37,6 +41,8 @@ class NetworkSecurityCheckerTest {
         `when`(it.getString(R.string.status_private_dns_unknown)).thenReturn(DNS_UNKNOWN)
         `when`(it.getString(R.string.status_ad_id_not_verified)).thenReturn(AD_ID_NOT_VERIFIED)
         `when`(it.getString(R.string.status_ad_id_not_applicable)).thenReturn(AD_ID_NOT_APPLICABLE)
+        `when`(it.getString(R.string.status_ad_id_not_applicable_microg)).thenReturn(AD_ID_MICROG)
+        `when`(it.getString(R.string.status_ad_id_not_applicable_disabled)).thenReturn(AD_ID_DISABLED)
     }
 
     private fun assertUnknownAtZero(issue: PrivacyIssue, status: String) {
@@ -91,13 +97,23 @@ class NetworkSecurityCheckerTest {
         assertEquals(6, noHost.pointDeduction)
     }
 
-    private fun adIdContext(gmsInstalled: Boolean, verified: Boolean): Context {
+    private enum class Gms { ABSENT, REAL, DISABLED, MICROG }
+
+    /** Play Services fixtures in the shapes GoogleServicesChecker.playServicesState() reads. */
+    private fun adIdContext(gms: Gms, verified: Boolean = false): Context {
         val ctx = context()
         val pm = mock(PackageManager::class.java)
-        if (gmsInstalled) {
-            `when`(pm.getApplicationInfo(GMS, 0)).thenReturn(mock(ApplicationInfo::class.java))
-        } else {
+        if (gms == Gms.ABSENT) {
             `when`(pm.getApplicationInfo(GMS, 0)).thenThrow(PackageManager.NameNotFoundException::class.java)
+        } else {
+            // Mocks skip constructors, so ApplicationInfo.enabled must be set explicitly
+            val appInfo = mock(ApplicationInfo::class.java).apply { enabled = gms != Gms.DISABLED }
+            `when`(pm.getApplicationInfo(GMS, 0)).thenReturn(appInfo)
+        }
+        if (gms == Gms.MICROG) {
+            val settings = mock(ActivityInfo::class.java).apply { name = "org.microg.gms.ui.SettingsActivity" }
+            val info = mock(PackageInfo::class.java).apply { activities = arrayOf(settings) }
+            `when`(pm.getPackageInfo(GMS, PackageManager.GET_ACTIVITIES)).thenReturn(info)
         }
         `when`(ctx.packageManager).thenReturn(pm)
         val prefs = mock(SharedPreferences::class.java)
@@ -106,9 +122,16 @@ class NetworkSecurityCheckerTest {
         return ctx
     }
 
+    private fun assertNotApplicable(issue: PrivacyIssue, status: String) {
+        assertTrue(issue.isSecure)
+        assertFalse(issue.isUnknown)
+        assertEquals(0, issue.pointDeduction)
+        assertEquals(status, issue.currentStatus)
+    }
+
     @Test
     fun `unverified Ad ID keeps its 5 point deduction and says not verified`() {
-        val issue = NetworkSecurityChecker(adIdContext(gmsInstalled = true, verified = false)).checkAdvertisingId()
+        val issue = NetworkSecurityChecker(adIdContext(Gms.REAL)).checkAdvertisingId()
         assertEquals(PrivacyCheck.ADVERTISING_ID, issue.check)
         assertFalse(issue.isSecure)
         assertFalse("deliberate exception to the unknown rule", issue.isUnknown)
@@ -118,9 +141,16 @@ class NetworkSecurityCheckerTest {
 
     @Test
     fun `Ad ID without Play Services is not applicable and costs nothing`() {
-        val issue = NetworkSecurityChecker(adIdContext(gmsInstalled = false, verified = false)).checkAdvertisingId()
-        assertTrue(issue.isSecure)
-        assertEquals(0, issue.pointDeduction)
-        assertEquals(AD_ID_NOT_APPLICABLE, issue.currentStatus)
+        assertNotApplicable(NetworkSecurityChecker(adIdContext(Gms.ABSENT)).checkAdvertisingId(), AD_ID_NOT_APPLICABLE)
+    }
+
+    @Test
+    fun `Ad ID with microG is not applicable and costs nothing`() {
+        assertNotApplicable(NetworkSecurityChecker(adIdContext(Gms.MICROG)).checkAdvertisingId(), AD_ID_MICROG)
+    }
+
+    @Test
+    fun `Ad ID with disabled Play Services is not applicable and costs nothing`() {
+        assertNotApplicable(NetworkSecurityChecker(adIdContext(Gms.DISABLED)).checkAdvertisingId(), AD_ID_DISABLED)
     }
 }
