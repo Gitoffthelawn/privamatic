@@ -177,7 +177,8 @@ class DefaultAppsChecker(private val context: Context) {
 
     /**
      * Check default keyboard with allowlist approach
-     * Privacy-friendly (allowlist): OpenBoard, FlorisBoard, AnySoftKeyboard, HeliBoard, Simple Keyboard, FUTO, Unexpected Keyboard (0 pts)
+     * Privacy-friendly (allowlist, see friendlyKeyboard): AOSP, OpenBoard, FlorisBoard, AnySoftKeyboard, HeliBoard,
+     * Simple Keyboard, FUTO, Unexpected Keyboard, Thumb-Key, Fossify Keyboard, Fcitx5, Trime, Indic Keyboard (0 pts)
      * Everything else: Insecure (-3 pts)
      *
      * This catches ALL non-privacy keyboards including: Gboard, SwiftKey, Samsung, Xiaomi, Huawei, OnePlus, Oppo, Vivo, and any OEM keyboard
@@ -478,13 +479,19 @@ class DefaultAppsChecker(private val context: Context) {
             "com.android.inputmethod.latin" -> "AOSP Keyboard"
             // FlorisBoard publishes a stable track and a .beta preview track
             "dev.patrickgold.florisboard", "dev.patrickgold.florisboard.beta" -> "FlorisBoard"
-            "helium314.keyboard" -> "HeliBoard"
+            // HeliBoard attaches its .debug build to every GitHub release alongside release/nouserlib
+            "helium314.keyboard", "helium314.keyboard.debug" -> "HeliBoard"
             "com.menny.android.anysoftkeyboard" -> "AnySoftKeyboard"
             "rkr.simplekeyboard.inputmethod" -> "Simple Keyboard"
             // FUTO ships its direct download and its Play Store build under different packages
             "org.futo.inputmethod.latin", "org.futo.inputmethod.latin.playstore" -> "FUTO Keyboard"
             "juloo.keyboard2" -> "Unexpected Keyboard"
             "org.dslul.openboard.inputmethod.latin" -> "OpenBoard"
+            "com.dessalines.thumbkey" -> "Thumb-Key"
+            "org.fossify.keyboard" -> "Fossify Keyboard"
+            "org.fcitx.fcitx5.android" -> "Fcitx5"
+            "com.osfans.trime" -> "Trime"
+            "org.smc.inputmethod.indic" -> "Indic Keyboard"
             else -> null
         }
 

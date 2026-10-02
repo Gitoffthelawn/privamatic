@@ -117,8 +117,43 @@ class DefaultAppsCheckerTest {
         assertEquals("OpenBoard", friendlyKeyboard("org.dslul.openboard.inputmethod.latin/.LatinIME"))
     }
 
+    // IME service classes below are taken from each app's F-Droid APK manifest
+
+    @Test
+    fun `HeliBoard debug build from GitHub releases is privacy-friendly`() {
+        assertEquals("HeliBoard", friendlyKeyboard("helium314.keyboard.debug/helium314.keyboard.latin.LatinIME"))
+    }
+
+    @Test
+    fun `Thumb-Key is privacy-friendly`() {
+        assertEquals("Thumb-Key", friendlyKeyboard("com.dessalines.thumbkey/.IMEService"))
+    }
+
+    @Test
+    fun `Fossify Keyboard is privacy-friendly under its own name`() {
+        // Its SimpleKeyboardIME class used to pass it as "Simple Keyboard" via substring match
+        assertEquals("Fossify Keyboard", friendlyKeyboard("org.fossify.keyboard/.services.SimpleKeyboardIME"))
+    }
+
+    @Test
+    fun `Fcitx5 is privacy-friendly`() {
+        assertEquals("Fcitx5", friendlyKeyboard("org.fcitx.fcitx5.android/.input.FcitxInputMethodService"))
+    }
+
+    @Test
+    fun `Trime is privacy-friendly`() {
+        assertEquals("Trime", friendlyKeyboard("com.osfans.trime/.ime.core.TrimeInputMethodService"))
+    }
+
+    @Test
+    fun `Indic Keyboard is privacy-friendly`() {
+        assertEquals("Indic Keyboard", friendlyKeyboard("org.smc.inputmethod.indic/.LatinIME"))
+    }
+
     @Test
     fun `a keyboard is never identified by its class name`() {
+        // Simple Mobile Tools Keyboard shares Fossify's SimpleKeyboardIME class name
+        assertNull(friendlyKeyboard("com.simplemobiletools.keyboard/.services.SimpleKeyboardIME"))
         assertNull(friendlyKeyboard("com.example.ime/dev.patrickgold.florisboard.FlorisImeService"))
     }
 
