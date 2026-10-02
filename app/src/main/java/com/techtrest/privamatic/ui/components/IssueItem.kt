@@ -11,10 +11,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.RemoveCircleOutline
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -37,6 +37,20 @@ import com.techtrest.privamatic.data.model.PrivacyCheck
 import com.techtrest.privamatic.data.model.isFullyTrusted
 import com.techtrest.privamatic.ui.utils.IntentHelper
 
+/** How a check row reads at a glance; shared by the row icon and the category chip. */
+internal enum class IssueDisplayStatus { PASS, FAIL, INFO }
+
+/**
+ * Unknown results and installed informational apps are INFO, never PASS, even though
+ * unknown results carry isSecure = true for scoring. Trust only turns a FAIL into a PASS.
+ */
+internal fun PrivacyIssue.displayStatus(trustedPackages: Set<String>): IssueDisplayStatus = when {
+    isUnknown -> IssueDisplayStatus.INFO
+    check.isInformational && !isSecure -> IssueDisplayStatus.INFO
+    isSecure || isFullyTrusted(trustedPackages) -> IssueDisplayStatus.PASS
+    else -> IssueDisplayStatus.FAIL
+}
+
 @Composable
 fun IssueItem(
     issue: PrivacyIssue,
@@ -52,17 +66,19 @@ fun IssueItem(
     val effectivelySecure = issue.isSecure || allPackagesTrusted
 
     val isInformational = issue.check.isInformational && !issue.isSecure
-    val statusIcon = when {
-        isInformational -> Icons.Default.Info
-        effectivelySecure -> Icons.Default.CheckCircle
-        else -> Icons.Default.Warning
+    val displayStatus = issue.displayStatus(trustedPackages)
+    val statusIcon = when (displayStatus) {
+        IssueDisplayStatus.FAIL -> Icons.Outlined.RemoveCircleOutline
+        IssueDisplayStatus.PASS -> Icons.Outlined.CheckCircle
+        IssueDisplayStatus.INFO -> Icons.Outlined.Info
     }
-    val statusIconTint = when {
-        isInformational -> MaterialTheme.colorScheme.onSurfaceVariant
-        effectivelySecure -> MaterialTheme.colorScheme.primary
-        else -> MaterialTheme.colorScheme.tertiary
+    val statusIconTint = when (displayStatus) {
+        IssueDisplayStatus.FAIL -> MaterialTheme.colorScheme.error
+        IssueDisplayStatus.PASS -> MaterialTheme.colorScheme.primary
+        IssueDisplayStatus.INFO -> MaterialTheme.colorScheme.onSurfaceVariant
     }
     val statusIconDesc = when {
+        issue.isUnknown -> stringResource(R.string.label_issue_unknown)
         isInformational -> stringResource(R.string.label_issue_informational)
         effectivelySecure -> stringResource(R.string.label_issue_secure)
         else -> stringResource(R.string.label_issue_detected)
@@ -83,7 +99,7 @@ fun IssueItem(
                 imageVector = statusIcon,
                 contentDescription = statusIconDesc,
                 tint = statusIconTint,
-                modifier = Modifier.size(24.dp)
+                modifier = Modifier.size(20.dp)
             )
 
             Spacer(modifier = Modifier.width(12.dp))

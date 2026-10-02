@@ -25,6 +25,7 @@ class DeveloperSettingsChecker(private val context: Context) {
             PrivacyIssue(
                 check = PrivacyCheck.USB_DEBUGGING,
                 isSecure = true, // Assume secure if unable to check
+                isUnknown = true,
                 currentStatus = "Unable to determine",
                 technicalDetails = "Error: ${e.message}"
             )
@@ -49,6 +50,7 @@ class DeveloperSettingsChecker(private val context: Context) {
             PrivacyIssue(
                 check = PrivacyCheck.DEVELOPER_OPTIONS,
                 isSecure = true, // Assume secure if unable to check
+                isUnknown = true,
                 currentStatus = "Unable to determine",
                 technicalDetails = "Error: ${e.message}"
             )

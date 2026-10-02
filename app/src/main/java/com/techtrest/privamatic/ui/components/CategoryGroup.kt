@@ -15,6 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.RemoveCircleOutline
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -37,7 +38,6 @@ import androidx.compose.ui.unit.dp
 import com.techtrest.privamatic.R
 import com.techtrest.privamatic.data.model.PrivacyCategory
 import com.techtrest.privamatic.data.model.PrivacyScore
-import com.techtrest.privamatic.data.model.isFullyTrusted
 
 @Composable
 fun CategoryGroup(
@@ -47,15 +47,13 @@ fun CategoryGroup(
     modifier: Modifier = Modifier
 ) {
     val issues = PrivacyCategory.getIssuesForCategory(category, privacyScore)
-    val totalCount = issues.size
 
-    val issuesCount = remember(privacyScore, trustedPackages) {
-        issues.count { issue ->
-            !issue.isSecure &&
-            !issue.check.isInformational &&
-            !issue.isFullyTrusted(trustedPackages)
-        }
+    val statusCounts = remember(privacyScore, trustedPackages) {
+        issues.groupingBy { it.displayStatus(trustedPackages) }.eachCount()
     }
+    val issuesCount = statusCounts[IssueDisplayStatus.FAIL] ?: 0
+    val passCount = statusCounts[IssueDisplayStatus.PASS] ?: 0
+    val infoCount = statusCounts[IssueDisplayStatus.INFO] ?: 0
 
     var isExpanded by remember { mutableStateOf(false) }
 
@@ -96,7 +94,11 @@ fun CategoryGroup(
 
                 Spacer(modifier = Modifier.width(8.dp))
 
-                CategoryStatusChip(issuesCount = issuesCount, totalCount = totalCount)
+                CategoryStatusChip(
+                    issuesCount = issuesCount,
+                    passCount = passCount,
+                    infoCount = infoCount
+                )
 
                 Spacer(modifier = Modifier.width(8.dp))
 
@@ -137,14 +139,21 @@ internal const val StatusTintAlpha = 0.5f
 /**
  * Category header status: "N issues" in error on a pale errorContainer tint when the
  * group has failures, otherwise "N pass" in green on a pale primaryContainer tint.
+ * Unknown and informational rows never count as passes; a group made up only of those
+ * gets a neutral "N to review" chip in onSurfaceVariant on surfaceVariant.
  */
 @Composable
 private fun CategoryStatusChip(
     issuesCount: Int,
-    totalCount: Int,
+    passCount: Int,
+    infoCount: Int,
     modifier: Modifier = Modifier
 ) {
-    val hasIssues = issuesCount > 0
+    val status = when {
+        issuesCount > 0 -> IssueDisplayStatus.FAIL
+        passCount > 0 -> IssueDisplayStatus.PASS
+        else -> IssueDisplayStatus.INFO
+    }
     val colorScheme = MaterialTheme.colorScheme
     // Dark primary is pinned to the mid-green brand colour (#00854A), which only reaches
     // ~2.5:1 on the dark tint at any alpha, so dark mode uses onPrimaryContainer instead.
@@ -154,26 +163,39 @@ private fun CategoryStatusChip(
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(8.dp),
-        color = (if (hasIssues) colorScheme.errorContainer else colorScheme.primaryContainer)
-            .copy(alpha = StatusTintAlpha),
-        contentColor = if (hasIssues) colorScheme.error else passColor
+        color = when (status) {
+            IssueDisplayStatus.FAIL -> colorScheme.errorContainer.copy(alpha = StatusTintAlpha)
+            IssueDisplayStatus.PASS -> colorScheme.primaryContainer.copy(alpha = StatusTintAlpha)
+            IssueDisplayStatus.INFO -> colorScheme.surfaceVariant
+        },
+        contentColor = when (status) {
+            IssueDisplayStatus.FAIL -> colorScheme.error
+            IssueDisplayStatus.PASS -> passColor
+            IssueDisplayStatus.INFO -> colorScheme.onSurfaceVariant
+        }
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                imageVector = if (hasIssues) Icons.Outlined.RemoveCircleOutline
-                              else Icons.Outlined.CheckCircle,
+                imageVector = when (status) {
+                    IssueDisplayStatus.FAIL -> Icons.Outlined.RemoveCircleOutline
+                    IssueDisplayStatus.PASS -> Icons.Outlined.CheckCircle
+                    IssueDisplayStatus.INFO -> Icons.Outlined.Info
+                },
                 contentDescription = null,
                 modifier = Modifier.size(16.dp)
             )
             Spacer(modifier = Modifier.width(4.dp))
             Text(
-                text = if (hasIssues) {
-                    pluralStringResource(R.plurals.plural_category_issues, issuesCount, issuesCount)
-                } else {
-                    pluralStringResource(R.plurals.plural_category_pass, totalCount, totalCount)
+                text = when (status) {
+                    IssueDisplayStatus.FAIL ->
+                        pluralStringResource(R.plurals.plural_category_issues, issuesCount, issuesCount)
+                    IssueDisplayStatus.PASS ->
+                        pluralStringResource(R.plurals.plural_category_pass, passCount, passCount)
+                    IssueDisplayStatus.INFO ->
+                        pluralStringResource(R.plurals.plural_category_review, infoCount, infoCount)
                 },
                 style = MaterialTheme.typography.labelMedium
             )

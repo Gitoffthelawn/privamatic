@@ -79,6 +79,7 @@ class SecuritySettingsChecker(private val context: Context) {
             PrivacyIssue(
                 check = PrivacyCheck.BIOMETRIC_AUTH,
                 isSecure = true, // Don't penalize on error
+                isUnknown = true,
                 currentStatus = "Unable to determine",
                 technicalDetails = "Error: ${e.message}"
             )
@@ -119,6 +120,7 @@ class SecuritySettingsChecker(private val context: Context) {
             PrivacyIssue(
                 check = PrivacyCheck.SECURITY_PATCH,
                 isSecure = true,
+                isUnknown = true,
                 currentStatus = context.getString(R.string.status_security_patch_unknown)
             )
         }

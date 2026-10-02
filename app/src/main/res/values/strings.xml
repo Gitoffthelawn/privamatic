@@ -775,6 +775,7 @@
     <string name="label_issue_informational">Informational</string>
     <string name="label_issue_secure">Secure</string>
     <string name="label_issue_detected">Issue detected</string>
+    <string name="label_issue_unknown">Status unknown</string>
     <string name="label_issue_recommendation">Recommendation:</string>
     <string name="label_issue_fix">Fix</string>
 
@@ -947,6 +948,11 @@
     <plurals name="plural_category_pass">
         <item quantity="one">%d pass</item>
         <item quantity="other">%d pass</item>
+    </plurals>
+
+    <plurals name="plural_category_review">
+        <item quantity="one">%d to review</item>
+        <item quantity="other">%d to review</item>
     </plurals>
 
     <plurals name="plural_action_count">

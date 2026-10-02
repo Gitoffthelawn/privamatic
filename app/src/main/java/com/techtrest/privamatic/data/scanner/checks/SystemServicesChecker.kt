@@ -26,6 +26,7 @@ class SystemServicesChecker(private val context: Context) {
                 ?: return PrivacyIssue(
                     check = PrivacyCheck.DEVICE_ENCRYPTION,
                     isSecure = true,
+                    isUnknown = true,
                     currentStatus = "Unable to determine",
                     technicalDetails = "Device policy service not available on this device"
                 )
@@ -45,6 +46,7 @@ class SystemServicesChecker(private val context: Context) {
             PrivacyIssue(
                 check = PrivacyCheck.DEVICE_ENCRYPTION,
                 isSecure = true, // Don't penalize on error
+                isUnknown = true,
                 currentStatus = "Unable to determine",
                 technicalDetails = "Error: ${e.message}"
             )
@@ -107,6 +109,7 @@ class SystemServicesChecker(private val context: Context) {
             PrivacyIssue(
                 check = PrivacyCheck.NOTIFICATION_LISTENER,
                 isSecure = true, // Don't penalize on error
+                isUnknown = true,
                 currentStatus = "Unable to determine",
                 technicalDetails = "Error: ${e.message}"
             )
@@ -123,6 +126,7 @@ class SystemServicesChecker(private val context: Context) {
                 ?: return PrivacyIssue(
                     check = PrivacyCheck.ACCESSIBILITY_SERVICE,
                     isSecure = true,
+                    isUnknown = true,
                     currentStatus = "Unable to determine",
                     technicalDetails = "Accessibility service not available on this device"
                 )
@@ -190,6 +194,7 @@ class SystemServicesChecker(private val context: Context) {
             PrivacyIssue(
                 check = PrivacyCheck.ACCESSIBILITY_SERVICE,
                 isSecure = true, // Don't penalize on error
+                isUnknown = true,
                 currentStatus = "Unable to determine",
                 technicalDetails = "Error: ${e.message}"
             )
@@ -205,6 +210,7 @@ class SystemServicesChecker(private val context: Context) {
                 ?: return PrivacyIssue(
                     check = PrivacyCheck.DEVICE_ADMIN,
                     isSecure = true,
+                    isUnknown = true,
                     currentStatus = "Unable to determine",
                     technicalDetails = "Device policy service not available on this device"
                 )
@@ -250,6 +256,7 @@ class SystemServicesChecker(private val context: Context) {
             PrivacyIssue(
                 check = PrivacyCheck.DEVICE_ADMIN,
                 isSecure = true, // Don't penalize on error
+                isUnknown = true,
                 currentStatus = "Unable to determine",
                 technicalDetails = "Error: ${e.message}"
             )

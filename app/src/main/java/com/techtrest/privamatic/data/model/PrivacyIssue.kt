@@ -9,7 +9,13 @@ data class PrivacyIssue(
     val technicalDetails: String? = null,
     val customPointDeduction: Int? = null,
     val isSystemApp: Boolean = false,
-    val flaggedPackages: List<String> = emptyList()
+    val flaggedPackages: List<String> = emptyList(),
+    /**
+     * The checker could not determine the real state (no API, unrecognised app, or an
+     * error). Display-only: such results are reported with isSecure = true and 0 points,
+     * so the score is unaffected, but the UI shows them as unknown rather than passing.
+     */
+    val isUnknown: Boolean = false
 ) {
     val pointDeduction: Int
         get() = if (isSecure) 0 else (customPointDeduction ?: check.pointDeduction)
