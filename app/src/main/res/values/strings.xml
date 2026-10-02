@@ -129,6 +129,10 @@
     <string name="privacy_check_advertising_id_description">Advertising ID enables cross-app tracking by advertisers</string>
     <string name="privacy_check_advertising_id_recommendation">Disable or reset your Advertising ID in Settings > Privacy > Ads.</string>
     <string name="status_ad_id_not_applicable">Not applicable — no Google Play Services</string>
+    <string name="status_ad_id_not_verified">Not verified — confirm in Actions</string>
+    <string name="status_screen_lock_unknown">Cannot detect — verify Screen lock in Settings</string>
+    <string name="status_vpn_unknown">Cannot detect — verify VPN in Settings</string>
+    <string name="status_private_dns_unknown">Cannot detect — verify Private DNS in Settings</string>
 
     <string name="privacy_check_wifi_scanning_name">Background Wi-Fi Scanning</string>
     <string name="privacy_check_wifi_scanning_description">Your phone silently broadcasts its identity to nearby networks even when Wi-Fi is off. Shops, malls, and airports already use this to track how long you stay and how often you visit.</string>

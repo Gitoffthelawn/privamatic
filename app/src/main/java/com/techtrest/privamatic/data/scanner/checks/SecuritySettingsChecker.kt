@@ -15,12 +15,7 @@ class SecuritySettingsChecker(private val context: Context) {
     fun checkScreenLock(): PrivacyIssue {
         return try {
             val keyguardManager = context.getSystemService(Context.KEYGUARD_SERVICE) as? KeyguardManager
-                ?: return PrivacyIssue(
-                    check = PrivacyCheck.SCREEN_LOCK,
-                    isSecure = false,
-                    currentStatus = "Unable to determine",
-                    technicalDetails = "Keyguard service not available on this device"
-                )
+                ?: return unknownScreenLock("Keyguard service not available on this device")
             val isSecure = keyguardManager.isDeviceSecure
 
             PrivacyIssue(
@@ -30,14 +25,22 @@ class SecuritySettingsChecker(private val context: Context) {
                 technicalDetails = "Checked using KeyguardManager.isDeviceSecure"
             )
         } catch (e: Exception) {
-            PrivacyIssue(
-                check = PrivacyCheck.SCREEN_LOCK,
-                isSecure = false,
-                currentStatus = "Unable to determine",
-                technicalDetails = "Error: ${e.message}"
-            )
+            unknownScreenLock("Error: ${e.message}")
         }
     }
+
+    /**
+     * Undetermined results cost 0 points and display as unknown, but stay isSecure = false
+     * so the related tips still appear.
+     */
+    private fun unknownScreenLock(details: String) = PrivacyIssue(
+        check = PrivacyCheck.SCREEN_LOCK,
+        isSecure = false,
+        isUnknown = true,
+        customPointDeduction = 0,
+        currentStatus = context.getString(R.string.status_screen_lock_unknown),
+        technicalDetails = details
+    )
 
     fun checkBiometricAuth(): PrivacyIssue {
         return try {

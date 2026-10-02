@@ -12,8 +12,9 @@ data class PrivacyIssue(
     val flaggedPackages: List<String> = emptyList(),
     /**
      * The checker could not determine the real state (no API, unrecognised app, or an
-     * error). Display-only: such results are reported with isSecure = true and 0 points,
-     * so the score is unaffected, but the UI shows them as unknown rather than passing.
+     * error). Unknown results cost 0 points. isUnknown controls display and counting
+     * everywhere: info icon, excluded from both pass and issue counts. isSecure only
+     * decides whether the related quick win and tips appear.
      */
     val isUnknown: Boolean = false
 ) {
