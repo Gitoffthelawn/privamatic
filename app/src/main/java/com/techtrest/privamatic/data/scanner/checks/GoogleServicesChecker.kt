@@ -165,16 +165,20 @@ class GoogleServicesChecker(private val context: Context) {
     }
 }
 
-/** State of the com.google.android.gms package, as decided by [GoogleServicesChecker.playServicesState]. */
-enum class PlayServicesState {
+/**
+ * State of the com.google.android.gms package, as decided by [GoogleServicesChecker.playServicesState].
+ * [servesAdvertisingId]: only real, enabled Play Services serves a Google Advertising ID, so the
+ * Ad ID scan row and the Ad ID manual check apply only then.
+ */
+enum class PlayServicesState(val servesAdvertisingId: Boolean) {
     /** Not installed. */
-    ABSENT,
+    ABSENT(false),
     /** microG installed under Google's package name. */
-    MICROG,
+    MICROG(false),
     /** Real Play Services, installed but disabled. */
-    DISABLED,
+    DISABLED(false),
     /** Real Play Services in the system partition. */
-    PRIVILEGED,
+    PRIVILEGED(true),
     /** Real Play Services without system privileges (e.g. GrapheneOS sandboxed Play). */
-    SANDBOXED
+    SANDBOXED(true)
 }

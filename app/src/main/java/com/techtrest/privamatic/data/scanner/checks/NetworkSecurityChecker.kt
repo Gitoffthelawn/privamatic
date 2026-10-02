@@ -165,17 +165,17 @@ class NetworkSecurityChecker(private val context: Context) {
     fun checkAdvertisingId(): PrivacyIssue {
         // Only real, enabled Play Services serves a Google Advertising ID. Absent, disabled
         // and microG are read through GoogleServicesChecker so both checks agree.
-        val notApplicableStatus = when (GoogleServicesChecker(context).playServicesState()) {
-            PlayServicesState.ABSENT -> R.string.status_ad_id_not_applicable
-            PlayServicesState.MICROG -> R.string.status_ad_id_not_applicable_microg
-            PlayServicesState.DISABLED -> R.string.status_ad_id_not_applicable_disabled
-            PlayServicesState.PRIVILEGED, PlayServicesState.SANDBOXED -> null
-        }
-        if (notApplicableStatus != null) {
+        val playServices = GoogleServicesChecker(context).playServicesState()
+        if (!playServices.servesAdvertisingId) {
+            val status = when (playServices) {
+                PlayServicesState.MICROG -> R.string.status_ad_id_not_applicable_microg
+                PlayServicesState.DISABLED -> R.string.status_ad_id_not_applicable_disabled
+                else -> R.string.status_ad_id_not_applicable
+            }
             return PrivacyIssue(
                 check = PrivacyCheck.ADVERTISING_ID,
                 isSecure = true,
-                currentStatus = context.getString(notApplicableStatus)
+                currentStatus = context.getString(status)
             )
         }
 
