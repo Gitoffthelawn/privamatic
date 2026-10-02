@@ -104,13 +104,13 @@ fun IssueItem(
             // Point deduction badge - not shown for informational or effectively-trusted items
             if (!effectivelySecure && !isInformational) {
                 Surface(
-                    color = MaterialTheme.colorScheme.error,
-                    shape = RoundedCornerShape(12.dp)
+                    color = MaterialTheme.colorScheme.errorContainer.copy(alpha = StatusTintAlpha),
+                    shape = RoundedCornerShape(8.dp)
                 ) {
                     Text(
                         text = "-${issue.pointDeduction}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onError,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.error,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     )
                 }
