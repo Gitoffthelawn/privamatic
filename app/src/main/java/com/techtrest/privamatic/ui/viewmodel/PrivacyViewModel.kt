@@ -234,12 +234,7 @@ class PrivacyViewModel(application: Application) : AndroidViewModel(application)
                         packageName = packageName,
                         appName = PackageManagerUtil.getAppName(pm, packageName),
                         associatedCheck = issue.check,
-                        // microG runs under Google's package name, so it matches the
-                        // "com.google." blacklist prefix despite being the privacy-
-                        // respecting replacement. Never blacklist it — the user needs
-                        // the trust toggle enabled to accept its trade-offs.
-                        isBlacklisted = FlaggedApp.isBlacklisted(packageName) &&
-                            !PackageManagerUtil.isMicroGPackage(packageName, isMicroGInstalled),
+                        isBlacklisted = FlaggedApp.isBlacklisted(packageName, isMicroGInstalled),
                         isSystemApp = PackageManagerUtil.isSystemApp(pm, packageName)
                     )
                 }
