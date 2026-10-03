@@ -238,7 +238,7 @@ private fun CheckPointRow(
             color = MaterialTheme.colorScheme.surfaceVariant
         ) {
             Text(
-                text = "-${check.pointDeduction}",
+                text = stringResource(R.string.fmt_deduction_chip, check.pointDeduction),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
