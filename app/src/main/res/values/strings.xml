@@ -850,9 +850,8 @@
     <!-- ============================================================ -->
     <!-- DETAILS > CHECKS: HEADER + BREAKDOWN VIEW -->
     <!-- ============================================================ -->
+    <string name="fmt_deduction_chip">−%d</string>
     <string name="label_breakdown_perfect_score">No deductions — perfect score!</string>
-    <string name="fmt_breakdown_deduction">−%d pts</string>
-    <string name="fmt_breakdown_total_deductions">Total deductions: −%d pts</string>
     <string name="label_details_view_breakdown">Show score breakdown</string>
     <string name="label_details_view_checks">Show checks list</string>
     <string name="fmt_details_checks_summary">%1$s · %2$s</string>

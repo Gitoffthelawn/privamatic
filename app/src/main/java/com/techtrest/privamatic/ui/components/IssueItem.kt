@@ -120,17 +120,7 @@ fun IssueItem(
 
             // Point deduction badge - not shown for informational, unknown or effectively-trusted items
             if (!effectivelySecure && !isInformational && !issue.isUnknown) {
-                Surface(
-                    color = MaterialTheme.colorScheme.errorContainer.copy(alpha = StatusTintAlpha),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text(
-                        text = "-${issue.pointDeduction}",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                    )
-                }
+                DeductionChip(points = issue.pointDeduction)
             }
         }
 
@@ -238,5 +228,22 @@ fun IssueItem(
                 }
             }
         }
+    }
+}
+
+/** Soft "−N" point badge: error text on a pale errorContainer tint. Checks rows and Breakdown. */
+@Composable
+internal fun DeductionChip(points: Int, modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier,
+        color = MaterialTheme.colorScheme.errorContainer.copy(alpha = StatusTintAlpha),
+        shape = RoundedCornerShape(8.dp)
+    ) {
+        Text(
+            text = stringResource(R.string.fmt_deduction_chip, points),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.error,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+        )
     }
 }
