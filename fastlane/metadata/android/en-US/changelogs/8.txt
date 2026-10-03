@@ -1,0 +1,7 @@
+• Score Breakdown moved into Checks (chart icon). It adds up to your score; tap a line to jump to that check.
+• Most checks the app can't read now ask you to verify them instead of costing points.
+• Safer advice: no tips to disable Play Services or uninstall preinstalled apps.
+• Rescans when you return from a fix.
+• Fresh look and better dark-mode contrast.
+• Better detection of keyboards, browsers and launchers.
+Heads-up: better detection may lower your score, as apps missed before now count.
