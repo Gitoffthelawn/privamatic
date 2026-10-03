@@ -189,6 +189,9 @@ private fun ChecksTab(
     // so a Breakdown row can open its category and scroll to its check.
     var expandedCategories by remember { mutableStateOf(emptySet<PrivacyCategory>()) }
     var scrollTarget by remember { mutableStateOf<PrivacyCheck?>(null) }
+    // Set once a jump has scrolled; cleared when its fade ends or the user changes view/expansion,
+    // so a plain toggle back to the list never replays it.
+    var highlightedCheck by remember { mutableStateOf<PrivacyCheck?>(null) }
     val listState = rememberLazyListState()
 
     Column(modifier = modifier.fillMaxSize()) {
@@ -197,6 +200,7 @@ private fun ChecksTab(
             trustedPackages = trustedPackages,
             view = view,
             onToggleView = {
+                highlightedCheck = null
                 showView(if (view == ChecksView.LIST) ChecksView.BREAKDOWN else ChecksView.LIST)
             }
         )
@@ -208,17 +212,24 @@ private fun ChecksTab(
                 listState = listState,
                 expandedCategories = expandedCategories,
                 onToggleCategory = { category ->
+                    highlightedCheck = null
                     expandedCategories = if (category in expandedCategories) expandedCategories - category
                                          else expandedCategories + category
                 },
                 scrollTarget = scrollTarget,
-                onScrollTargetShown = { scrollTarget = null }
+                onScrollTargetShown = {
+                    highlightedCheck = scrollTarget
+                    scrollTarget = null
+                },
+                highlightedCheck = highlightedCheck,
+                onHighlightFinished = { highlightedCheck = null }
             )
             ChecksView.BREAKDOWN -> BreakdownContent(
                 privacyScore = privacyScore,
                 onCheckClick = { check ->
                     PrivacyCategory.getCategoryForCheck(check)?.let { category ->
-                        expandedCategories = expandedCategories + category
+                        // A jump shows only the target's category; plain toggles keep expansion.
+                        expandedCategories = setOf(category)
                         scrollTarget = check
                         showView(ChecksView.LIST)
                     }
@@ -309,7 +320,7 @@ private fun ChecksHeader(
 /**
  * Category list. When [scrollTarget] is set, scrolls its category into view, then far enough
  * that the check's row is fully visible (keeping the category header if it fits), and calls
- * [onScrollTargetShown].
+ * [onScrollTargetShown]. [highlightedCheck]'s row gets the fading jump highlight.
  */
 @Composable
 private fun ChecksContent(
@@ -320,6 +331,8 @@ private fun ChecksContent(
     onToggleCategory: (PrivacyCategory) -> Unit,
     scrollTarget: PrivacyCheck?,
     onScrollTargetShown: () -> Unit,
+    highlightedCheck: PrivacyCheck?,
+    onHighlightFinished: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val securityCategories = listOf(PrivacyCategory.SYSTEM_SECURITY)
@@ -379,7 +392,9 @@ private fun ChecksContent(
                 onToggleExpanded = { onToggleCategory(category) },
                 trustedPackages = trustedPackages,
                 scrollTarget = scrollTarget,
-                onScrollTargetPlaced = { top, bottom -> targetRowBounds = top..bottom }
+                onScrollTargetPlaced = { top, bottom -> targetRowBounds = top..bottom },
+                highlightedCheck = highlightedCheck,
+                onHighlightFinished = onHighlightFinished
             )
         }
 
@@ -400,7 +415,9 @@ private fun ChecksContent(
                 onToggleExpanded = { onToggleCategory(category) },
                 trustedPackages = trustedPackages,
                 scrollTarget = scrollTarget,
-                onScrollTargetPlaced = { top, bottom -> targetRowBounds = top..bottom }
+                onScrollTargetPlaced = { top, bottom -> targetRowBounds = top..bottom },
+                highlightedCheck = highlightedCheck,
+                onHighlightFinished = onHighlightFinished
             )
         }
     }

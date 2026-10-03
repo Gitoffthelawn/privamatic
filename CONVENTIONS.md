@@ -68,8 +68,11 @@ Filter: `pointDeduction > 0`. A "Manual checks not done" row (hidden at 0) makes
 add up to 100 − score; all rows, manual included, sort descending by points (manual first on ties); its value and the header total come
 from `PrivacyScoreCalculator.manualCheckDeduction()` / `totalDeduction()`, never a re-derived
 formula. Only a score clamped at 0 doesn't reconcile.
-Tapping a check row switches to the list view, expands its category and scrolls the row into
-view (`ChecksTab` owns expansion + `LazyListState`); the manual row opens the Actions tab.
+Tapping a check row washes it in `primaryContainer` (~200 ms), then switches to the list view,
+collapses every category except the target's, scrolls the row into view and highlights it
+(same colour, fades over ~1.4 s). A plain header toggle keeps expansion and scroll and never
+highlights (`ChecksTab` owns expansion, `LazyListState` and the highlight). The manual row
+opens the Actions tab immediately.
 
 **View toggles vs tabs** — a tab is for different data; a toggle is for the same data viewed
 differently. Toggles are an `IconButton` in the tab's fixed header row (never a segmented

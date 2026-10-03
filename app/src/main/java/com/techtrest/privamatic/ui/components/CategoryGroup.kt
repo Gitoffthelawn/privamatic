@@ -1,6 +1,8 @@
 package com.techtrest.privamatic.ui.components
 
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -25,9 +27,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.layout.positionInParent
@@ -39,12 +43,14 @@ import com.techtrest.privamatic.data.model.PrivacyCategory
 import com.techtrest.privamatic.data.model.PrivacyCheck
 import com.techtrest.privamatic.data.model.PrivacyIssue
 import com.techtrest.privamatic.data.model.PrivacyScore
+import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
 
 /**
  * Expandable category card. Expansion is hoisted so the Checks tab can open a category when
  * jumping to one of its checks; [onScrollTargetPlaced] then reports the [scrollTarget] row's
- * top and bottom y inside this card.
+ * top and bottom y inside this card, and [highlightedCheck]'s row gets a brief fading wash
+ * ([onHighlightFinished] when it has faded).
  */
 @Composable
 fun CategoryGroup(
@@ -55,6 +61,8 @@ fun CategoryGroup(
     trustedPackages: Set<String> = emptySet(),
     scrollTarget: PrivacyCheck? = null,
     onScrollTargetPlaced: (top: Int, bottom: Int) -> Unit = { _, _ -> },
+    highlightedCheck: PrivacyCheck? = null,
+    onHighlightFinished: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val issues = PrivacyCategory.getIssuesForCategory(category, privacyScore)
@@ -129,14 +137,21 @@ fun CategoryGroup(
                     IssueItem(
                         issue = issue,
                         trustedPackages = trustedPackages,
-                        modifier = if (issue.check == scrollTarget) {
-                            Modifier.onPlaced {
-                                val top = it.positionInParent().y.roundToInt()
-                                onScrollTargetPlaced(top, top + it.size.height)
-                            }
-                        } else {
-                            Modifier
-                        }
+                        modifier = Modifier
+                            .then(
+                                if (issue.check == scrollTarget) {
+                                    Modifier.onPlaced {
+                                        val top = it.positionInParent().y.roundToInt()
+                                        onScrollTargetPlaced(top, top + it.size.height)
+                                    }
+                                } else {
+                                    Modifier
+                                }
+                            )
+                            .then(
+                                if (issue.check == highlightedCheck) jumpHighlight(onHighlightFinished)
+                                else Modifier
+                            )
                     )
                     if (index < issues.lastIndex) {
                         HorizontalDivider(
@@ -157,6 +172,28 @@ fun CategoryGroup(
 internal fun List<PrivacyIssue>.statusCounts(
     trustedPackages: Set<String>
 ): Map<IssueDisplayStatus, Int> = groupingBy { it.displayStatus(trustedPackages) }.eachCount()
+
+/** Peak alpha of the primaryContainer jump wash; Breakdown's tap feedback uses the same. */
+internal const val JumpHighlightAlpha = 0.8f
+private const val JumpHighlightHoldMillis = 400L
+private const val JumpHighlightFadeMillis = 1000
+
+/**
+ * Wash behind a row reached from Breakdown so it stands out among identical rows: holds
+ * briefly, then fades out (~1.4 s in total). primaryContainer reads in both themes.
+ */
+@Composable
+private fun jumpHighlight(onFinished: () -> Unit): Modifier {
+    val color = MaterialTheme.colorScheme.primaryContainer
+    val alpha = remember { Animatable(JumpHighlightAlpha) }
+    LaunchedEffect(Unit) {
+        delay(JumpHighlightHoldMillis)
+        alpha.animateTo(0f, tween(JumpHighlightFadeMillis))
+        onFinished()
+    }
+    // Read in the draw phase only, so the fade redraws without recomposing the row.
+    return Modifier.drawBehind { drawRect(color.copy(alpha = alpha.value)) }
+}
 
 /**
  * Alpha for status tints (category chips, point badges): the container role is

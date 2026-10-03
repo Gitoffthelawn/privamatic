@@ -1,6 +1,8 @@
 package com.techtrest.privamatic.ui.screens
 
 import androidx.annotation.StringRes
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -18,9 +20,14 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
@@ -30,6 +37,9 @@ import com.techtrest.privamatic.data.model.PrivacyCheck
 import com.techtrest.privamatic.data.model.PrivacyScore
 import com.techtrest.privamatic.data.scanner.PrivacyScoreCalculator
 import com.techtrest.privamatic.ui.components.DeductionChip
+import com.techtrest.privamatic.ui.components.JumpHighlightAlpha
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /** A ledger line: a deducting check, or the manual-check deduction when [check] is null. */
 private data class BreakdownEntry(@StringRes val name: Int, val points: Int, val check: PrivacyCheck?)
@@ -49,6 +59,10 @@ fun BreakdownContent(
     onManualChecksClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Tapped check row: washes in the jump-highlight colour, then the view switches.
+    var pendingCheck by remember { mutableStateOf<PrivacyCheck?>(null) }
+    val scope = rememberCoroutineScope()
+
     val entries = remember(privacyScore) {
         val manualDeduction = PrivacyScoreCalculator.manualCheckDeduction(privacyScore.manualCheckPoints)
         // Manual row goes in first so the stable sort keeps it ahead of checks with equal points.
@@ -93,11 +107,22 @@ fun BreakdownContent(
                         BreakdownRow(
                             name = stringResource(entry.name),
                             points = entry.points,
+                            isPending = entry.check != null && entry.check == pendingCheck,
                             modifier = Modifier.clickable(
                                 onClickLabel = if (entry.check == null) openManualLabel else showCheckLabel,
                                 role = Role.Button,
                                 onClick = {
-                                    if (entry.check == null) onManualChecksClick() else onCheckClick(entry.check)
+                                    val check = entry.check
+                                    when {
+                                        check == null -> onManualChecksClick()
+                                        pendingCheck == null -> {
+                                            pendingCheck = check
+                                            scope.launch {
+                                                delay(TapFeedbackMillis)
+                                                onCheckClick(check)
+                                            }
+                                        }
+                                    }
                                 }
                             )
                         )
@@ -114,15 +139,30 @@ fun BreakdownContent(
     }
 }
 
-/** One ledger line: name on the left, the Checks deduction chip on the right. */
+/** Wash-in time for a tapped row; the switch to the list follows [TapFeedbackMillis] after the tap. */
+private const val TapFeedbackFadeMillis = 150
+private const val TapFeedbackMillis = 200L
+
+/**
+ * One ledger line: name on the left, the Checks deduction chip on the right. [isPending] washes
+ * it in the same colour the list uses to highlight the row it jumps to.
+ */
 @Composable
 private fun BreakdownRow(
     name: String,
     points: Int,
+    isPending: Boolean,
     modifier: Modifier = Modifier
 ) {
+    val washColor = MaterialTheme.colorScheme.primaryContainer
+    val washAlpha by animateFloatAsState(
+        targetValue = if (isPending) JumpHighlightAlpha else 0f,
+        animationSpec = tween(TapFeedbackFadeMillis),
+        label = "breakdownTapWash"
+    )
     Row(
         modifier = modifier
+            .drawBehind { drawRect(washColor.copy(alpha = washAlpha)) }
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
