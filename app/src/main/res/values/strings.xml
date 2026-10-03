@@ -915,7 +915,7 @@
     <!-- ============================================================ -->
     <!-- WIDGET CONFIGURATION ACTIVITY -->
     <!-- ============================================================ -->
-    <string name="label_widget_config_title">Widget Opacity Settings</string>
+    <string name="label_widget_config_title">Widget appearance</string>
     <string name="label_widget_opacity_min">0%</string>
     <string name="label_widget_opacity_max">100%</string>
     <string name="label_widget_cancel">Cancel</string>

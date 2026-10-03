@@ -9,16 +9,21 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -55,7 +60,7 @@ class WidgetConfigurationActivity : ComponentActivity() {
 
         setContent {
             PrivacyWidgetTheme {
-                Scaffold { innerPadding ->
+                Scaffold(topBar = { WidgetConfigurationTopBar() }) { innerPadding ->
                     WidgetConfigurationScreen(
                         initialOpacity = currentOpacity,
                         onSave = { opacity -> saveAndFinish(opacity) },
@@ -81,6 +86,28 @@ class WidgetConfigurationActivity : ComponentActivity() {
     }
 }
 
+/**
+ * Same green bar as the app's other screens: the theme forces light status-bar icons, which
+ * were invisible on this screen's bare light background.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun WidgetConfigurationTopBar() {
+    TopAppBar(
+        title = {
+            Text(
+                text = stringResource(R.string.label_widget_config_title),
+                style = MaterialTheme.typography.titleLarge
+            )
+        },
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = MaterialTheme.colorScheme.primary,
+            titleContentColor = MaterialTheme.colorScheme.onPrimary
+        ),
+        windowInsets = WindowInsets.statusBars
+    )
+}
+
 @Composable
 private fun WidgetConfigurationScreen(
     initialOpacity: Float,
@@ -96,16 +123,6 @@ private fun WidgetConfigurationScreen(
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Text(
-            text = stringResource(R.string.label_widget_config_title),
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.onBackground
-        )
-
-        Spacer(modifier = Modifier.height(32.dp))
-
         Text(
             text = stringResource(R.string.fmt_widget_opacity, opacity.roundToInt()),
             style = MaterialTheme.typography.titleLarge,
