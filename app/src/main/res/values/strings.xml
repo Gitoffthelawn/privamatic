@@ -149,8 +149,7 @@
 
     <string name="privacy_check_google_play_services_name">Google Play Services</string>
     <string name="privacy_check_google_play_services_description">Google Play Services has deep access to your device and enables extensive tracking and data collection across all apps</string>
-    <string name="privacy_check_google_play_services_recommendation">Consider using GrapheneOS to run Google Play Services with limited access, or if using Stock Android (where you can\'t remove it as easily) consider disabling it if possible. Both options significantly reduce its reach on your device.</string>
-    <string name="privacy_check_google_play_services_action">Open App Settings</string>
+    <string name="privacy_check_google_play_services_recommendation">This is a trade-off rather than a setting to change. Play Services can read your location, contacts and Google account, handles push notifications and links device identifiers across apps. On stock Android it is part of the system: disabling it breaks the Play Store, notifications, Find Hub, Wallet and backups, so leave it on. The real way to reduce its reach is a different OS: GrapheneOS runs Play Services as an ordinary sandboxed app, and microG replaces it with an open-source alternative.</string>
     <string name="status_google_play_services_microg">MicroG installed (privacy-friendly replacement)</string>
     <string name="status_google_play_services_sandboxed">Installed (sandboxed)</string>
     <string name="status_google_play_services_disabled">Installed but disabled</string>
@@ -229,6 +228,7 @@
     <string name="privacy_check_google_camera_name">Google Camera</string>
     <string name="privacy_check_google_camera_description">Google Camera app is installed on your device</string>
     <string name="privacy_check_google_camera_recommendation">Consider uninstalling Google Camera and switching to Open Camera or Simple Camera.</string>
+    <string name="privacy_check_google_camera_system_recommendation">%1$s came with your phone, so it can\'t be uninstalled. Disabling it in App settings leaves your phone with no camera app at all, including for scanning QR codes, so install another camera such as Open Camera first. You can re-enable it from the same page at any time.</string>
     <string name="privacy_check_google_camera_action">Open App Settings</string>
 
     <string name="privacy_check_google_docs_name">Google Docs</string>
@@ -783,6 +783,7 @@
     <string name="label_issue_detected">Issue detected</string>
     <string name="label_issue_unknown">Status unknown</string>
     <string name="label_issue_recommendation">Recommendation:</string>
+    <string name="fmt_recommendation_system_app">%1$s came with your phone, so it can\'t be uninstalled. If you don\'t use it, you can disable it in App settings: it stops running and disappears from your app list, and apps that rely on it may stop working. You can re-enable it from the same page at any time.</string>
     <string name="label_issue_fix">Fix</string>
 
     <!-- ============================================================ -->

@@ -123,6 +123,15 @@ nudge, since the state can't be read without Google's AD_ID permission. It stays
 `isUnknown = false` with "Not verified — confirm in Actions"; see the comment at
 `NetworkSecurityChecker.checkAdvertisingId()`.
 
+**Advice for preinstalled apps** — never tell the user to uninstall a system app (it can't be
+done) or to disable one whose loss breaks the phone. A flagged app with `issue.isSystemApp`
+shows `PrivacyIssue.systemAppRecommendation` ("came with your phone… disable if you don't use
+it", formatted with the app name) instead of its "Consider uninstalling" text; a check whose
+disabling breaks something specific sets `PrivacyCheck.systemAppRecommendation` (Camera: no
+camera app left). Uninstall Quick Wins already skip system apps (`QuickWinsDetector`).
+Google Play Services on stock Android is an informational trade-off with no settings action:
+point to GrapheneOS (sandboxed Play) or microG, never to disabling it (audit H3).
+
 **Play Services presence** — absent / disabled / microG / privileged / sandboxed comes only
 from `GoogleServicesChecker.playServicesState()` (`PlayServicesState`). Never add a separate
 `com.google.android.gms` package lookup. Whether a Google Advertising ID exists is

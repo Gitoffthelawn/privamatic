@@ -1,6 +1,7 @@
 package com.techtrest.privamatic.data.model
 
 import androidx.annotation.StringRes
+import com.techtrest.privamatic.R
 
 data class PrivacyIssue(
     val check: PrivacyCheck,
@@ -24,6 +25,17 @@ data class PrivacyIssue(
     @get:StringRes
     val recommendation: Int
         get() = check.recommendation
+
+    /**
+     * A flagged app that shipped with the device can't be uninstalled, so its row must not
+     * suggest it: it gets [systemAppRecommendation] (formatted with the app's name) instead.
+     */
+    val isPreinstalledApp: Boolean
+        get() = isSystemApp && check.packageName != null
+
+    @get:StringRes
+    val systemAppRecommendation: Int
+        get() = check.systemAppRecommendation ?: R.string.fmt_recommendation_system_app
 }
 
 /**

@@ -176,10 +176,14 @@ fun IssueItem(
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = if (effectivelySecure && issue.check == PrivacyCheck.BIOMETRIC_AUTH) {
-                                    stringResource(R.string.privacy_check_biometric_auth_passing_note)
-                                } else {
-                                    stringResource(issue.recommendation)
+                                text = when {
+                                    effectivelySecure && issue.check == PrivacyCheck.BIOMETRIC_AUTH ->
+                                        stringResource(R.string.privacy_check_biometric_auth_passing_note)
+                                    issue.isPreinstalledApp -> stringResource(
+                                        issue.systemAppRecommendation,
+                                        stringResource(issue.check.displayName)
+                                    )
+                                    else -> stringResource(issue.recommendation)
                                 },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
