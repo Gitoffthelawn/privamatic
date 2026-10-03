@@ -161,7 +161,7 @@ private fun WidgetConfigurationScreen(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.End
         ) {
-            OutlinedButton(onClick = onCancel) {
+            OutlinedButton(onClick = onCancel, colors = accentOutlinedButtonColors()) {
                 Text(stringResource(R.string.label_widget_cancel))
             }
             Spacer(modifier = Modifier.width(16.dp))

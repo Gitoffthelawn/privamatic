@@ -21,6 +21,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.techtrest.privamatic.R
+import com.techtrest.privamatic.accentOnSurface
 import com.techtrest.privamatic.data.model.ScoreHistory
 import com.techtrest.privamatic.data.util.DeviceNameUtil
 import kotlin.math.abs
@@ -67,7 +68,7 @@ fun DeviceInfoCard(
                     stringResource(R.string.fmt_score_delta_down, abs(scoreDelta))
                 }
                 val changeColor = if (isIncrease) {
-                    MaterialTheme.colorScheme.primary
+                    MaterialTheme.accentOnSurface
                 } else {
                     MaterialTheme.colorScheme.error
                 }

@@ -60,6 +60,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.gestures.detectTapGestures
 import com.techtrest.privamatic.R
+import com.techtrest.privamatic.accentOnSurface
+import com.techtrest.privamatic.accentTextButtonColors
 import com.techtrest.privamatic.data.HistoryFilter
 import com.techtrest.privamatic.data.model.CheckDeduction
 import com.techtrest.privamatic.data.model.PrivacyCheck
@@ -243,7 +245,7 @@ fun HistoryScreen(
                             Text(
                                 text = stringResource(R.string.label_history_selected_score, displaySnapshot.score),
                                 style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.primary
+                                color = MaterialTheme.accentOnSurface
                             )
                             Text(
                                 text = timestampFormat.format(Date(displaySnapshot.timestamp)),
@@ -289,15 +291,18 @@ fun HistoryScreen(
             title = { Text(stringResource(R.string.label_history_clear)) },
             text = { Text(stringResource(R.string.label_history_clear_confirm)) },
             confirmButton = {
-                TextButton(onClick = {
-                    onClearHistory()
-                    showClearConfirm = false
-                }) {
+                TextButton(
+                    onClick = {
+                        onClearHistory()
+                        showClearConfirm = false
+                    },
+                    colors = accentTextButtonColors()
+                ) {
                     Text(stringResource(R.string.label_history_clear))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showClearConfirm = false }) {
+                TextButton(onClick = { showClearConfirm = false }, colors = accentTextButtonColors()) {
                     Text(stringResource(R.string.label_common_cancel))
                 }
             }

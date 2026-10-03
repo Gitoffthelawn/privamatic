@@ -28,6 +28,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.techtrest.privamatic.R
 import com.techtrest.privamatic.accentOnSurface
+import com.techtrest.privamatic.accentTextButtonColors
 
 /**
  * One-time "What's new" card for the Dashboard, shown after an update (see WhatsNew).
@@ -96,13 +97,10 @@ fun WhatsNewCard(
 
             TextButton(
                 onClick = onDismiss,
-                modifier = Modifier.align(Alignment.End)
+                modifier = Modifier.align(Alignment.End),
+                colors = accentTextButtonColors()
             ) {
-                // TextButton's default content colour is primary, 3.1:1 in dark mode
-                Text(
-                    text = stringResource(R.string.label_whats_new_got_it),
-                    color = MaterialTheme.accentOnSurface
-                )
+                Text(stringResource(R.string.label_whats_new_got_it))
             }
         }
     }

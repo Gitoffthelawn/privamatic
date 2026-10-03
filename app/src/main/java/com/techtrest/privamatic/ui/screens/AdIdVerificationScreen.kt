@@ -51,6 +51,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.techtrest.privamatic.R
+import com.techtrest.privamatic.accentOutlinedButtonColors
 import com.techtrest.privamatic.data.scanner.checks.NetworkSecurityChecker
 import java.time.Instant
 import java.time.ZoneId
@@ -161,7 +162,8 @@ fun AdIdVerificationScreen(
                 // Open settings button
                 OutlinedButton(
                     onClick = { launchAdSettings(context) },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = accentOutlinedButtonColors()
                 ) {
                     Icon(
                         imageVector = Icons.Default.OpenInNew,

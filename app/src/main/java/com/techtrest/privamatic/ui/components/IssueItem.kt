@@ -29,6 +29,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import com.techtrest.privamatic.R
+import com.techtrest.privamatic.accentOnSurface
+import com.techtrest.privamatic.accentOutlinedButtonColors
 import com.techtrest.privamatic.data.model.PrivacyIssue
 import com.techtrest.privamatic.data.model.PrivacyCheck
 import com.techtrest.privamatic.data.model.isFullyTrusted
@@ -156,7 +158,8 @@ fun IssueItem(
                                             rescanOnReturn = true
                                         )
                                     },
-                                    modifier = Modifier.fillMaxWidth()
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = accentOutlinedButtonColors()
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.Settings,
@@ -175,7 +178,7 @@ fun IssueItem(
                             Text(
                                 text = stringResource(R.string.label_issue_recommendation),
                                 style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.primary
+                                color = MaterialTheme.accentOnSurface
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
@@ -204,7 +207,8 @@ fun IssueItem(
                                             rescanOnReturn = true
                                         )
                                     },
-                                    modifier = Modifier.fillMaxWidth()
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = accentOutlinedButtonColors()
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.Settings,

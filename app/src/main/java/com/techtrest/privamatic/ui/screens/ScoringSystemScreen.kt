@@ -42,6 +42,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.techtrest.privamatic.R
+import com.techtrest.privamatic.accentOnSurface
 import com.techtrest.privamatic.data.model.PrivacyCategory
 import com.techtrest.privamatic.data.model.PrivacyCheck
 
@@ -175,7 +176,7 @@ private fun CategorySection(
                 Text(
                     text = categoryName,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = MaterialTheme.accentOnSurface,
                     modifier = Modifier.weight(1f)
                 )
                 Surface(

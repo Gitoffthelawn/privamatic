@@ -46,6 +46,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.techtrest.privamatic.BuildConfig
 import com.techtrest.privamatic.R
+import com.techtrest.privamatic.accentTextButtonColors
 import com.techtrest.privamatic.data.OnboardingPreferences
 import com.techtrest.privamatic.data.maintenance.MaintenanceManager
 import com.techtrest.privamatic.data.model.ManualCheckType
@@ -241,7 +242,10 @@ fun SettingsScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showClearHistoryConfirm = false }) {
+                TextButton(
+                    onClick = { showClearHistoryConfirm = false },
+                    colors = accentTextButtonColors()
+                ) {
                     Text(stringResource(R.string.label_common_cancel))
                 }
             }

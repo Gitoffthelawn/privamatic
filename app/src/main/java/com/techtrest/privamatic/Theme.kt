@@ -2,6 +2,8 @@ package com.techtrest.privamatic
 
 import android.app.Activity
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.ButtonColors
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
@@ -118,6 +120,16 @@ private val LocalAccentOnSurface = staticCompositionLocalOf { Color.Unspecified 
 val MaterialTheme.accentOnSurface: Color
     @Composable @ReadOnlyComposable
     get() = LocalAccentOnSurface.current
+
+/** TextButton colours with [accentOnSurface] text: M3's default (primary) fails AA in dark mode. */
+@Composable
+fun accentTextButtonColors(): ButtonColors =
+    ButtonDefaults.textButtonColors(contentColor = MaterialTheme.accentOnSurface)
+
+/** OutlinedButton colours with [accentOnSurface] content, for the same reason. */
+@Composable
+fun accentOutlinedButtonColors(): ButtonColors =
+    ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.accentOnSurface)
 
 @Composable
 fun PrivacyWidgetTheme(

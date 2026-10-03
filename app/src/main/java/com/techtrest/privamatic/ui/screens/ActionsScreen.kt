@@ -50,6 +50,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.techtrest.privamatic.R
 import com.techtrest.privamatic.accentOnSurface
+import com.techtrest.privamatic.accentTextButtonColors
 import com.techtrest.privamatic.data.maintenance.filterDismissed
 import com.techtrest.privamatic.data.maintenance.onlyDismissed
 import com.techtrest.privamatic.data.model.QuickWin
@@ -132,7 +133,7 @@ fun ActionsScreen(
                                 )
                             },
                             style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.primary
+                            color = MaterialTheme.accentOnSurface
                         )
                     }
                 }
@@ -333,7 +334,7 @@ private fun DismissedQuickWinRow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.weight(1f)
             )
-            TextButton(onClick = onRestore) {
+            TextButton(onClick = onRestore, colors = accentTextButtonColors()) {
                 Text(
                     text = stringResource(R.string.label_actions_restore),
                     style = MaterialTheme.typography.labelMedium
