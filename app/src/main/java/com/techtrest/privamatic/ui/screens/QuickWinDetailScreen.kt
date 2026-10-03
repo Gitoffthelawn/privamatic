@@ -43,6 +43,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.techtrest.privamatic.R
+import com.techtrest.privamatic.accentOnSurface
 import com.techtrest.privamatic.data.model.QuickWin
 import com.techtrest.privamatic.ui.utils.IntentHelper
 
@@ -134,7 +135,7 @@ fun QuickWinDetailScreen(
                         R.plurals.plural_quick_win_gain, quickWin.impact, quickWin.impact
                     ),
                     style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.accentOnSurface
                 )
                 quickWin.alsoFixes.forEach { issue ->
                     Text(

@@ -49,6 +49,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.techtrest.privamatic.R
+import com.techtrest.privamatic.accentOnSurface
 import com.techtrest.privamatic.data.maintenance.filterDismissed
 import com.techtrest.privamatic.data.maintenance.onlyDismissed
 import com.techtrest.privamatic.data.model.QuickWin
@@ -387,7 +388,7 @@ private fun QuickWinCompactTile(
             Icon(
                 imageVector = quickWin.type.icon,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
+                tint = MaterialTheme.accentOnSurface,
                 modifier = Modifier.size(24.dp)
             )
             Spacer(modifier = Modifier.height(6.dp))
@@ -402,7 +403,7 @@ private fun QuickWinCompactTile(
             Text(
                 text = pluralStringResource(R.plurals.plural_quick_win_points, quickWin.impact, quickWin.impact),
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.primary,
+                color = MaterialTheme.accentOnSurface,
                 textAlign = TextAlign.Center
             )
         }

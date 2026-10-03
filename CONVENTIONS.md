@@ -259,6 +259,10 @@ Locale folder: `en-US` (hyphen not underscore).
 ## Design Constraints
 - `MaterialTheme.typography` only — no arbitrary `fontSize`
 - `MaterialTheme.colorScheme` only — no hardcoded hex colors
+- Small brand-green text or icons on a surface use `MaterialTheme.accentOnSurface` (Theme.kt),
+  not `colorScheme.primary`: dark `primary` is pinned to #00854A, only 3.1:1 on
+  `surfaceContainerHigh`. The accent is `primary` in light (9.5:1) and the tone-80 primary
+  (`surfaceTint`) in dark (8.5:1); both meet WCAG AA 4.5:1
 - Widget ARGB colors as named constants, never inline hex
 - Material Design spacing: 4dp, 8dp, 12dp, 16dp, 24dp, 32dp — no arbitrary values
 - Corner radius: 8dp small, 12dp standard
