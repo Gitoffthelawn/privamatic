@@ -64,7 +64,9 @@ ViewModel and widget both derive from the same enum values. No dead code drift.
 
 **Details tabs** — Checks / Trusted / SDKs (`DetailsTab`). Score Breakdown is not a tab: it is
 the alternate view of the Checks tab (`ChecksView.BREAKDOWN`, `BreakdownContent.kt`).
-Filter: `pointDeduction > 0`. A "Manual checks not done" row (hidden at 0) makes the rows
+Layout: a ledger, one card with one line per check (name left, `DeductionChip` right — the
+same chip as the Checks rows) and no footer; the total lives in the tab header
+("−N pts · Score S"). Filter: `pointDeduction > 0`. A "Manual checks not done" row (hidden at 0) makes the rows
 add up to 100 − score; all rows, manual included, sort descending by points (manual first on ties); its value and the header total come
 from `PrivacyScoreCalculator.manualCheckDeduction()` / `totalDeduction()`, never a re-derived
 formula. Only a score clamped at 0 doesn't reconcile.
@@ -149,6 +151,10 @@ In non-Composable (widget, checker): `context.getString(rating.displayNameRes)`
 - Enum display names: `<enum>_<entry>_name`
 - Plurals: `plural_<element>` using `<plurals>` tag
 - Format strings: `fmt_<element>`
+
+**Minus sign** — every point deduction shown to the user uses the real minus sign U+2212
+(`−`), never a hyphen. Format it through `fmt_deduction_chip` (`−%d`) rather than building
+`"-$n"` in Kotlin.
 
 **Do NOT extract to strings.xml:** package names, log tags, DataStore keys,
 OS brand detection strings (GrapheneOS, CalyxOS), format placeholders.
