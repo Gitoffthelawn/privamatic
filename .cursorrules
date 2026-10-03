@@ -86,6 +86,11 @@ so old notes never repeat. Seen state is `last_seen_version_code` in SharedPrefe
 is marked seen silently. The card shows only when `BuildConfig.VERSION_CODE ==
 NOTES_VERSION_CODE`, so the versionCode bump at release is what turns it on.
 
+**Rescan after a fix deep link** — Settings intents that let the user fix a check (Quick Win
+detail, check-row "Open settings") call `IntentHelper.launchActionIntent(…, rescanOnReturn = true)`;
+`MainScreen` rescans once on the next resume. Manual-check links don't (they change no scan
+result). The flag is in memory only.
+
 **View toggles vs tabs** — a tab is for different data; a toggle is for the same data viewed
 differently. Toggles are an `IconButton` in the tab's fixed header row (never a segmented
 row under the tab bar), wrapped in a `PlainTooltip`, with one string used as both tooltip and

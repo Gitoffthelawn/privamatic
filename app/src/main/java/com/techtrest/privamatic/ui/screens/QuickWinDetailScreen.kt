@@ -203,7 +203,8 @@ fun QuickWinDetailScreen(
                         IntentHelper.launchActionIntent(
                             context = context,
                             actionType = actionType,
-                            packageName = quickWin.relatedCheck?.packageName
+                            packageName = quickWin.relatedCheck?.packageName,
+                            rescanOnReturn = true
                         )
                     },
                     modifier = Modifier.fillMaxWidth()

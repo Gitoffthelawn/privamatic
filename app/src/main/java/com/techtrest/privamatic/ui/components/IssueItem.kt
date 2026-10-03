@@ -152,7 +152,8 @@ fun IssueItem(
                                         IntentHelper.launchActionIntent(
                                             context = context,
                                             actionType = actionType,
-                                            packageName = issue.check.packageName
+                                            packageName = issue.check.packageName,
+                                            rescanOnReturn = true
                                         )
                                     },
                                     modifier = Modifier.fillMaxWidth()
@@ -199,7 +200,8 @@ fun IssueItem(
                                         IntentHelper.launchActionIntent(
                                             context = context,
                                             actionType = actionType,
-                                            packageName = issue.check.packageName
+                                            packageName = issue.check.packageName,
+                                            rescanOnReturn = true
                                         )
                                     },
                                     modifier = Modifier.fillMaxWidth()
