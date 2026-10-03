@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.List
@@ -59,6 +60,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -562,6 +564,14 @@ private fun AppTrustRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                // The row is the switch for accessibility: checked state, and disabled for
+                // data-broker apps that can't be trusted.
+                .toggleable(
+                    value = isTrusted,
+                    enabled = !app.isBlacklisted,
+                    role = Role.Switch,
+                    onValueChange = onToggle
+                )
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -611,7 +621,7 @@ private fun AppTrustRow(
 
             Switch(
                 checked = isTrusted,
-                onCheckedChange = if (app.isBlacklisted) null else onToggle,
+                onCheckedChange = null,
                 enabled = !app.isBlacklisted
             )
         }

@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -41,6 +42,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.techtrest.privamatic.BuildConfig
 import com.techtrest.privamatic.R
@@ -114,9 +116,10 @@ fun SettingsScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable {
-                            showOnRestart = !showOnRestart
-                            if (showOnRestart) onboardingPrefs.reset() else onboardingPrefs.setComplete()
+                        // One toggleable node so TalkBack reads the row as a switch with its state
+                        .toggleable(value = showOnRestart, role = Role.Switch) { checked ->
+                            showOnRestart = checked
+                            if (checked) onboardingPrefs.reset() else onboardingPrefs.setComplete()
                         }
                         .padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -152,9 +155,8 @@ fun SettingsScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable {
+                            .toggleable(value = forceShowAdId, role = Role.Switch) { newValue ->
                                 val isCompleted = adIdState?.lastCompletedTimestamp != 0L
-                                val newValue = !forceShowAdId
                                 if (!newValue && !isCompleted) {
                                     scope.launch {
                                         snackbarHostState.showSnackbar(completeAdIdFirstMsg)
