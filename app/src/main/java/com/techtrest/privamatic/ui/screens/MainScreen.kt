@@ -74,6 +74,7 @@ fun MainScreen(viewModel: PrivacyViewModel = viewModel()) {
     val scanState by viewModel.scanState.collectAsState()
     val scoreHistory by viewModel.scoreHistory.collectAsState()
     val historySnapshots by viewModel.historySnapshots.collectAsState()
+    val hasHistory by viewModel.hasHistory.collectAsState()
     val selectedHistoryFilter by viewModel.selectedFilter.collectAsState()
     val trustedPackages by viewModel.trustedPackages.collectAsState()
     val isAppsBannerDismissed by viewModel.isAppsBannerDismissed.collectAsState()
@@ -410,6 +411,7 @@ fun MainScreen(viewModel: PrivacyViewModel = viewModel()) {
     if (navigationState.showHistoryScreen) {
         HistoryScreen(
             snapshots = historySnapshots,
+            hasHistory = hasHistory,
             selectedFilter = selectedHistoryFilter,
             onFilterChanged = { viewModel.setHistoryFilter(it) },
             onClearHistory = { viewModel.clearHistory() },
@@ -420,8 +422,11 @@ fun MainScreen(viewModel: PrivacyViewModel = viewModel()) {
 
     // Settings Screen
     if (showSettingsScreen) {
+        // The nightly snapshot may have landed since the last scan.
+        LaunchedEffect(Unit) { viewModel.loadHistory() }
         SettingsScreen(
             onBackClick = { showSettingsScreen = false },
+            canClearHistory = hasHistory,
             onClearHistory = { viewModel.clearHistory() }
         )
     }

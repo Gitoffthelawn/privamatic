@@ -53,6 +53,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun SettingsScreen(
     onBackClick: () -> Unit,
+    canClearHistory: Boolean,
     onClearHistory: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -196,7 +197,7 @@ fun SettingsScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { showClearHistoryConfirm = true }
+                        .clickable(enabled = canClearHistory) { showClearHistoryConfirm = true }
                         .padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -204,13 +205,16 @@ fun SettingsScreen(
                         Text(
                             text = stringResource(R.string.label_history_clear),
                             style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.error
+                            color = if (canClearHistory) MaterialTheme.colorScheme.error
+                                    else MaterialTheme.colorScheme.onSurface.copy(alpha = DisabledAlpha)
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
                             text = stringResource(R.string.label_history_clear_confirm),
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                                alpha = if (canClearHistory) 1f else DisabledAlpha
+                            )
                         )
                     }
                 }
@@ -242,3 +246,6 @@ fun SettingsScreen(
         )
     }
 }
+
+/** Material 3 disabled-content opacity. */
+private const val DisabledAlpha = 0.38f

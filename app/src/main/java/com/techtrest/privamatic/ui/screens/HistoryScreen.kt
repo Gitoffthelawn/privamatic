@@ -1,6 +1,7 @@
 package com.techtrest.privamatic.ui.screens
 
 import androidx.activity.compose.BackHandler
+import androidx.annotation.StringRes
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -69,10 +70,30 @@ import java.util.Locale
 import kotlin.math.sqrt
 import androidx.compose.ui.graphics.drawscope.Stroke
 
+/**
+ * What the History screen shows. [emptyMessage] set means only that message under the range
+ * chips: no tap hint, no deductions list. Clear is possible whenever any history exists,
+ * even if the selected range is empty.
+ */
+internal data class HistoryContent(
+    @StringRes val emptyMessage: Int?,
+    val canClear: Boolean
+)
+
+internal fun historyContent(pointsInRange: Int, hasAnyHistory: Boolean) = HistoryContent(
+    emptyMessage = when {
+        !hasAnyHistory -> R.string.label_history_no_data
+        pointsInRange == 0 -> R.string.label_history_no_data_in_range
+        else -> null
+    },
+    canClear = hasAnyHistory
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HistoryScreen(
     snapshots: List<PrivacySnapshot>,
+    hasHistory: Boolean,
     selectedFilter: HistoryFilter,
     onFilterChanged: (HistoryFilter) -> Unit,
     onClearHistory: () -> Unit,
@@ -81,6 +102,8 @@ fun HistoryScreen(
 ) {
     var selectedSnapshot by remember(snapshots) { mutableStateOf<PrivacySnapshot?>(null) }
     var showClearConfirm by remember { mutableStateOf(false) }
+    // A nightly snapshot can exist before hasHistory catches up; points in range prove it.
+    val content = historyContent(snapshots.size, hasHistory || snapshots.isNotEmpty())
 
     LaunchedEffect(Unit) {
         onLoadHistory()
@@ -106,7 +129,10 @@ fun HistoryScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { showClearConfirm = true }) {
+                    IconButton(
+                        onClick = { showClearConfirm = true },
+                        enabled = content.canClear
+                    ) {
                         Icon(
                             imageVector = Icons.Outlined.Delete,
                             contentDescription = stringResource(R.string.label_history_clear)
@@ -149,8 +175,27 @@ fun HistoryScreen(
                 )
             }
 
-            // Date range label
-            if (snapshots.isNotEmpty()) {
+            val emptyMessage = content.emptyMessage
+            if (emptyMessage != null) {
+                // Empty: only the message. No tap hint and no "No deductions", which would
+                // read as a perfect result.
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(280.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = stringResource(emptyMessage),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            } else {
+                // Date range label
                 item {
                     val first = dateFormat.format(Date(snapshots.first().timestamp))
                     val last = dateFormat.format(Date(snapshots.last().timestamp))
@@ -160,35 +205,17 @@ fun HistoryScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-            }
 
-            // Chart
-            item {
-                if (snapshots.isEmpty()) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(280.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = stringResource(R.string.label_history_no_data),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center
-                        )
-                    }
-                } else {
+                // Chart
+                item {
                     ScoreLineChart(
                         snapshots = snapshots,
                         selectedSnapshot = selectedSnapshot,
                         onSnapshotSelected = { selectedSnapshot = it }
                     )
                 }
-            }
 
-            // X-axis date labels (only when chart is visible)
-            if (snapshots.size >= 1) {
+                // X-axis date labels
                 item {
                     Row(
                         modifier = Modifier
@@ -208,46 +235,49 @@ fun HistoryScreen(
                         )
                     }
                 }
-            }
 
-            // Selected point info
-            item {
-                if (displaySnapshot != null) {
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                // Selected point info
+                item {
+                    if (displaySnapshot != null) {
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(
+                                text = stringResource(R.string.label_history_selected_score, displaySnapshot.score),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                text = timestampFormat.format(Date(displaySnapshot.timestamp)),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    } else {
                         Text(
-                            text = stringResource(R.string.label_history_selected_score, displaySnapshot.score),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        Text(
-                            text = timestampFormat.format(Date(displaySnapshot.timestamp)),
-                            style = MaterialTheme.typography.bodySmall,
+                            text = stringResource(R.string.label_history_tap_prompt),
+                            style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                } else {
-                    Text(
-                        text = stringResource(R.string.label_history_tap_prompt),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
                 }
-            }
 
-            item { HorizontalDivider() }
+                // Deductions of the selected point only; with nothing selected the tap hint
+                // above is the whole story.
+                if (displaySnapshot != null) {
+                    item { HorizontalDivider() }
 
-            // Deductions list
-            if (deductions.isEmpty()) {
-                item {
-                    Text(
-                        text = stringResource(R.string.copy_history_empty_deductions),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            } else {
-                items(deductions, key = { it.checkName }) { deduction ->
-                    HistoryDeductionRow(deduction = deduction)
+                    if (deductions.isEmpty()) {
+                        item {
+                            Text(
+                                text = stringResource(R.string.copy_history_empty_deductions),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    } else {
+                        items(deductions, key = { it.checkName }) { deduction ->
+                            HistoryDeductionRow(deduction = deduction)
+                        }
+                    }
                 }
             }
         }
