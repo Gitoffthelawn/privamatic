@@ -993,8 +993,8 @@
     </plurals>
 
     <plurals name="plural_quick_win_points">
-        <item quantity="one">+1pt</item>
-        <item quantity="other">+%dpts</item>
+        <item quantity="one">+%d pt</item>
+        <item quantity="other">+%d pts</item>
     </plurals>
     <plurals name="plural_quick_win_gain">
         <item quantity="one">+%d pt to your score</item>
