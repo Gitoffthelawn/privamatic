@@ -42,6 +42,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.techtrest.privamatic.BuildConfig
 import com.techtrest.privamatic.R
 import com.techtrest.privamatic.data.OnboardingPreferences
 import com.techtrest.privamatic.data.maintenance.MaintenanceManager
@@ -139,46 +140,50 @@ fun SettingsScreen(
                 }
             }
 
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                shape = MaterialTheme.shapes.medium
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable {
-                            val isCompleted = adIdState?.lastCompletedTimestamp != 0L
-                            val newValue = !forceShowAdId
-                            if (!newValue && !isCompleted) {
-                                scope.launch {
-                                    snackbarHostState.showSnackbar(completeAdIdFirstMsg)
-                                }
-                            } else {
-                                forceShowAdId = newValue
-                                onboardingPrefs.setForceShowAdIdCheck(newValue)
-                            }
-                        }
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
+            // Testing aid: shows the Ad ID manual check regardless of its 180-day timer.
+            // Debug builds only; release ignores the stored flag (OnboardingPreferences).
+            if (BuildConfig.DEBUG) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                    shape = MaterialTheme.shapes.medium
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = stringResource(R.string.label_settings_force_adid),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = stringResource(R.string.copy_settings_force_adid_subtitle),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                val isCompleted = adIdState?.lastCompletedTimestamp != 0L
+                                val newValue = !forceShowAdId
+                                if (!newValue && !isCompleted) {
+                                    scope.launch {
+                                        snackbarHostState.showSnackbar(completeAdIdFirstMsg)
+                                    }
+                                } else {
+                                    forceShowAdId = newValue
+                                    onboardingPrefs.setForceShowAdIdCheck(newValue)
+                                }
+                            }
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = stringResource(R.string.label_settings_force_adid),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = stringResource(R.string.copy_settings_force_adid_subtitle),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = forceShowAdId,
+                            onCheckedChange = null
                         )
                     }
-                    Switch(
-                        checked = forceShowAdId,
-                        onCheckedChange = null
-                    )
                 }
             }
 
