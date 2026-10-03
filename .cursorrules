@@ -59,8 +59,18 @@ items, losing those points.
 **`PrivacyCheck` enum is single source of truth** — all scoring logic lives in the enum.
 ViewModel and widget both derive from the same enum values. No dead code drift.
 
-**Score Breakdown tab** — outer Details-level tab (peer to Checks and Apps), not a sub-tab.
+**Details tabs** — Checks / Trusted / SDKs (`DetailsTab`). Score Breakdown is not a tab: it is
+the alternate view of the Checks tab (`ChecksView.BREAKDOWN`, `BreakdownContent.kt`).
 Filter: `pointDeduction > 0`. Sorted descending by deduction.
+
+**View toggles vs tabs** — a tab is for different data; a toggle is for the same data viewed
+differently. Toggles are an `IconButton` in the tab's fixed header row (never a segmented
+row under the tab bar), wrapped in a `PlainTooltip`, with one string used as both tooltip and
+content description, naming the view the button switches *to*. The header's left side carries
+information about the current view (e.g. Checks: status counts via `statusCounts()`;
+Breakdown: total deduction), not a repeat of the tab name. The chosen view is persisted in
+SharedPreferences (`DetailsViewPreferences` pattern: store the enum `name`, fall back to the
+default on unknown values) and read synchronously so the first frame shows the saved view.
 
 **`effectivelySecure`** — `issue.isSecure || allPackagesTrusted` — pure UI derivation,
 no data model changes. Row icons and category chip counts go through
@@ -205,4 +215,4 @@ Locale folder: `en-US` (hyphen not underscore).
   (row status, category chips, category headers) use `Icons.Outlined.*` for consistency
   with the chips
 
-*Last updated: 2026-10-02*
+*Last updated: 2026-10-03*

@@ -17,24 +17,34 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.List
 import androidx.compose.material.icons.filled.Android
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
+import androidx.compose.material3.TooltipBox
+import androidx.compose.material3.TooltipDefaults
+import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -42,6 +52,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -49,11 +60,15 @@ import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
 import com.techtrest.privamatic.Cream
 import com.techtrest.privamatic.R
+import com.techtrest.privamatic.data.DetailsViewPreferences
 import com.techtrest.privamatic.data.model.FlaggedApp
 import com.techtrest.privamatic.data.model.PrivacyCategory
 import com.techtrest.privamatic.data.model.PrivacyScore
 import com.techtrest.privamatic.data.model.SdkScanResult
 import com.techtrest.privamatic.ui.components.CategoryGroup
+import com.techtrest.privamatic.ui.components.IssueDisplayStatus
+import com.techtrest.privamatic.ui.components.statusCounts
+import com.techtrest.privamatic.ui.navigation.ChecksView
 import com.techtrest.privamatic.ui.navigation.DetailsTab
 import com.techtrest.privamatic.ui.viewmodel.SdkScanState
 
@@ -99,9 +114,9 @@ fun DetailsScreen(
                     selectedContentColor = MaterialTheme.colorScheme.onPrimary,
                     unselectedContentColor = if (isDark) MaterialTheme.colorScheme.onPrimary
                                              else MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
-                    // TabRow splits width evenly, so at large font scales the longest
-                    // label ("Breakdown") would wrap and make its tab taller than the
-                    // rest. Truncate instead of wrapping to keep the row even.
+                    // TabRow splits width evenly, so at large font scales a long label
+                    // would wrap and make its tab taller than the rest. Truncate
+                    // instead of wrapping to keep the row even.
                     text = {
                         Text(
                             text = stringResource(tab.label),
@@ -119,7 +134,7 @@ fun DetailsScreen(
         }
 
         when (selectedTab) {
-            DetailsTab.CHECKS -> ChecksContent(
+            DetailsTab.CHECKS -> ChecksTab(
                 privacyScore = privacyScore,
                 trustedPackages = trustedPackages
             )
@@ -136,7 +151,118 @@ fun DetailsScreen(
                 scanState = sdkScanState,
                 onRunScan = onRunSdkScan
             )
-            DetailsTab.BREAKDOWN -> BreakdownTab(privacyScore = privacyScore)
+        }
+    }
+}
+
+/**
+ * Checks tab: a fixed header (summary + view toggle) over either the check list or the
+ * score breakdown. Same data, two views, so this is a toggle rather than another tab.
+ */
+@Composable
+private fun ChecksTab(
+    privacyScore: PrivacyScore,
+    trustedPackages: Set<String>,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    val viewPrefs = remember { DetailsViewPreferences(context) }
+    var view by remember { mutableStateOf(viewPrefs.getChecksView()) }
+
+    Column(modifier = modifier.fillMaxSize()) {
+        ChecksHeader(
+            privacyScore = privacyScore,
+            trustedPackages = trustedPackages,
+            view = view,
+            onToggleView = {
+                view = if (view == ChecksView.LIST) ChecksView.BREAKDOWN else ChecksView.LIST
+                viewPrefs.setChecksView(view)
+            }
+        )
+
+        when (view) {
+            ChecksView.LIST -> ChecksContent(
+                privacyScore = privacyScore,
+                trustedPackages = trustedPackages
+            )
+            ChecksView.BREAKDOWN -> BreakdownContent(privacyScore = privacyScore)
+        }
+    }
+}
+
+/**
+ * List view: status summary over every category, counted exactly like the category chips.
+ * Breakdown view: the total deduction shown by the breakdown itself.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ChecksHeader(
+    privacyScore: PrivacyScore,
+    trustedPackages: Set<String>,
+    view: ChecksView,
+    onToggleView: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val summary = when (view) {
+        ChecksView.LIST -> {
+            val counts = remember(privacyScore, trustedPackages) {
+                PrivacyCategory.entries
+                    .flatMap { PrivacyCategory.getIssuesForCategory(it, privacyScore) }
+                    .statusCounts(trustedPackages)
+            }
+            val issuesCount = counts[IssueDisplayStatus.FAIL] ?: 0
+            val passCount = counts[IssueDisplayStatus.PASS] ?: 0
+            val infoCount = counts[IssueDisplayStatus.INFO] ?: 0
+            val issues = pluralStringResource(R.plurals.plural_category_issues, issuesCount, issuesCount)
+            val pass = pluralStringResource(R.plurals.plural_category_pass, passCount, passCount)
+            if (infoCount > 0) {
+                val review = pluralStringResource(R.plurals.plural_category_review, infoCount, infoCount)
+                stringResource(R.string.fmt_details_checks_summary_review, issues, pass, review)
+            } else {
+                stringResource(R.string.fmt_details_checks_summary, issues, pass)
+            }
+        }
+        ChecksView.BREAKDOWN -> {
+            val total = privacyScore.totalDeductions
+            if (total > 0) stringResource(R.string.fmt_details_breakdown_total, total)
+            else stringResource(R.string.label_details_breakdown_no_deductions)
+        }
+    }
+    // Names the view the button switches to, for both the tooltip and TalkBack.
+    val toggleLabel = stringResource(
+        if (view == ChecksView.LIST) R.string.label_details_view_breakdown
+        else R.string.label_details_view_checks
+    )
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(start = 16.dp, end = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = summary,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier
+                .weight(1f)
+                .padding(start = 4.dp)
+        )
+        TooltipBox(
+            positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+            tooltip = { PlainTooltip { Text(toggleLabel) } },
+            state = rememberTooltipState()
+        ) {
+            IconButton(onClick = onToggleView) {
+                Icon(
+                    imageVector = if (view == ChecksView.LIST) Icons.Outlined.BarChart
+                                  else Icons.AutoMirrored.Outlined.List,
+                    contentDescription = toggleLabel,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }
@@ -161,7 +287,7 @@ private fun ChecksContent(
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 16.dp),
+        contentPadding = PaddingValues(start = 16.dp, top = 4.dp, end = 16.dp, bottom = 16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         item {

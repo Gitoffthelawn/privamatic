@@ -26,7 +26,7 @@ import com.techtrest.privamatic.R
 import com.techtrest.privamatic.data.model.PrivacyScore
 
 @Composable
-fun BreakdownTab(
+fun BreakdownContent(
     privacyScore: PrivacyScore,
     modifier: Modifier = Modifier
 ) {

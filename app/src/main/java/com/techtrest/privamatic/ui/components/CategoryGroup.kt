@@ -37,6 +37,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.techtrest.privamatic.R
 import com.techtrest.privamatic.data.model.PrivacyCategory
+import com.techtrest.privamatic.data.model.PrivacyIssue
 import com.techtrest.privamatic.data.model.PrivacyScore
 
 @Composable
@@ -49,7 +50,7 @@ fun CategoryGroup(
     val issues = PrivacyCategory.getIssuesForCategory(category, privacyScore)
 
     val statusCounts = remember(privacyScore, trustedPackages) {
-        issues.groupingBy { it.displayStatus(trustedPackages) }.eachCount()
+        issues.statusCounts(trustedPackages)
     }
     val issuesCount = statusCounts[IssueDisplayStatus.FAIL] ?: 0
     val passCount = statusCounts[IssueDisplayStatus.PASS] ?: 0
@@ -129,6 +130,14 @@ fun CategoryGroup(
         }
     }
 }
+
+/**
+ * Rows per [IssueDisplayStatus]; drives the category chips and the Checks tab summary.
+ * Statuses with no rows are absent from the map.
+ */
+internal fun List<PrivacyIssue>.statusCounts(
+    trustedPackages: Set<String>
+): Map<IssueDisplayStatus, Int> = groupingBy { it.displayStatus(trustedPackages) }.eachCount()
 
 /**
  * Alpha for status tints (category chips, point badges): the container role is
