@@ -77,6 +77,15 @@ fades over ~1.4 s). A plain header toggle keeps expansion and scroll and never h
 (`ChecksTab` owns category and row expansion, `LazyListState` and the highlight). The manual row
 opens the Actions tab immediately.
 
+**What's new card** — one-time Dashboard card below the Score card after an update, never on a
+fresh install (`WhatsNewCard`, `WhatsNew`, `WhatsNewPreferences`). Notes live in `WhatsNew`:
+`NOTES_VERSION_CODE` plus a list of `copy_whats_new_*` strings. For a release with news, set it to
+that release's versionCode and replace the items; a release that leaves it alone shows nothing,
+so old notes never repeat. Seen state is `last_seen_version_code` in SharedPreferences
+(`whats_new_prefs`), written on dismiss; a fresh install (`firstInstallTime == lastUpdateTime`)
+is marked seen silently. The card shows only when `BuildConfig.VERSION_CODE ==
+NOTES_VERSION_CODE`, so the versionCode bump at release is what turns it on.
+
 **View toggles vs tabs** — a tab is for different data; a toggle is for the same data viewed
 differently. Toggles are an `IconButton` in the tab's fixed header row (never a segmented
 row under the tab bar), wrapped in a `PlainTooltip`, with one string used as both tooltip and
