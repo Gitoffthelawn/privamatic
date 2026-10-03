@@ -908,7 +908,7 @@
     <string name="label_onboarding_step_scan">Scan</string>
     <string name="label_onboarding_step_score">Score</string>
     <string name="label_onboarding_step_act">Act</string>
-    <string name="copy_onboarding_how_it_works_body">50+ checks across security, tracking, and your apps. Weighted by real-world impact.</string>
+    <string name="copy_onboarding_how_it_works_body">50 checks across security, tracking, and your apps. Weighted by real-world impact.</string>
     <string name="copy_onboarding_pragmatic_headline">The pragmatic approach.</string>
     <string name="copy_onboarding_pragmatic_body">Privacy that fits real life. No paranoia, no impossible standards — just meaningful improvements.</string>
 
@@ -918,7 +918,7 @@
     <!-- WHAT'S NEW CARD (Dashboard, once per update; notes for v1.5.0, see WhatsNew) -->
     <string name="fmt_whats_new_title">What\'s new in %1$s</string>
     <string name="copy_whats_new_breakdown_moved">Score Breakdown now lives in Details → Checks: tap the chart icon.</string>
-    <string name="copy_whats_new_unknown_free">Checks the app can\'t determine no longer cost points.</string>
+    <string name="copy_whats_new_unknown_free">Most checks the app can\'t determine no longer cost points.</string>
     <string name="copy_whats_new_detection">Improved detection may lower your score: some apps that were previously missed are now counted.</string>
     <string name="label_whats_new_got_it">Got it</string>
     <string name="label_whats_new_dismiss">Dismiss what\'s new</string>
