@@ -94,6 +94,58 @@ class PrivacyScoreCalculatorTest {
     }
 
     // -------------------------------------------------------------------------
+    // Breakdown reconciliation: rows + manual row = 100 − score
+    // -------------------------------------------------------------------------
+
+    private val breakdownIssues = listOf(
+        insecureIssue(PrivacyCheck.SCREEN_LOCK),                              // 11
+        insecureIssue(PrivacyCheck.USB_DEBUGGING),                            // 4
+        insecureIssue(PrivacyCheck.GOOGLE_PLAY_SERVICES, customPointDeduction = 8),
+        secureIssue(PrivacyCheck.DEVICE_ENCRYPTION)                           // 0, not a row
+    )
+
+    /** Sum of the rows BreakdownContent draws: deducting checks plus the manual row when > 0. */
+    private fun breakdownRowsTotal(score: PrivacyScore): Int {
+        val checkRows = score.issues.filter { it.pointDeduction > 0 }.sumOf { it.pointDeduction }
+        val manualRow = PrivacyScoreCalculator.manualCheckDeduction(score.manualCheckPoints)
+        return checkRows + if (manualRow > 0) manualRow else 0
+    }
+
+    @Test
+    fun breakdown_rowsPlusManualRow_equal100MinusScore() {
+        for (manualPoints in listOf(0, 5, 10, 15)) {
+            val score = PrivacyScoreCalculator.calculateScore(breakdownIssues, manualPoints)
+            assertEquals("manualPoints=$manualPoints", 100 - score.score, breakdownRowsTotal(score))
+            assertEquals("manualPoints=$manualPoints", 100 - score.score,
+                PrivacyScoreCalculator.totalDeduction(score))
+        }
+    }
+
+    @Test
+    fun breakdown_noManualChecksDone_manualRowIs15() {
+        // Fresh install: no manual checks done costs the full 15.
+        val score = PrivacyScoreCalculator.calculateScore(breakdownIssues, manualCheckPoints = 0)
+        assertEquals(15, PrivacyScoreCalculator.manualCheckDeduction(score.manualCheckPoints))
+        assertEquals(100 - 23 - 15, score.score)
+    }
+
+    @Test
+    fun breakdown_allManualChecksDone_manualRowHidden() {
+        val score = PrivacyScoreCalculator.calculateScore(breakdownIssues, manualCheckPoints = 15)
+        assertEquals(0, PrivacyScoreCalculator.manualCheckDeduction(score.manualCheckPoints))
+    }
+
+    @Test
+    fun breakdown_scoreClampedAtZero_totalExceeds100() {
+        // Clamping is the one case where the rows deliberately don't reconcile: the header shows
+        // the real total (−101) next to "Score 0".
+        val issues = listOf(insecureIssue(PrivacyCheck.SCREEN_LOCK, customPointDeduction = 86))
+        val score = PrivacyScoreCalculator.calculateScore(issues, manualCheckPoints = 0)
+        assertEquals(0, score.score)
+        assertEquals(101, PrivacyScoreCalculator.totalDeduction(score))
+    }
+
+    // -------------------------------------------------------------------------
     // getScoreRating()
     // -------------------------------------------------------------------------
 

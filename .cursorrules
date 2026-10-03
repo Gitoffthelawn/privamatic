@@ -59,8 +59,28 @@ items, losing those points.
 **`PrivacyCheck` enum is single source of truth** — all scoring logic lives in the enum.
 ViewModel and widget both derive from the same enum values. No dead code drift.
 
-**Score Breakdown tab** — outer Details-level tab (peer to Checks and Apps), not a sub-tab.
-Filter: `pointDeduction > 0`. Sorted descending by deduction.
+**Details tabs** — Checks / Trusted / SDKs (`DetailsTab`). Score Breakdown is not a tab: it is
+the alternate view of the Checks tab (`ChecksView.BREAKDOWN`, `BreakdownContent.kt`).
+Layout: a ledger, one card with one line per check (name left, `DeductionChip` right — the
+same chip as the Checks rows) and no footer; the total lives in the tab header
+("−N pts · Score S"). Filter: `pointDeduction > 0`. A "Manual checks not done" row (hidden at 0) makes the rows
+add up to 100 − score; all rows, manual included, sort descending by points (manual first on ties); its value and the header total come
+from `PrivacyScoreCalculator.manualCheckDeduction()` / `totalDeduction()`, never a re-derived
+formula. Only a score clamped at 0 doesn't reconcile.
+Tapping a check row washes it in `primaryContainer` (~200 ms), then switches to the list view,
+collapses every category except the target's, scrolls the row into view and highlights it
+(same colour, fades over ~1.4 s). A plain header toggle keeps expansion and scroll and never
+highlights (`ChecksTab` owns expansion, `LazyListState` and the highlight). The manual row
+opens the Actions tab immediately.
+
+**View toggles vs tabs** — a tab is for different data; a toggle is for the same data viewed
+differently. Toggles are an `IconButton` in the tab's fixed header row (never a segmented
+row under the tab bar), wrapped in a `PlainTooltip`, with one string used as both tooltip and
+content description, naming the view the button switches *to*. The header's left side carries
+information about the current view (e.g. Checks: status counts via `statusCounts()`;
+Breakdown: total deduction), not a repeat of the tab name. The chosen view is persisted in
+SharedPreferences (`DetailsViewPreferences` pattern: store the enum `name`, fall back to the
+default on unknown values) and read synchronously so the first frame shows the saved view.
 
 **`effectivelySecure`** — `issue.isSecure || allPackagesTrusted` — pure UI derivation,
 no data model changes. Row icons and category chip counts go through
@@ -128,6 +148,10 @@ In non-Composable (widget, checker): `context.getString(rating.displayNameRes)`
 - Enum display names: `<enum>_<entry>_name`
 - Plurals: `plural_<element>` using `<plurals>` tag
 - Format strings: `fmt_<element>`
+
+**Minus sign** — every point deduction shown to the user uses the real minus sign U+2212
+(`−`), never a hyphen. Format it through `fmt_deduction_chip` (`−%d`) rather than building
+`"-$n"` in Kotlin.
 
 **Do NOT extract to strings.xml:** package names, log tags, DataStore keys,
 OS brand detection strings (GrapheneOS, CalyxOS), format placeholders.
@@ -205,4 +229,4 @@ Locale folder: `en-US` (hyphen not underscore).
   (row status, category chips, category headers) use `Icons.Outlined.*` for consistency
   with the chips
 
-*Last updated: 2026-10-02*
+*Last updated: 2026-10-03*

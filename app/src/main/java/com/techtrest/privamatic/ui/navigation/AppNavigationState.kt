@@ -10,10 +10,12 @@ import com.techtrest.privamatic.R
 
 enum class DetailsTab(@StringRes val label: Int) {
     CHECKS(R.string.details_tab_checks),
-    SDK(R.string.details_tab_sdk),
     APPS(R.string.details_tab_apps),
-    BREAKDOWN(R.string.tab_breakdown)
+    SDK(R.string.details_tab_sdk)
 }
+
+/** Alternate views of the Checks tab, switched by the header toggle and persisted. */
+enum class ChecksView { LIST, BREAKDOWN }
 
 class AppNavigationState(
     initialTab: NavigationTab = NavigationTab.DASHBOARD,

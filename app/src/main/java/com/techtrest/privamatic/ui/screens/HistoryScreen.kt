@@ -459,7 +459,7 @@ private fun HistoryDeductionRow(deduction: CheckDeduction) {
             shape = RoundedCornerShape(12.dp)
         ) {
             Text(
-                text = "-${deduction.points}",
+                text = stringResource(R.string.fmt_deduction_chip, deduction.points),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onError,
                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)

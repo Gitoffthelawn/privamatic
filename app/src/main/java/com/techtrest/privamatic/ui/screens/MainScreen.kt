@@ -333,7 +333,10 @@ fun MainScreen(viewModel: PrivacyViewModel = viewModel()) {
                                     onUntrustApp = { pkg -> viewModel.untrustApp(pkg) },
                                     sdkScanResult = sdkScanResults,
                                     sdkScanState = sdkScanState,
-                                    onRunSdkScan = { viewModel.runSdkScan() }
+                                    onRunSdkScan = { viewModel.runSdkScan() },
+                                    onNavigateToManualChecks = {
+                                        navigationState.selectTab(NavigationTab.ACTIONS)
+                                    }
                                 )
                             }
                         }

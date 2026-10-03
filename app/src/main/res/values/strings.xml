@@ -848,12 +848,19 @@
     <string name="label_quick_win_instructions">INSTRUCTIONS</string>
 
     <!-- ============================================================ -->
-    <!-- BREAKDOWN SUB-TAB -->
+    <!-- DETAILS > CHECKS: HEADER + BREAKDOWN VIEW -->
     <!-- ============================================================ -->
-    <string name="tab_breakdown">Breakdown</string>
+    <string name="fmt_deduction_chip">−%d</string>
     <string name="label_breakdown_perfect_score">No deductions — perfect score!</string>
-    <string name="fmt_breakdown_deduction">−%d pts</string>
-    <string name="fmt_breakdown_total_deductions">Total deductions: −%d pts</string>
+    <string name="label_details_view_breakdown">Show score breakdown</string>
+    <string name="label_details_view_checks">Show checks list</string>
+    <string name="fmt_details_checks_summary">%1$s · %2$s</string>
+    <string name="fmt_details_checks_summary_review">%1$s · %2$s · %3$s</string>
+    <string name="fmt_details_breakdown_total">−%1$d pts · Score %2$d</string>
+    <string name="label_breakdown_manual_checks">Manual checks not done</string>
+    <string name="label_breakdown_open_manual_checks">Open manual checks</string>
+    <string name="label_breakdown_show_check">Show in checks list</string>
+    <string name="label_details_breakdown_no_deductions">No deductions</string>
 
     <!-- ============================================================ -->
     <!-- AD ID VERIFICATION SCREEN -->
@@ -1001,7 +1008,7 @@
     <!-- ============================================================ -->
     <!-- SDK FINGERPRINTING TAB -->
     <!-- ============================================================ -->
-    <string name="details_tab_sdk">SDK</string>
+    <string name="details_tab_sdk">SDKs</string>
     <string name="label_sdk_scan_button">Scan for tracker SDKs</string>
     <string name="label_sdk_scanning">Scanning app manifests…</string>
     <string name="fmt_sdk_last_scan">Last scan: %1$s</string>
