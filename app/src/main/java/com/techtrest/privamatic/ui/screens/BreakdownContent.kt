@@ -1,6 +1,8 @@
 package com.techtrest.privamatic.ui.screens
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -20,28 +22,44 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.techtrest.privamatic.R
 import com.techtrest.privamatic.data.model.PrivacyScore
+import com.techtrest.privamatic.data.scanner.PrivacyScoreCalculator
 import com.techtrest.privamatic.ui.components.DeductionChip
 
+/** A ledger line: a deducting check, or the manual-check deduction (tappable). */
+private data class BreakdownEntry(@StringRes val name: Int, val points: Int, val isManualChecks: Boolean)
+
 /**
- * Score breakdown ledger: every deducting check in one card, largest first. The total lives
- * in the Checks tab header, so there is no footer here.
+ * Score breakdown ledger: every deducting check plus the manual-check deduction in one card,
+ * largest first, so the rows add up to 100 − score. The total lives in the Checks tab
+ * header, so there is no footer here.
+ *
+ * @param onManualChecksClick opens the manual checks (Actions tab).
  */
 @Composable
 fun BreakdownContent(
     privacyScore: PrivacyScore,
+    onManualChecksClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val sortedIssues = remember(privacyScore) {
-        privacyScore.issues
+    val entries = remember(privacyScore) {
+        val manualDeduction = PrivacyScoreCalculator.manualCheckDeduction(privacyScore.manualCheckPoints)
+        // Manual row goes in first so the stable sort keeps it ahead of checks with equal points.
+        val manual = listOfNotNull(
+            BreakdownEntry(R.string.label_breakdown_manual_checks, manualDeduction, isManualChecks = true)
+                .takeIf { manualDeduction > 0 }
+        )
+        val checks = privacyScore.issues
             .filter { it.pointDeduction > 0 }
-            .sortedByDescending { it.pointDeduction }
+            .map { BreakdownEntry(it.check.displayName, it.pointDeduction, isManualChecks = false) }
+        (manual + checks).sortedByDescending { it.points }
     }
 
-    if (sortedIssues.isEmpty()) {
+    if (entries.isEmpty()) {
         Box(
             modifier = modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
@@ -66,12 +84,22 @@ fun BreakdownContent(
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                     elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                 ) {
-                    sortedIssues.forEachIndexed { index, issue ->
+                    val openManualLabel = stringResource(R.string.label_breakdown_open_manual_checks)
+                    entries.forEachIndexed { index, entry ->
                         BreakdownRow(
-                            name = stringResource(issue.check.displayName),
-                            points = issue.pointDeduction
+                            name = stringResource(entry.name),
+                            points = entry.points,
+                            modifier = if (entry.isManualChecks) {
+                                Modifier.clickable(
+                                    onClickLabel = openManualLabel,
+                                    role = Role.Button,
+                                    onClick = onManualChecksClick
+                                )
+                            } else {
+                                Modifier
+                            }
                         )
-                        if (index < sortedIssues.lastIndex) {
+                        if (index < entries.lastIndex) {
                             HorizontalDivider(
                                 modifier = Modifier.padding(horizontal = 16.dp),
                                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)

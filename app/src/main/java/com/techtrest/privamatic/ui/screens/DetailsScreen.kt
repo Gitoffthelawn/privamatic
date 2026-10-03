@@ -65,6 +65,7 @@ import com.techtrest.privamatic.data.model.FlaggedApp
 import com.techtrest.privamatic.data.model.PrivacyCategory
 import com.techtrest.privamatic.data.model.PrivacyScore
 import com.techtrest.privamatic.data.model.SdkScanResult
+import com.techtrest.privamatic.data.scanner.PrivacyScoreCalculator
 import com.techtrest.privamatic.ui.components.CategoryGroup
 import com.techtrest.privamatic.ui.components.IssueDisplayStatus
 import com.techtrest.privamatic.ui.components.statusCounts
@@ -86,6 +87,7 @@ fun DetailsScreen(
     sdkScanResult: SdkScanResult?,
     sdkScanState: SdkScanState,
     onRunSdkScan: () -> Unit,
+    onNavigateToManualChecks: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     // Dark primary is the lighter brand green (#00854A): onPrimary at 0.8 alpha only reaches
@@ -136,7 +138,8 @@ fun DetailsScreen(
         when (selectedTab) {
             DetailsTab.CHECKS -> ChecksTab(
                 privacyScore = privacyScore,
-                trustedPackages = trustedPackages
+                trustedPackages = trustedPackages,
+                onNavigateToManualChecks = onNavigateToManualChecks
             )
             DetailsTab.APPS -> AppsContent(
                 flaggedApps = flaggedApps,
@@ -163,6 +166,7 @@ fun DetailsScreen(
 private fun ChecksTab(
     privacyScore: PrivacyScore,
     trustedPackages: Set<String>,
+    onNavigateToManualChecks: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -185,14 +189,17 @@ private fun ChecksTab(
                 privacyScore = privacyScore,
                 trustedPackages = trustedPackages
             )
-            ChecksView.BREAKDOWN -> BreakdownContent(privacyScore = privacyScore)
+            ChecksView.BREAKDOWN -> BreakdownContent(
+                privacyScore = privacyScore,
+                onManualChecksClick = onNavigateToManualChecks
+            )
         }
     }
 }
 
 /**
  * List view: status summary over every category, counted exactly like the category chips.
- * Breakdown view: the total deduction shown by the breakdown itself.
+ * Breakdown view: the breakdown's total (checks + manual checks) and the resulting score.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -223,8 +230,8 @@ private fun ChecksHeader(
             }
         }
         ChecksView.BREAKDOWN -> {
-            val total = privacyScore.totalDeductions
-            if (total > 0) stringResource(R.string.fmt_details_breakdown_total, total)
+            val total = PrivacyScoreCalculator.totalDeduction(privacyScore)
+            if (total > 0) stringResource(R.string.fmt_details_breakdown_total, total, privacyScore.score)
             else stringResource(R.string.label_details_breakdown_no_deductions)
         }
     }

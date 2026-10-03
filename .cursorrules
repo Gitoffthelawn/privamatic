@@ -61,7 +61,10 @@ ViewModel and widget both derive from the same enum values. No dead code drift.
 
 **Details tabs** — Checks / Trusted / SDKs (`DetailsTab`). Score Breakdown is not a tab: it is
 the alternate view of the Checks tab (`ChecksView.BREAKDOWN`, `BreakdownContent.kt`).
-Filter: `pointDeduction > 0`. Sorted descending by deduction.
+Filter: `pointDeduction > 0`. A "Manual checks not done" row (hidden at 0) makes the rows
+add up to 100 − score; all rows, manual included, sort descending by points (manual first on ties); its value and the header total come
+from `PrivacyScoreCalculator.manualCheckDeduction()` / `totalDeduction()`, never a re-derived
+formula. Only a score clamped at 0 doesn't reconcile.
 
 **View toggles vs tabs** — a tab is for different data; a toggle is for the same data viewed
 differently. Toggles are an `IconButton` in the tab's fixed header row (never a segmented

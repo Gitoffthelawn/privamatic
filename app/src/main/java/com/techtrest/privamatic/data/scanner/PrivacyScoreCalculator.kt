@@ -27,7 +27,7 @@ object PrivacyScoreCalculator {
             .sumOf { it.pointDeduction }
 
         // Calculate deductions from incomplete manual checks
-        val manualCheckDeductions = MAX_MANUAL_CHECK_POINTS - manualCheckPoints
+        val manualCheckDeductions = manualCheckDeduction(manualCheckPoints)
 
         // Start with MAX_SCORE (100), subtract both privacy issues and manual check deductions
         // Fresh install: 100 - 0 - 15 = 85/100 (all checks incomplete)
@@ -42,6 +42,20 @@ object PrivacyScoreCalculator {
             manualCheckPoints = manualCheckPoints
         )
     }
+
+    /**
+     * Points the score loses for manual checks not done (or overdue): the 15 available
+     * minus [manualCheckPoints] earned. Used by [calculateScore] and the Breakdown view.
+     */
+    fun manualCheckDeduction(manualCheckPoints: Int): Int =
+        MAX_MANUAL_CHECK_POINTS - manualCheckPoints
+
+    /**
+     * Everything [score] lost: check deductions plus the manual-check deduction.
+     * Equals 100 − score unless the score was clamped at 0.
+     */
+    fun totalDeduction(score: PrivacyScore): Int =
+        score.totalDeductions + manualCheckDeduction(score.manualCheckPoints)
 
     /**
      * Determines the privacy rating category based on the numeric score.

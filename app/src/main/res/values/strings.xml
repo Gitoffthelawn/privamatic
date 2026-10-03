@@ -856,7 +856,9 @@
     <string name="label_details_view_checks">Show checks list</string>
     <string name="fmt_details_checks_summary">%1$s · %2$s</string>
     <string name="fmt_details_checks_summary_review">%1$s · %2$s · %3$s</string>
-    <string name="fmt_details_breakdown_total">−%d pts total</string>
+    <string name="fmt_details_breakdown_total">−%1$d pts · Score %2$d</string>
+    <string name="label_breakdown_manual_checks">Manual checks not done</string>
+    <string name="label_breakdown_open_manual_checks">Open manual checks</string>
     <string name="label_details_breakdown_no_deductions">No deductions</string>
 
     <!-- ============================================================ -->
