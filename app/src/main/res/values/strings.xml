@@ -859,6 +859,7 @@
     <string name="fmt_details_breakdown_total">−%1$d pts · Score %2$d</string>
     <string name="label_breakdown_manual_checks">Manual checks not done</string>
     <string name="label_breakdown_open_manual_checks">Open manual checks</string>
+    <string name="label_breakdown_show_check">Show in checks list</string>
     <string name="label_details_breakdown_no_deductions">No deductions</string>
 
     <!-- ============================================================ -->

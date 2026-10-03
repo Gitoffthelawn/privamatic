@@ -26,23 +26,26 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.techtrest.privamatic.R
+import com.techtrest.privamatic.data.model.PrivacyCheck
 import com.techtrest.privamatic.data.model.PrivacyScore
 import com.techtrest.privamatic.data.scanner.PrivacyScoreCalculator
 import com.techtrest.privamatic.ui.components.DeductionChip
 
-/** A ledger line: a deducting check, or the manual-check deduction (tappable). */
-private data class BreakdownEntry(@StringRes val name: Int, val points: Int, val isManualChecks: Boolean)
+/** A ledger line: a deducting check, or the manual-check deduction when [check] is null. */
+private data class BreakdownEntry(@StringRes val name: Int, val points: Int, val check: PrivacyCheck?)
 
 /**
  * Score breakdown ledger: every deducting check plus the manual-check deduction in one card,
  * largest first, so the rows add up to 100 − score. The total lives in the Checks tab
  * header, so there is no footer here.
  *
+ * @param onCheckClick shows that check in the Checks list view.
  * @param onManualChecksClick opens the manual checks (Actions tab).
  */
 @Composable
 fun BreakdownContent(
     privacyScore: PrivacyScore,
+    onCheckClick: (PrivacyCheck) -> Unit,
     onManualChecksClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -50,12 +53,12 @@ fun BreakdownContent(
         val manualDeduction = PrivacyScoreCalculator.manualCheckDeduction(privacyScore.manualCheckPoints)
         // Manual row goes in first so the stable sort keeps it ahead of checks with equal points.
         val manual = listOfNotNull(
-            BreakdownEntry(R.string.label_breakdown_manual_checks, manualDeduction, isManualChecks = true)
+            BreakdownEntry(R.string.label_breakdown_manual_checks, manualDeduction, check = null)
                 .takeIf { manualDeduction > 0 }
         )
         val checks = privacyScore.issues
             .filter { it.pointDeduction > 0 }
-            .map { BreakdownEntry(it.check.displayName, it.pointDeduction, isManualChecks = false) }
+            .map { BreakdownEntry(it.check.displayName, it.pointDeduction, it.check) }
         (manual + checks).sortedByDescending { it.points }
     }
 
@@ -85,19 +88,18 @@ fun BreakdownContent(
                     elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                 ) {
                     val openManualLabel = stringResource(R.string.label_breakdown_open_manual_checks)
+                    val showCheckLabel = stringResource(R.string.label_breakdown_show_check)
                     entries.forEachIndexed { index, entry ->
                         BreakdownRow(
                             name = stringResource(entry.name),
                             points = entry.points,
-                            modifier = if (entry.isManualChecks) {
-                                Modifier.clickable(
-                                    onClickLabel = openManualLabel,
-                                    role = Role.Button,
-                                    onClick = onManualChecksClick
-                                )
-                            } else {
-                                Modifier
-                            }
+                            modifier = Modifier.clickable(
+                                onClickLabel = if (entry.check == null) openManualLabel else showCheckLabel,
+                                role = Role.Button,
+                                onClick = {
+                                    if (entry.check == null) onManualChecksClick() else onCheckClick(entry.check)
+                                }
+                            )
                         )
                         if (index < entries.lastIndex) {
                             HorizontalDivider(

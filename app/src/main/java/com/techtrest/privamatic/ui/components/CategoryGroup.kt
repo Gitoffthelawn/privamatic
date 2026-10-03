@@ -25,26 +25,36 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.layout.onPlaced
+import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.techtrest.privamatic.R
 import com.techtrest.privamatic.data.model.PrivacyCategory
+import com.techtrest.privamatic.data.model.PrivacyCheck
 import com.techtrest.privamatic.data.model.PrivacyIssue
 import com.techtrest.privamatic.data.model.PrivacyScore
+import kotlin.math.roundToInt
 
+/**
+ * Expandable category card. Expansion is hoisted so the Checks tab can open a category when
+ * jumping to one of its checks; [onScrollTargetPlaced] then reports the [scrollTarget] row's
+ * top and bottom y inside this card.
+ */
 @Composable
 fun CategoryGroup(
     category: PrivacyCategory,
     privacyScore: PrivacyScore,
+    isExpanded: Boolean,
+    onToggleExpanded: () -> Unit,
     trustedPackages: Set<String> = emptySet(),
+    scrollTarget: PrivacyCheck? = null,
+    onScrollTargetPlaced: (top: Int, bottom: Int) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier
 ) {
     val issues = PrivacyCategory.getIssuesForCategory(category, privacyScore)
@@ -55,8 +65,6 @@ fun CategoryGroup(
     val issuesCount = statusCounts[IssueDisplayStatus.FAIL] ?: 0
     val passCount = statusCounts[IssueDisplayStatus.PASS] ?: 0
     val infoCount = statusCounts[IssueDisplayStatus.INFO] ?: 0
-
-    var isExpanded by remember { mutableStateOf(false) }
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -74,7 +82,7 @@ fun CategoryGroup(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { isExpanded = !isExpanded }
+                    .clickable(onClick = onToggleExpanded)
                     .padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -118,7 +126,18 @@ fun CategoryGroup(
                 )
 
                 issues.forEachIndexed { index, issue ->
-                    IssueItem(issue = issue, trustedPackages = trustedPackages)
+                    IssueItem(
+                        issue = issue,
+                        trustedPackages = trustedPackages,
+                        modifier = if (issue.check == scrollTarget) {
+                            Modifier.onPlaced {
+                                val top = it.positionInParent().y.roundToInt()
+                                onScrollTargetPlaced(top, top + it.size.height)
+                            }
+                        } else {
+                            Modifier
+                        }
+                    )
                     if (index < issues.lastIndex) {
                         HorizontalDivider(
                             modifier = Modifier.padding(horizontal = 16.dp),

@@ -14,7 +14,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.List
@@ -41,10 +43,12 @@ import androidx.compose.material3.TooltipBox
 import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -52,6 +56,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -63,6 +68,7 @@ import com.techtrest.privamatic.R
 import com.techtrest.privamatic.data.DetailsViewPreferences
 import com.techtrest.privamatic.data.model.FlaggedApp
 import com.techtrest.privamatic.data.model.PrivacyCategory
+import com.techtrest.privamatic.data.model.PrivacyCheck
 import com.techtrest.privamatic.data.model.PrivacyScore
 import com.techtrest.privamatic.data.model.SdkScanResult
 import com.techtrest.privamatic.data.scanner.PrivacyScoreCalculator
@@ -72,6 +78,8 @@ import com.techtrest.privamatic.ui.components.statusCounts
 import com.techtrest.privamatic.ui.navigation.ChecksView
 import com.techtrest.privamatic.ui.navigation.DetailsTab
 import com.techtrest.privamatic.ui.viewmodel.SdkScanState
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 
 @Composable
 fun DetailsScreen(
@@ -172,6 +180,16 @@ private fun ChecksTab(
     val context = LocalContext.current
     val viewPrefs = remember { DetailsViewPreferences(context) }
     var view by remember { mutableStateOf(viewPrefs.getChecksView()) }
+    fun showView(newView: ChecksView) {
+        view = newView
+        viewPrefs.setChecksView(newView)
+    }
+
+    // Hoisted out of the list so expansion and scroll position survive the view toggle, and
+    // so a Breakdown row can open its category and scroll to its check.
+    var expandedCategories by remember { mutableStateOf(emptySet<PrivacyCategory>()) }
+    var scrollTarget by remember { mutableStateOf<PrivacyCheck?>(null) }
+    val listState = rememberLazyListState()
 
     Column(modifier = modifier.fillMaxSize()) {
         ChecksHeader(
@@ -179,18 +197,32 @@ private fun ChecksTab(
             trustedPackages = trustedPackages,
             view = view,
             onToggleView = {
-                view = if (view == ChecksView.LIST) ChecksView.BREAKDOWN else ChecksView.LIST
-                viewPrefs.setChecksView(view)
+                showView(if (view == ChecksView.LIST) ChecksView.BREAKDOWN else ChecksView.LIST)
             }
         )
 
         when (view) {
             ChecksView.LIST -> ChecksContent(
                 privacyScore = privacyScore,
-                trustedPackages = trustedPackages
+                trustedPackages = trustedPackages,
+                listState = listState,
+                expandedCategories = expandedCategories,
+                onToggleCategory = { category ->
+                    expandedCategories = if (category in expandedCategories) expandedCategories - category
+                                         else expandedCategories + category
+                },
+                scrollTarget = scrollTarget,
+                onScrollTargetShown = { scrollTarget = null }
             )
             ChecksView.BREAKDOWN -> BreakdownContent(
                 privacyScore = privacyScore,
+                onCheckClick = { check ->
+                    PrivacyCategory.getCategoryForCheck(check)?.let { category ->
+                        expandedCategories = expandedCategories + category
+                        scrollTarget = check
+                        showView(ChecksView.LIST)
+                    }
+                },
                 onManualChecksClick = onNavigateToManualChecks
             )
         }
@@ -274,10 +306,20 @@ private fun ChecksHeader(
     }
 }
 
+/**
+ * Category list. When [scrollTarget] is set, scrolls its category into view, then far enough
+ * that the check's row is fully visible (keeping the category header if it fits), and calls
+ * [onScrollTargetShown].
+ */
 @Composable
 private fun ChecksContent(
     privacyScore: PrivacyScore,
     trustedPackages: Set<String>,
+    listState: LazyListState,
+    expandedCategories: Set<PrivacyCategory>,
+    onToggleCategory: (PrivacyCategory) -> Unit,
+    scrollTarget: PrivacyCheck?,
+    onScrollTargetShown: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val securityCategories = listOf(PrivacyCategory.SYSTEM_SECURITY)
@@ -292,7 +334,30 @@ private fun ChecksContent(
         PrivacyCategory.AI_AND_OTHER_APPS
     )
 
+    // Lazy item index: [security label, security…, surveillance label, surveillance…]
+    fun itemIndex(category: PrivacyCategory): Int =
+        if (category in securityCategories) 1 + securityCategories.indexOf(category)
+        else 2 + securityCategories.size + surveillanceCategories.indexOf(category)
+
+    // Target row's top/bottom inside its category card, reported once the card lays it out.
+    var targetRowBounds by remember { mutableStateOf<IntRange?>(null) }
+    val bottomMarginPx = with(LocalDensity.current) { 16.dp.roundToPx() }
+
+    LaunchedEffect(scrollTarget) {
+        val category = scrollTarget?.let { PrivacyCategory.getCategoryForCheck(it) } ?: return@LaunchedEffect
+        val index = itemIndex(category)
+        listState.scrollToItem(index)
+        val row = snapshotFlow { targetRowBounds }.filterNotNull().first()
+        val viewport = listState.layoutInfo.let { it.viewportEndOffset - it.viewportStartOffset }
+        val offset = (row.last - viewport + bottomMarginPx).coerceIn(0, row.first)
+        listState.scrollToItem(index, offset)
+        // Cleared only after use: the row may report before this effect starts.
+        targetRowBounds = null
+        onScrollTargetShown()
+    }
+
     LazyColumn(
+        state = listState,
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = 16.dp, top = 4.dp, end = 16.dp, bottom = 16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -310,7 +375,11 @@ private fun ChecksContent(
             CategoryGroup(
                 category = category,
                 privacyScore = privacyScore,
-                trustedPackages = trustedPackages
+                isExpanded = category in expandedCategories,
+                onToggleExpanded = { onToggleCategory(category) },
+                trustedPackages = trustedPackages,
+                scrollTarget = scrollTarget,
+                onScrollTargetPlaced = { top, bottom -> targetRowBounds = top..bottom }
             )
         }
 
@@ -327,7 +396,11 @@ private fun ChecksContent(
             CategoryGroup(
                 category = category,
                 privacyScore = privacyScore,
-                trustedPackages = trustedPackages
+                isExpanded = category in expandedCategories,
+                onToggleExpanded = { onToggleCategory(category) },
+                trustedPackages = trustedPackages,
+                scrollTarget = scrollTarget,
+                onScrollTargetPlaced = { top, bottom -> targetRowBounds = top..bottom }
             )
         }
     }
