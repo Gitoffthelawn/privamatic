@@ -2,17 +2,17 @@ Privamatic audits your Android device and gives you a clear 0–100 privacy scor
 
 Whether you're just starting to take privacy seriously or you're already running GrapheneOS, Privamatic shows you exactly what's exposing your data and how to fix it, step by step.
 
-50+ automated checks cover:
-- System security (screen lock, encryption, USB debugging, biometrics)
-- Network privacy (VPN, Private DNS, Wi-Fi scanning)
-- Surveillance apps (Google, Meta, Microsoft, TikTok, AI assistants)
-- Default apps (browser, keyboard, launcher, email)
+50 automated checks, from system settings to the apps you have installed:
+- System security (screen lock, encryption, security patch, USB debugging, biometrics)
+- Network privacy (VPN, Private DNS, Advertising ID, Wi-Fi scanning)
+- Default apps (browser, keyboard, SMS, email, launcher)
+- Surveillance apps (Google, Meta, Microsoft, Amazon, TikTok, X, Reddit, AI assistants)
 
-microG is detected and not penalised, GrapheneOS sandboxed Play is recognised, camera-compatibility shims are not mistaken for real Google apps, and checks that do not apply to your setup are automatically skipped.
+microG is detected and not penalised, GrapheneOS sandboxed Play is recognised, camera-compatibility shims are not mistaken for real Google apps, and checks that do not apply to your setup are automatically skipped. If a setting can't be read on your device, most checks ask you to verify it instead of costing points.
 
-Quick Wins surface the easiest improvements first — each one includes plain-English instructions and a direct link to the relevant Settings page so you never have to hunt around.
+Score Breakdown explains every point: one line per check that costs you points, adding up to your score. Tap a line to jump straight to that check.
 
-Score Breakdown shows exactly which checks are costing you points, sorted by impact.
+Quick Wins put the fixes worth the most points first — each one includes plain-English instructions and a direct link to the relevant Settings page, and Privamatic rescans when you come back.
 
 Score History tracks your privacy score over time with a line chart, so you can see whether you're actually improving.
 
@@ -30,4 +30,4 @@ Privacy is built in:
 - All data stays on your device
 - Open source (GPLv3)
 
-Works on any Android 8.0+ device. Especially useful on GrapheneOS, CalyxOS, and LineageOS.
+Works on any Android 8.0+ device. Made with GrapheneOS in mind, and just as useful on CalyxOS, LineageOS or stock Android.
