@@ -38,7 +38,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.techtrest.privamatic.R
 import com.techtrest.privamatic.data.model.QuickWin
@@ -123,6 +125,29 @@ fun QuickWinDetailScreen(
                     modifier = Modifier.size(48.dp),
                     tint = MaterialTheme.colorScheme.primary
                 )
+            }
+
+            // Points gained, including checks the same fix also clears
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = pluralStringResource(
+                        R.plurals.plural_quick_win_gain, quickWin.impact, quickWin.impact
+                    ),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                quickWin.alsoFixes.forEach { issue ->
+                    Text(
+                        text = stringResource(
+                            R.string.fmt_quick_win_also_fixes,
+                            stringResource(issue.check.displayName),
+                            issue.pointDeduction
+                        ),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
+                }
             }
 
             // Description

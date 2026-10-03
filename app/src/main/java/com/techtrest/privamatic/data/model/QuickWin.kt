@@ -170,7 +170,12 @@ enum class QuickWinType(
 data class QuickWin(
     val type: QuickWinType,
     val relatedCheck: PrivacyCheck?,
-    val currentAppName: String? = null
+    val currentAppName: String? = null,
+    /**
+     * Other currently failing checks this one fix also clears (turning off Developer options
+     * also turns off USB debugging). Their points count towards [impact].
+     */
+    val alsoFixes: List<PrivacyIssue> = emptyList()
 ) {
     /**
      * Get dynamic title based on current app name
@@ -191,9 +196,9 @@ data class QuickWin(
     }
 
     /**
-     * Get impact (point value) from the related PrivacyCheck
-     * This ensures synchronization across all displays - the PrivacyCheck enum is the single source of truth
+     * Points gained by this fix: the related check's value from the PrivacyCheck enum (the
+     * single source of truth) plus the current deductions of [alsoFixes].
      */
     val impact: Int
-        get() = relatedCheck?.pointDeduction ?: 0
+        get() = (relatedCheck?.pointDeduction ?: 0) + alsoFixes.sumOf { it.pointDeduction }
 }

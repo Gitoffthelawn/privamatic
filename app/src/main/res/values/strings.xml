@@ -988,6 +988,11 @@
         <item quantity="one">+1pt</item>
         <item quantity="other">+%dpts</item>
     </plurals>
+    <plurals name="plural_quick_win_gain">
+        <item quantity="one">+%d pt to your score</item>
+        <item quantity="other">+%d pts to your score</item>
+    </plurals>
+    <string name="fmt_quick_win_also_fixes">Includes %1$s (+%2$d), which turns off with it</string>
 
     <!-- ============================================================ -->
     <!-- HISTORY SCREEN -->

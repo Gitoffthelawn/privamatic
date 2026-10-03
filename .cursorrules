@@ -42,6 +42,9 @@ app/src/main/java/com/techtrest/privamatic/
 **No DI framework** — no Hilt. Shared components are object singletons passed explicitly:
 - `TrustedAppsAdjuster` — singleton shared between `PrivacyViewModel` and `PrivacyWidgetProvider`
 - `QuickWinsDetector` — singleton
+  — a Quick Win's `impact` is its check's points plus `alsoFixes`: other checks the same fix
+    clears, included only while they currently cost points (Developer options off also turns
+    USB debugging off). Tiles, detail page and sorting all read `impact`
 - Never instantiate these per-caller — widget and ViewModel must produce identical scores
 
 **Widget runs independently** — `PrivacyWidgetProvider` runs its own `PrivacyScanner` scan.
