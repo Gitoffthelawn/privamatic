@@ -21,10 +21,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -52,13 +49,18 @@ internal fun PrivacyIssue.displayStatus(trustedPackages: Set<String>): IssueDisp
     else -> IssueDisplayStatus.FAIL
 }
 
+/**
+ * Check row. Expansion is hoisted so a Breakdown jump can open the target row's
+ * recommendation.
+ */
 @Composable
 fun IssueItem(
     issue: PrivacyIssue,
+    isExpanded: Boolean,
+    onToggleExpanded: () -> Unit,
     trustedPackages: Set<String> = emptySet(),
     modifier: Modifier = Modifier
 ) {
-    var isExpanded by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
     val allPackagesTrusted = remember(issue.flaggedPackages, trustedPackages) {
@@ -88,7 +90,7 @@ fun IssueItem(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clickable { isExpanded = !isExpanded }
+            .clickable(onClick = onToggleExpanded)
             .padding(horizontal = 12.dp, vertical = 8.dp)
     ) {
         Row(

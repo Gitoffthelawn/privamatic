@@ -50,7 +50,8 @@ import kotlin.math.roundToInt
  * Expandable category card. Expansion is hoisted so the Checks tab can open a category when
  * jumping to one of its checks; [onScrollTargetPlaced] then reports the [scrollTarget] row's
  * top and bottom y inside this card, and [highlightedCheck]'s row gets a brief fading wash
- * ([onHighlightFinished] when it has faded).
+ * ([onHighlightFinished] when it has faded). Row expansion ([expandedChecks]) is hoisted too,
+ * so the jump can also open the target row.
  */
 @Composable
 fun CategoryGroup(
@@ -58,6 +59,8 @@ fun CategoryGroup(
     privacyScore: PrivacyScore,
     isExpanded: Boolean,
     onToggleExpanded: () -> Unit,
+    expandedChecks: Set<PrivacyCheck>,
+    onToggleCheck: (PrivacyCheck) -> Unit,
     trustedPackages: Set<String> = emptySet(),
     scrollTarget: PrivacyCheck? = null,
     onScrollTargetPlaced: (top: Int, bottom: Int) -> Unit = { _, _ -> },
@@ -136,6 +139,8 @@ fun CategoryGroup(
                 issues.forEachIndexed { index, issue ->
                     IssueItem(
                         issue = issue,
+                        isExpanded = issue.check in expandedChecks,
+                        onToggleExpanded = { onToggleCheck(issue.check) },
                         trustedPackages = trustedPackages,
                         modifier = Modifier
                             .then(

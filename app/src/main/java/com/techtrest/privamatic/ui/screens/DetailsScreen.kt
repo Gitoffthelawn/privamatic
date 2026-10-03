@@ -188,6 +188,8 @@ private fun ChecksTab(
     // Hoisted out of the list so expansion and scroll position survive the view toggle, and
     // so a Breakdown row can open its category and scroll to its check.
     var expandedCategories by remember { mutableStateOf(emptySet<PrivacyCategory>()) }
+    // Expanded check rows (recommendation shown); a jump opens only the target's.
+    var expandedChecks by remember { mutableStateOf(emptySet<PrivacyCheck>()) }
     var scrollTarget by remember { mutableStateOf<PrivacyCheck?>(null) }
     // Set once a jump has scrolled; cleared when its fade ends or the user changes view/expansion,
     // so a plain toggle back to the list never replays it.
@@ -216,6 +218,11 @@ private fun ChecksTab(
                     expandedCategories = if (category in expandedCategories) expandedCategories - category
                                          else expandedCategories + category
                 },
+                expandedChecks = expandedChecks,
+                onToggleCheck = { check ->
+                    expandedChecks = if (check in expandedChecks) expandedChecks - check
+                                     else expandedChecks + check
+                },
                 scrollTarget = scrollTarget,
                 onScrollTargetShown = {
                     highlightedCheck = scrollTarget
@@ -228,8 +235,10 @@ private fun ChecksTab(
                 privacyScore = privacyScore,
                 onCheckClick = { check ->
                     PrivacyCategory.getCategoryForCheck(check)?.let { category ->
-                        // A jump shows only the target's category; plain toggles keep expansion.
+                        // A jump shows only the target's category and opens only its row;
+                        // plain toggles keep expansion.
                         expandedCategories = setOf(category)
+                        expandedChecks = setOf(check)
                         scrollTarget = check
                         showView(ChecksView.LIST)
                     }
@@ -329,6 +338,8 @@ private fun ChecksContent(
     listState: LazyListState,
     expandedCategories: Set<PrivacyCategory>,
     onToggleCategory: (PrivacyCategory) -> Unit,
+    expandedChecks: Set<PrivacyCheck>,
+    onToggleCheck: (PrivacyCheck) -> Unit,
     scrollTarget: PrivacyCheck?,
     onScrollTargetShown: () -> Unit,
     highlightedCheck: PrivacyCheck?,
@@ -390,6 +401,8 @@ private fun ChecksContent(
                 privacyScore = privacyScore,
                 isExpanded = category in expandedCategories,
                 onToggleExpanded = { onToggleCategory(category) },
+                expandedChecks = expandedChecks,
+                onToggleCheck = onToggleCheck,
                 trustedPackages = trustedPackages,
                 scrollTarget = scrollTarget,
                 onScrollTargetPlaced = { top, bottom -> targetRowBounds = top..bottom },
@@ -413,6 +426,8 @@ private fun ChecksContent(
                 privacyScore = privacyScore,
                 isExpanded = category in expandedCategories,
                 onToggleExpanded = { onToggleCategory(category) },
+                expandedChecks = expandedChecks,
+                onToggleCheck = onToggleCheck,
                 trustedPackages = trustedPackages,
                 scrollTarget = scrollTarget,
                 onScrollTargetPlaced = { top, bottom -> targetRowBounds = top..bottom },
