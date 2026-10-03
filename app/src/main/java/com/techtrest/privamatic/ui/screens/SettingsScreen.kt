@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -41,8 +42,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import com.techtrest.privamatic.BuildConfig
 import com.techtrest.privamatic.R
+import com.techtrest.privamatic.accentTextButtonColors
 import com.techtrest.privamatic.data.OnboardingPreferences
 import com.techtrest.privamatic.data.maintenance.MaintenanceManager
 import com.techtrest.privamatic.data.model.ManualCheckType
@@ -52,6 +56,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun SettingsScreen(
     onBackClick: () -> Unit,
+    canClearHistory: Boolean,
     onClearHistory: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -112,9 +117,10 @@ fun SettingsScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable {
-                            showOnRestart = !showOnRestart
-                            if (showOnRestart) onboardingPrefs.reset() else onboardingPrefs.setComplete()
+                        // One toggleable node so TalkBack reads the row as a switch with its state
+                        .toggleable(value = showOnRestart, role = Role.Switch) { checked ->
+                            showOnRestart = checked
+                            if (checked) onboardingPrefs.reset() else onboardingPrefs.setComplete()
                         }
                         .padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -139,46 +145,49 @@ fun SettingsScreen(
                 }
             }
 
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                shape = MaterialTheme.shapes.medium
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable {
-                            val isCompleted = adIdState?.lastCompletedTimestamp != 0L
-                            val newValue = !forceShowAdId
-                            if (!newValue && !isCompleted) {
-                                scope.launch {
-                                    snackbarHostState.showSnackbar(completeAdIdFirstMsg)
-                                }
-                            } else {
-                                forceShowAdId = newValue
-                                onboardingPrefs.setForceShowAdIdCheck(newValue)
-                            }
-                        }
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
+            // Testing aid: shows the Ad ID manual check regardless of its 180-day timer.
+            // Debug builds only; release ignores the stored flag (OnboardingPreferences).
+            if (BuildConfig.DEBUG) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                    shape = MaterialTheme.shapes.medium
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = stringResource(R.string.label_settings_force_adid),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = stringResource(R.string.copy_settings_force_adid_subtitle),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .toggleable(value = forceShowAdId, role = Role.Switch) { newValue ->
+                                val isCompleted = adIdState?.lastCompletedTimestamp != 0L
+                                if (!newValue && !isCompleted) {
+                                    scope.launch {
+                                        snackbarHostState.showSnackbar(completeAdIdFirstMsg)
+                                    }
+                                } else {
+                                    forceShowAdId = newValue
+                                    onboardingPrefs.setForceShowAdIdCheck(newValue)
+                                }
+                            }
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = stringResource(R.string.label_settings_force_adid),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = stringResource(R.string.copy_settings_force_adid_subtitle),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = forceShowAdId,
+                            onCheckedChange = null
                         )
                     }
-                    Switch(
-                        checked = forceShowAdId,
-                        onCheckedChange = null
-                    )
                 }
             }
 
@@ -191,7 +200,7 @@ fun SettingsScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { showClearHistoryConfirm = true }
+                        .clickable(enabled = canClearHistory) { showClearHistoryConfirm = true }
                         .padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -199,13 +208,16 @@ fun SettingsScreen(
                         Text(
                             text = stringResource(R.string.label_history_clear),
                             style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.error
+                            color = if (canClearHistory) MaterialTheme.colorScheme.error
+                                    else MaterialTheme.colorScheme.onSurface.copy(alpha = DisabledAlpha)
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
                             text = stringResource(R.string.label_history_clear_confirm),
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                                alpha = if (canClearHistory) 1f else DisabledAlpha
+                            )
                         )
                     }
                 }
@@ -230,10 +242,16 @@ fun SettingsScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showClearHistoryConfirm = false }) {
+                TextButton(
+                    onClick = { showClearHistoryConfirm = false },
+                    colors = accentTextButtonColors()
+                ) {
                     Text(stringResource(R.string.label_common_cancel))
                 }
             }
         )
     }
 }
+
+/** Material 3 disabled-content opacity. */
+private const val DisabledAlpha = 0.38f

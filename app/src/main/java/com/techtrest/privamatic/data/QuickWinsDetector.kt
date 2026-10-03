@@ -117,12 +117,21 @@ object QuickWinsDetector {
         } else null
     }
 
-    private fun checkDeveloperOptions(privacyScore: PrivacyScore): QuickWin? {
+    /**
+     * Turning Developer options off also turns USB debugging off, so the win includes USB
+     * debugging's points while it is currently on (an unknown result costs nothing, so it
+     * adds nothing).
+     */
+    internal fun checkDeveloperOptions(privacyScore: PrivacyScore): QuickWin? {
         val issue = privacyScore.issues.find { it.check == PrivacyCheck.DEVELOPER_OPTIONS }
         return if (issue != null && !issue.isSecure) {
+            val usbDebugging = privacyScore.issues.find {
+                it.check == PrivacyCheck.USB_DEBUGGING && !it.isSecure && !it.isUnknown
+            }
             QuickWin(
                 type = QuickWinType.DISABLE_DEVELOPER_OPTIONS,
-                relatedCheck = PrivacyCheck.DEVELOPER_OPTIONS
+                relatedCheck = PrivacyCheck.DEVELOPER_OPTIONS,
+                alsoFixes = listOfNotNull(usbDebugging)
             )
         } else null
     }

@@ -41,6 +41,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.techtrest.privamatic.R
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.techtrest.privamatic.data.PrivacyTipSelector
@@ -60,6 +61,7 @@ import com.techtrest.privamatic.ui.components.PrivacyTopAppBar
 import com.techtrest.privamatic.ui.components.ScoringInfoDialog
 import com.techtrest.privamatic.ui.navigation.NavigationTab
 import com.techtrest.privamatic.ui.navigation.rememberAppNavigationState
+import com.techtrest.privamatic.ui.utils.IntentHelper
 import com.techtrest.privamatic.ui.viewmodel.PrivacyScanState
 import com.techtrest.privamatic.ui.viewmodel.PrivacyViewModel
 import kotlinx.coroutines.launch
@@ -74,6 +76,13 @@ fun MainScreen(viewModel: PrivacyViewModel = viewModel()) {
     val scanState by viewModel.scanState.collectAsState()
     val scoreHistory by viewModel.scoreHistory.collectAsState()
     val historySnapshots by viewModel.historySnapshots.collectAsState()
+    val hasHistory by viewModel.hasHistory.collectAsState()
+
+    // Back from Settings after a fix deep link: rescan once so the score shows the fix.
+    LifecycleResumeEffect(Unit) {
+        if (IntentHelper.consumeRescanOnReturn()) viewModel.performScan()
+        onPauseOrDispose { }
+    }
     val selectedHistoryFilter by viewModel.selectedFilter.collectAsState()
     val trustedPackages by viewModel.trustedPackages.collectAsState()
     val isAppsBannerDismissed by viewModel.isAppsBannerDismissed.collectAsState()
@@ -410,6 +419,7 @@ fun MainScreen(viewModel: PrivacyViewModel = viewModel()) {
     if (navigationState.showHistoryScreen) {
         HistoryScreen(
             snapshots = historySnapshots,
+            hasHistory = hasHistory,
             selectedFilter = selectedHistoryFilter,
             onFilterChanged = { viewModel.setHistoryFilter(it) },
             onClearHistory = { viewModel.clearHistory() },
@@ -420,8 +430,11 @@ fun MainScreen(viewModel: PrivacyViewModel = viewModel()) {
 
     // Settings Screen
     if (showSettingsScreen) {
+        // The nightly snapshot may have landed since the last scan.
+        LaunchedEffect(Unit) { viewModel.loadHistory() }
         SettingsScreen(
             onBackClick = { showSettingsScreen = false },
+            canClearHistory = hasHistory,
             onClearHistory = { viewModel.clearHistory() }
         )
     }

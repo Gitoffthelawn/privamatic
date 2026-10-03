@@ -38,9 +38,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.techtrest.privamatic.R
+import com.techtrest.privamatic.accentOnSurface
 import com.techtrest.privamatic.data.model.QuickWin
 import com.techtrest.privamatic.ui.utils.IntentHelper
 
@@ -125,6 +128,29 @@ fun QuickWinDetailScreen(
                 )
             }
 
+            // Points gained, including checks the same fix also clears
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = pluralStringResource(
+                        R.plurals.plural_quick_win_gain, quickWin.impact, quickWin.impact
+                    ),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.accentOnSurface
+                )
+                quickWin.alsoFixes.forEach { issue ->
+                    Text(
+                        text = stringResource(
+                            R.string.fmt_quick_win_also_fixes,
+                            stringResource(issue.check.displayName),
+                            issue.pointDeduction
+                        ),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+
             // Description
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -177,7 +203,8 @@ fun QuickWinDetailScreen(
                         IntentHelper.launchActionIntent(
                             context = context,
                             actionType = actionType,
-                            packageName = quickWin.relatedCheck?.packageName
+                            packageName = quickWin.relatedCheck?.packageName,
+                            rescanOnReturn = true
                         )
                     },
                     modifier = Modifier.fillMaxWidth()

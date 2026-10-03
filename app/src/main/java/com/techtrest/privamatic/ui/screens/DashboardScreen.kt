@@ -22,7 +22,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
@@ -30,7 +32,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
+import com.techtrest.privamatic.BuildConfig
 import com.techtrest.privamatic.R
+import com.techtrest.privamatic.data.WhatsNew
+import com.techtrest.privamatic.data.WhatsNewPreferences
 import com.techtrest.privamatic.data.maintenance.MaintenanceManager
 import com.techtrest.privamatic.data.maintenance.filterDismissed
 import com.techtrest.privamatic.data.model.PrivacyCategory
@@ -42,6 +47,7 @@ import com.techtrest.privamatic.data.model.getTrackingIssuesCount
 import com.techtrest.privamatic.ui.components.DeviceInfoCard
 import com.techtrest.privamatic.ui.components.ScoreCard
 import com.techtrest.privamatic.ui.components.SummaryCard
+import com.techtrest.privamatic.ui.components.WhatsNewCard
 import com.techtrest.privamatic.ui.navigation.AppNavigationState
 import com.techtrest.privamatic.ui.navigation.NavigationTab
 
@@ -74,6 +80,18 @@ fun DashboardScreen(
         activeQuickWins.size + overdueCount
     }
 
+    // What's new: once per update, until dismissed
+    val whatsNewPrefs = remember { WhatsNewPreferences(context) }
+    var showWhatsNew by remember {
+        mutableStateOf(
+            whatsNewPrefs.shouldShow(
+                currentVersionCode = BuildConfig.VERSION_CODE,
+                isUpdate = WhatsNewPreferences.isUpdate(context),
+                notesVersionCode = WhatsNew.NOTES_VERSION_CODE
+            )
+        )
+    }
+
     // Swipe refresh state
     val swipeRefreshState = rememberSwipeRefreshState(isRefreshing = isRefreshing)
 
@@ -93,6 +111,17 @@ fun DashboardScreen(
         ) {
         // 1. Score Card
         ScoreCard(privacyScore = privacyScore)
+
+        if (showWhatsNew) {
+            WhatsNewCard(
+                versionName = BuildConfig.VERSION_NAME,
+                items = WhatsNew.items,
+                onDismiss = {
+                    whatsNewPrefs.markSeen(BuildConfig.VERSION_CODE)
+                    showWhatsNew = false
+                }
+            )
+        }
 
         // 2. Summary Cards (no header)
         Row(

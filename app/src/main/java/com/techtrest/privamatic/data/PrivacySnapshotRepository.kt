@@ -34,6 +34,9 @@ class PrivacySnapshotRepository(context: Context) {
 
     suspend fun getEarliestTimestamp(): Long? = dao.getEarliestTimestamp()
 
+    /** Any snapshot at all, whatever the selected range. */
+    suspend fun hasAnySnapshot(): Boolean = dao.getEarliestTimestamp() != null
+
     suspend fun clearAll() = dao.deleteAll()
 
     private fun filterDays(filter: HistoryFilter): Long = when (filter) {

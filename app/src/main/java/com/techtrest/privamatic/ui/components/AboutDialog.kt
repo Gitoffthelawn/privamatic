@@ -13,6 +13,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import com.techtrest.privamatic.BuildConfig
 import com.techtrest.privamatic.R
+import com.techtrest.privamatic.accentTextButtonColors
 
 @Composable
 fun AboutDialog(
@@ -49,7 +50,7 @@ fun AboutDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(onClick = onDismiss, colors = accentTextButtonColors()) {
                 Text(stringResource(R.string.label_about_close))
             }
         }

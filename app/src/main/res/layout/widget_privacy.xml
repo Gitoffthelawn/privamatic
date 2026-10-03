@@ -92,7 +92,7 @@
             android:layout_alignParentEnd="true"
             android:layout_alignBaseline="@id/widget_os_name"
             android:gravity="center"
-            android:text="Good"
+            android:text="@string/score_rating_excellent_name"
             android:textColor="@color/widget_secondary_text"
             android:textSize="14sp"
             android:maxLines="1" />

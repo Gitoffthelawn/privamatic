@@ -21,10 +21,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -32,6 +29,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import com.techtrest.privamatic.R
+import com.techtrest.privamatic.accentOnSurface
+import com.techtrest.privamatic.accentOutlinedButtonColors
 import com.techtrest.privamatic.data.model.PrivacyIssue
 import com.techtrest.privamatic.data.model.PrivacyCheck
 import com.techtrest.privamatic.data.model.isFullyTrusted
@@ -52,13 +51,18 @@ internal fun PrivacyIssue.displayStatus(trustedPackages: Set<String>): IssueDisp
     else -> IssueDisplayStatus.FAIL
 }
 
+/**
+ * Check row. Expansion is hoisted so a Breakdown jump can open the target row's
+ * recommendation.
+ */
 @Composable
 fun IssueItem(
     issue: PrivacyIssue,
+    isExpanded: Boolean,
+    onToggleExpanded: () -> Unit,
     trustedPackages: Set<String> = emptySet(),
     modifier: Modifier = Modifier
 ) {
-    var isExpanded by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
     val allPackagesTrusted = remember(issue.flaggedPackages, trustedPackages) {
@@ -88,7 +92,7 @@ fun IssueItem(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clickable { isExpanded = !isExpanded }
+            .clickable(onClick = onToggleExpanded)
             .padding(horizontal = 12.dp, vertical = 8.dp)
     ) {
         Row(
@@ -150,10 +154,12 @@ fun IssueItem(
                                         IntentHelper.launchActionIntent(
                                             context = context,
                                             actionType = actionType,
-                                            packageName = issue.check.packageName
+                                            packageName = issue.check.packageName,
+                                            rescanOnReturn = true
                                         )
                                     },
-                                    modifier = Modifier.fillMaxWidth()
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = accentOutlinedButtonColors()
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.Settings,
@@ -172,14 +178,18 @@ fun IssueItem(
                             Text(
                                 text = stringResource(R.string.label_issue_recommendation),
                                 style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.primary
+                                color = MaterialTheme.accentOnSurface
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = if (effectivelySecure && issue.check == PrivacyCheck.BIOMETRIC_AUTH) {
-                                    stringResource(R.string.privacy_check_biometric_auth_passing_note)
-                                } else {
-                                    stringResource(issue.recommendation)
+                                text = when {
+                                    effectivelySecure && issue.check == PrivacyCheck.BIOMETRIC_AUTH ->
+                                        stringResource(R.string.privacy_check_biometric_auth_passing_note)
+                                    issue.isPreinstalledApp -> stringResource(
+                                        issue.systemAppRecommendation,
+                                        stringResource(issue.check.displayName)
+                                    )
+                                    else -> stringResource(issue.recommendation)
                                 },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -193,10 +203,12 @@ fun IssueItem(
                                         IntentHelper.launchActionIntent(
                                             context = context,
                                             actionType = actionType,
-                                            packageName = issue.check.packageName
+                                            packageName = issue.check.packageName,
+                                            rescanOnReturn = true
                                         )
                                     },
-                                    modifier = Modifier.fillMaxWidth()
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = accentOutlinedButtonColors()
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.Settings,

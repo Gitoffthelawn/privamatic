@@ -97,6 +97,10 @@ class PrivacyViewModel(application: Application) : AndroidViewModel(application)
     private val _historySnapshots = MutableStateFlow<List<PrivacySnapshot>>(emptyList())
     val historySnapshots: StateFlow<List<PrivacySnapshot>> = _historySnapshots.asStateFlow()
 
+    /** Whether any history exists in any range; Clear history is disabled without it. */
+    private val _hasHistory = MutableStateFlow(false)
+    val hasHistory: StateFlow<Boolean> = _hasHistory.asStateFlow()
+
     private val _sdkScanResults = MutableStateFlow<SdkScanResult?>(null)
     val sdkScanResults: StateFlow<SdkScanResult?> = _sdkScanResults.asStateFlow()
 
@@ -193,22 +197,24 @@ class PrivacyViewModel(application: Application) : AndroidViewModel(application)
 
     fun setHistoryFilter(filter: HistoryFilter) {
         _selectedFilter.value = filter
-        viewModelScope.launch {
-            _historySnapshots.value = snapshotRepository.getSnapshots(filter)
-        }
+        viewModelScope.launch { reloadHistory() }
     }
 
     fun loadHistory() {
-        viewModelScope.launch {
-            _historySnapshots.value = snapshotRepository.getSnapshots(_selectedFilter.value)
-        }
+        viewModelScope.launch { reloadHistory() }
     }
 
     fun clearHistory() {
         viewModelScope.launch {
             snapshotRepository.clearAll()
             _historySnapshots.value = emptyList()
+            _hasHistory.value = false
         }
+    }
+
+    private suspend fun reloadHistory() {
+        _historySnapshots.value = snapshotRepository.getSnapshots(_selectedFilter.value)
+        _hasHistory.value = snapshotRepository.hasAnySnapshot()
     }
 
     private suspend fun onScanSuccess(result: PrivacyScore) {
@@ -218,7 +224,7 @@ class PrivacyViewModel(application: Application) : AndroidViewModel(application)
         val trusted = trustedAppsRepository.trustedPackages.first()
         val adjustedScore = TrustedAppsAdjuster.computeAdjustedScore(result, trusted)
         _scoreHistory.value = scoreHistoryRepository.recordScore(adjustedScore.score)
-        _historySnapshots.value = snapshotRepository.getSnapshots(_selectedFilter.value)
+        reloadHistory()
         _scanState.value = PrivacyScanState.Success(adjustedScore)
     }
 

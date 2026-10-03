@@ -19,6 +19,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.techtrest.privamatic.R
+import com.techtrest.privamatic.accentOnSurface
 import com.techtrest.privamatic.data.scanner.PrivacyScoreCalculator
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -40,7 +41,7 @@ fun ScoringInfoDialog(
             Text(
                 text = stringResource(R.string.label_scoring_dialog_title),
                 style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.primary
+                color = MaterialTheme.accentOnSurface
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -58,7 +59,7 @@ fun ScoringInfoDialog(
             Text(
                 text = stringResource(R.string.label_scoring_dialog_cant_reach_100),
                 style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.primary,
+                color = MaterialTheme.accentOnSurface,
                 fontWeight = FontWeight.SemiBold
             )
 

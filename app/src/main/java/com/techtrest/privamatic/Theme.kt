@@ -2,11 +2,16 @@ package com.techtrest.privamatic
 
 import android.app.Activity
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.ButtonColors
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
@@ -104,6 +109,28 @@ private val DarkColorScheme = darkColorScheme(
     surfaceContainerLowest = Color(0xFF0A0F0C),
 )
 
+/**
+ * Brand-green accent for small text and icons drawn on surfaces (e.g. Quick Win "+N pts").
+ * `primary` is pinned to the brand greens (see above); dark #00854A on surfaceContainerHigh is
+ * only 3.1:1, below WCAG AA's 4.5:1. Light keeps `primary` (9.5:1); dark uses MCU's tone-80
+ * primary, which the generated scheme already carries as `surfaceTint` (8.5:1).
+ */
+private val LocalAccentOnSurface = staticCompositionLocalOf { Color.Unspecified }
+
+val MaterialTheme.accentOnSurface: Color
+    @Composable @ReadOnlyComposable
+    get() = LocalAccentOnSurface.current
+
+/** TextButton colours with [accentOnSurface] text: M3's default (primary) fails AA in dark mode. */
+@Composable
+fun accentTextButtonColors(): ButtonColors =
+    ButtonDefaults.textButtonColors(contentColor = MaterialTheme.accentOnSurface)
+
+/** OutlinedButton colours with [accentOnSurface] content, for the same reason. */
+@Composable
+fun accentOutlinedButtonColors(): ButtonColors =
+    ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.accentOnSurface)
+
 @Composable
 fun PrivacyWidgetTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
@@ -122,8 +149,11 @@ fun PrivacyWidgetTheme(
         }
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        content = content
-    )
+    val accentOnSurface = if (darkTheme) colorScheme.surfaceTint else colorScheme.primary
+    CompositionLocalProvider(LocalAccentOnSurface provides accentOnSurface) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            content = content
+        )
+    }
 }

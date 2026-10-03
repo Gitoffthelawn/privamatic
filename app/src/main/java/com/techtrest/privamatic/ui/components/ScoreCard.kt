@@ -26,6 +26,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.techtrest.privamatic.R
+import com.techtrest.privamatic.accentOnSurface
 import com.techtrest.privamatic.data.model.PrivacyScore
 import com.techtrest.privamatic.data.scanner.PrivacyScoreCalculator
 
@@ -113,8 +114,8 @@ fun ScoreCard(
 @Composable
 private fun getScoreColor(score: Int): Color {
     return when {
-        score >= 85 -> MaterialTheme.colorScheme.primary // Excellent
-        score >= 70 -> MaterialTheme.colorScheme.primary // Good
+        score >= 85 -> MaterialTheme.accentOnSurface // Excellent
+        score >= 70 -> MaterialTheme.accentOnSurface // Good
         score >= 50 -> MaterialTheme.colorScheme.tertiary // Fair (orange-ish)
         score >= 30 -> MaterialTheme.colorScheme.error // Poor
         else -> MaterialTheme.colorScheme.error // Critical

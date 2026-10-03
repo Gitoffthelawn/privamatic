@@ -58,6 +58,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
 import com.techtrest.privamatic.R
+import com.techtrest.privamatic.accentOnSurface
 import com.techtrest.privamatic.data.model.AppSdkFindings
 import com.techtrest.privamatic.data.model.SdkScanResult
 import com.techtrest.privamatic.data.model.TrackerCategory
@@ -257,7 +258,7 @@ private fun SdkSummaryHeader(
         Text(
             text = stringResource(R.string.label_sdk_attribution),
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.primary,
+            color = MaterialTheme.accentOnSurface,
             textDecoration = TextDecoration.Underline,
             modifier = Modifier.clickable {
                 val intent = Intent(Intent.ACTION_VIEW,

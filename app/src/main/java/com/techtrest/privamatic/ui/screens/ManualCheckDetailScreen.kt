@@ -54,6 +54,8 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.techtrest.privamatic.R
+import com.techtrest.privamatic.accentOnSurface
+import com.techtrest.privamatic.accentOutlinedButtonColors
 import com.techtrest.privamatic.data.model.ActionType
 import com.techtrest.privamatic.data.model.ManualCheckState
 import com.techtrest.privamatic.data.model.ManualCheckType
@@ -171,7 +173,8 @@ fun ManualCheckDetailScreen(
                             actionType = getSettingsActionType(checkState.type)
                         )
                     },
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    colors = accentOutlinedButtonColors()
                 ) {
                     Icon(
                         imageVector = Icons.Default.Settings,
@@ -346,7 +349,7 @@ private fun ExpandableSectionCard(
                     text = title,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.accentOnSurface
                 )
                 Icon(
                     imageVector = if (expanded) {
@@ -484,7 +487,7 @@ private fun WhatToLookForContent(
                     text = stringResource(R.string.copy_manual_unused_keep_header),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.accentOnSurface
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 val keep = listOf(

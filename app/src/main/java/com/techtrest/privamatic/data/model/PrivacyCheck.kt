@@ -12,7 +12,9 @@ enum class PrivacyCheck(
     @StringRes val actionLabel: Int? = null,
     val packageName: String? = null,
     val isInformational: Boolean = false,
-    val maxDeduction: Int? = null
+    val maxDeduction: Int? = null,
+    /** Replaces the generic preinstalled-app advice when disabling breaks something specific. */
+    @StringRes val systemAppRecommendation: Int? = null
 ) {
     // ===== SYSTEM SECURITY =====
     SCREEN_LOCK(
@@ -129,10 +131,9 @@ enum class PrivacyCheck(
         displayName = R.string.privacy_check_google_play_services_name,
         pointDeduction = 8,
         description = R.string.privacy_check_google_play_services_description,
-        recommendation = R.string.privacy_check_google_play_services_recommendation,
-        actionType = ActionType.OPEN_APP_SETTINGS,
-        actionLabel = R.string.privacy_check_google_play_services_action,
-        packageName = "com.google.android.gms"
+        // Informational trade-off, deliberately without a settings action: disabling Play
+        // Services on stock Android breaks the Play Store, push, Find Hub and Wallet.
+        recommendation = R.string.privacy_check_google_play_services_recommendation
     ),
 
     // ===== DEFAULT APPS =====
@@ -259,7 +260,8 @@ enum class PrivacyCheck(
         recommendation = R.string.privacy_check_google_camera_recommendation,
         actionType = ActionType.OPEN_APP_SETTINGS,
         actionLabel = R.string.privacy_check_google_camera_action,
-        packageName = PackageNames.GOOGLE_CAMERA
+        packageName = PackageNames.GOOGLE_CAMERA,
+        systemAppRecommendation = R.string.privacy_check_google_camera_system_recommendation
     ),
     GOOGLE_DOCS(
         displayName = R.string.privacy_check_google_docs_name,

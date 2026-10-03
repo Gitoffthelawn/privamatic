@@ -42,6 +42,9 @@ app/src/main/java/com/techtrest/privamatic/
 **No DI framework** — no Hilt. Shared components are object singletons passed explicitly:
 - `TrustedAppsAdjuster` — singleton shared between `PrivacyViewModel` and `PrivacyWidgetProvider`
 - `QuickWinsDetector` — singleton
+  — a Quick Win's `impact` is its check's points plus `alsoFixes`: other checks the same fix
+    clears, included only while they currently cost points (Developer options off also turns
+    USB debugging off). Tiles, detail page and sorting all read `impact`
 - Never instantiate these per-caller — widget and ViewModel must produce identical scores
 
 **Widget runs independently** — `PrivacyWidgetProvider` runs its own `PrivacyScanner` scan.
@@ -68,10 +71,25 @@ add up to 100 − score; all rows, manual included, sort descending by points (m
 from `PrivacyScoreCalculator.manualCheckDeduction()` / `totalDeduction()`, never a re-derived
 formula. Only a score clamped at 0 doesn't reconcile.
 Tapping a check row washes it in `primaryContainer` (~200 ms), then switches to the list view,
-collapses every category except the target's, scrolls the row into view and highlights it
-(same colour, fades over ~1.4 s). A plain header toggle keeps expansion and scroll and never
-highlights (`ChecksTab` owns expansion, `LazyListState` and the highlight). The manual row
+collapses every category except the target's, expands the target row (its recommendation;
+every other row collapses), scrolls the expanded row into view and highlights it (same colour,
+fades over ~1.4 s). A plain header toggle keeps expansion and scroll and never highlights
+(`ChecksTab` owns category and row expansion, `LazyListState` and the highlight). The manual row
 opens the Actions tab immediately.
+
+**What's new card** — one-time Dashboard card below the Score card after an update, never on a
+fresh install (`WhatsNewCard`, `WhatsNew`, `WhatsNewPreferences`). Notes live in `WhatsNew`:
+`NOTES_VERSION_CODE` plus a list of `copy_whats_new_*` strings. For a release with news, set it to
+that release's versionCode and replace the items; a release that leaves it alone shows nothing,
+so old notes never repeat. Seen state is `last_seen_version_code` in SharedPreferences
+(`whats_new_prefs`), written on dismiss; a fresh install (`firstInstallTime == lastUpdateTime`)
+is marked seen silently. The card shows only when `BuildConfig.VERSION_CODE ==
+NOTES_VERSION_CODE`, so the versionCode bump at release is what turns it on.
+
+**Rescan after a fix deep link** — Settings intents that let the user fix a check (Quick Win
+detail, check-row "Open settings") call `IntentHelper.launchActionIntent(…, rescanOnReturn = true)`;
+`MainScreen` rescans once on the next resume. Manual-check links don't (they change no scan
+result). The flag is in memory only.
 
 **View toggles vs tabs** — a tab is for different data; a toggle is for the same data viewed
 differently. Toggles are an `IconButton` in the tab's fixed header row (never a segmented
@@ -119,6 +137,15 @@ Documented exception: Advertising ID keeps its −5 until the user confirms — 
 nudge, since the state can't be read without Google's AD_ID permission. It stays
 `isUnknown = false` with "Not verified — confirm in Actions"; see the comment at
 `NetworkSecurityChecker.checkAdvertisingId()`.
+
+**Advice for preinstalled apps** — never tell the user to uninstall a system app (it can't be
+done) or to disable one whose loss breaks the phone. A flagged app with `issue.isSystemApp`
+shows `PrivacyIssue.systemAppRecommendation` ("came with your phone… disable if you don't use
+it", formatted with the app name) instead of its "Consider uninstalling" text; a check whose
+disabling breaks something specific sets `PrivacyCheck.systemAppRecommendation` (Camera: no
+camera app left). Uninstall Quick Wins already skip system apps (`QuickWinsDetector`).
+Google Play Services on stock Android is an informational trade-off with no settings action:
+point to GrapheneOS (sandboxed Play) or microG, never to disabling it (audit H3).
 
 **Play Services presence** — absent / disabled / microG / privileged / sandboxed comes only
 from `GoogleServicesChecker.playServicesState()` (`PlayServicesState`). Never add a separate
@@ -221,9 +248,20 @@ Locale folder: `en-US` (hyphen not underscore).
 ## Design Constraints
 - `MaterialTheme.typography` only — no arbitrary `fontSize`
 - `MaterialTheme.colorScheme` only — no hardcoded hex colors
+- Small brand-green text or icons on a surface use `MaterialTheme.accentOnSurface` (Theme.kt),
+  not `colorScheme.primary`: dark `primary` is pinned to #00854A, only 3.1:1 on
+  `surfaceContainerHigh`. The accent is `primary` in light (9.5:1) and the tone-80 primary
+  (`surfaceTint`) in dark (8.5:1); both meet WCAG AA 4.5:1
+  TextButton / OutlinedButton default their content to `primary` too: pass
+  `colors = accentTextButtonColors()` / `accentOutlinedButtonColors()` unless the button sets its
+  own colour (e.g. error, or Cream on the onboarding green). Filled buttons and bars (white on
+  `primary`, 4.7:1) are fine
 - Widget ARGB colors as named constants, never inline hex
 - Material Design spacing: 4dp, 8dp, 12dp, 16dp, 24dp, 32dp — no arbitrary values
 - Corner radius: 8dp small, 12dp standard
+- Switch rows: the whole row is `Modifier.toggleable(value, enabled, role = Role.Switch)` and the
+  `Switch` gets `onCheckedChange = null`, so accessibility services see one checkable node with
+  its checked and enabled state (a `clickable` row exposes neither)
 - Material icons only — `Icons.Default.*` or `Icons.Outlined.*` (plus `Icons.AutoMirrored.*`
   for directional arrows); no emoji in production UI. Status and category icons
   (row status, category chips, category headers) use `Icons.Outlined.*` for consistency
