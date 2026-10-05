@@ -15,8 +15,11 @@ private const val NONE = -1
  * that doesn't touch this file shows no card, rather than repeating the previous notes.
  */
 object WhatsNew {
-    /** versionCode these notes ship with: v1.5.0. */
-    const val NOTES_VERSION_CODE = 8
+    /**
+     * versionCode these notes ship with: v1.5.1. They are the v1.5.0 notes, re-keyed so users
+     * updating from v1.4.1 straight to the v1.5.1 hotfix still see them.
+     */
+    const val NOTES_VERSION_CODE = 9
 
     @StringRes
     val items: List<Int> = listOf(
