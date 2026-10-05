@@ -82,12 +82,15 @@ opens the Actions tab immediately.
 
 **What's new card** — one-time Dashboard card below the Score card after an update, never on a
 fresh install (`WhatsNewCard`, `WhatsNew`, `WhatsNewPreferences`). Notes live in `WhatsNew`:
-`NOTES_VERSION_CODE` plus a list of `copy_whats_new_*` strings. For a release with news, set it to
-that release's versionCode and replace the items; a release that leaves it alone shows nothing,
-so old notes never repeat. Seen state is `last_seen_version_code` in SharedPreferences
-(`whats_new_prefs`), written on dismiss; a fresh install (`firstInstallTime == lastUpdateTime`)
-is marked seen silently. The card shows only when `BuildConfig.VERSION_CODE ==
-NOTES_VERSION_CODE`, so the versionCode bump at release is what turns it on.
+`NOTES_INTRODUCED_IN` (the versionCode that introduced the notes) plus a list of
+`copy_whats_new_*` strings. For a release with news, set it to that release's versionCode and
+replace the items; a later release that leaves it alone (e.g. a hotfix) keeps the same notes,
+so users who skip a version still see them. Seen state is `last_seen_version_code` in
+SharedPreferences (`whats_new_prefs`), written on dismiss with the running versionCode; a fresh
+install (`firstInstallTime == lastUpdateTime`) is marked seen silently. The card shows while
+`last_seen_version_code < NOTES_INTRODUCED_IN` (no stored value, from v1.4.1, counts as below),
+so notes never repeat for someone who dismissed them on any version since. v1.6 plan: notes
+kept per version, showing every version newer than the last one seen.
 
 **Rescan after a fix deep link** — Settings intents that let the user fix a check (Quick Win
 detail, check-row "Open settings") call `IntentHelper.launchActionIntent(…, rescanOnReturn = true)`;
