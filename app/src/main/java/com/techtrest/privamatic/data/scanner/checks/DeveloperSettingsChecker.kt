@@ -80,6 +80,11 @@ class DeveloperSettingsChecker(private val context: Context) {
     /**
      * The sticky USB_STATE broadcast carries "adb" = true while ADB is an active USB function.
      * Both names are @hide, hence the literals. Any failure counts as no signal.
+     *
+     * Reliable only while the phone is connected to a computer by USB. Unplugged, the sticky
+     * value can be stale either way: on the Pixel 8 (Android 17) it stayed adb=false after USB
+     * debugging was turned back on, until the cable went back in. So adb=true proves ADB is on,
+     * but adb=false must never be treated as a pass: it only means "no signal" (unknown).
      */
     private fun isAdbActiveOverUsb(): Boolean = try {
         context.registerReceiver(null, IntentFilter(ACTION_USB_STATE))

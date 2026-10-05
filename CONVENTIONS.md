@@ -150,6 +150,11 @@ aconfig flag `app_compat/android.provider.enable_redacted_value_for_readable_v2`
 build image). GrapheneOS on the same build ID (Pixel 9) does not redact. On SDK 37+,
 `DeveloperSettingsChecker` treats a 0 as unknown unless the sticky `USB_STATE` broadcast
 reports `adb=true` (positive signal only); a 1 is still trusted.
+`USB_STATE` is reliable only while the phone is connected to a computer by USB. Manual test on
+the Pixel 8 with the cable unplugged: USB debugging off gave `adb=false` (both checks unknown);
+turned back on, still unplugged, it still gave `adb=false` (both stayed unknown); plugged back
+in, both read Enabled (−4 / −1). Unplugged, the value may be stale in either direction, so
+`adb=false` never means "off" and must never be treated as a pass — it is only "no signal".
 The Developer options Quick Win is hidden while that check is unknown: on SDK 37 turning the
 option off can't be confirmed, so its "+1 pt" would never reach the score.
 Documented exception: Advertising ID keeps its −5 until the user confirms — a deliberate
