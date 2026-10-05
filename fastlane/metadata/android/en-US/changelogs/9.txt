@@ -1,1 +1,5 @@
-Fixes USB debugging and Developer options showing as off on Android 17. Android now hides these settings from apps, so Privamatic marks them "to review" when it can't confirm them, instead of reporting a pass.
+- Fix: USB debugging and Developer options no longer show as off on Android 17. Android now hides them from apps, so they're marked "to review" when unconfirmed.
+- Score Breakdown moved into Checks (chart icon), adds up to your score; tap a line to jump to it.
+- Unreadable checks no longer cost points; safer advice for preinstalled apps.
+- Fresh look and better detection.
+Heads-up: better detection may lower your score.
