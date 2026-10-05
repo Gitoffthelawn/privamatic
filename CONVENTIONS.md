@@ -136,6 +136,19 @@ and costs 0 points (`customPointDeduction = 0` when `isSecure = false`); its sta
 tells the user to verify manually. `isUnknown` controls display and counting everywhere:
 info icon, excluded from pass AND issue counts (category chips, Dashboard tiles, Breakdown).
 `isSecure` only controls whether quick wins and tips appear.
+A value the OS may redact is never proof of a pass. When a platform can hand apps a fake
+"off" value, only a value that proves the risky state counts; otherwise the check is unknown.
+A side channel may confirm a failure, never a pass.
+SDK 37 redaction (found 2026-10-05 on stock Pixel 8, Android 17 CP3A.260905.009): apps read
+`Settings.Global.ADB_ENABLED` and `DEVELOPMENT_SETTINGS_ENABLED` as `0` whatever the real
+value (`getInt`/`getString` both return 0, no exception, nothing in logcat), while
+`adb shell settings get` reads 1. Other Settings reads were unaffected. Likely mechanism:
+aconfig flag `app_compat/android.provider.enable_redacted_value_for_readable_v2` (true in the
+build image). GrapheneOS on the same build ID (Pixel 9) does not redact. On SDK 37+,
+`DeveloperSettingsChecker` treats a 0 as unknown unless the sticky `USB_STATE` broadcast
+reports `adb=true` (positive signal only); a 1 is still trusted.
+The Developer options Quick Win is hidden while that check is unknown: on SDK 37 turning the
+option off can't be confirmed, so its "+1 pt" would never reach the score.
 Documented exception: Advertising ID keeps its −5 until the user confirms — a deliberate
 nudge, since the state can't be read without Google's AD_ID permission. It stays
 `isUnknown = false` with "Not verified — confirm in Actions"; see the comment at
@@ -292,4 +305,4 @@ Locale folder: `en-US` (hyphen not underscore).
   (row status, category chips, category headers) use `Icons.Outlined.*` for consistency
   with the chips
 
-*Last updated: 2026-10-03*
+*Last updated: 2026-10-05*
