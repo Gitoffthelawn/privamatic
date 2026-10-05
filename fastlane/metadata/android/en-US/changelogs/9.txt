@@ -1,0 +1,1 @@
+Fixes USB debugging and Developer options showing as off on Android 17. Android now hides these settings from apps, so Privamatic marks them "to review" when it can't confirm them, instead of reporting a pass.
