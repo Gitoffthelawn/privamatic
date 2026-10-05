@@ -137,6 +137,7 @@
     <string name="status_private_dns_unknown">Cannot detect — verify Private DNS in Settings</string>
     <string name="status_usb_debugging_unknown">Cannot detect — verify in Settings > System > Developer options</string>
     <string name="status_developer_options_unknown">Cannot detect — verify in Settings > System > Developer options</string>
+    <string name="status_developer_settings_redacted">Android hides this setting from apps. Check it in Settings > System > Developer options. If the phone is connected to a computer by USB, a rescan can detect it.</string>
 
     <string name="privacy_check_wifi_scanning_name">Background Wi-Fi Scanning</string>
     <string name="privacy_check_wifi_scanning_description">Your phone silently broadcasts its identity to nearby networks even when Wi-Fi is off. Shops, malls, and airports already use this to track how long you stay and how often you visit.</string>

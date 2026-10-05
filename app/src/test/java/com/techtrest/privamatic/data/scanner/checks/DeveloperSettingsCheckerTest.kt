@@ -25,11 +25,13 @@ class DeveloperSettingsCheckerTest {
         const val SDK_17 = 37
         const val USB_UNKNOWN = "Cannot detect — verify USB debugging"
         const val DEV_UNKNOWN = "Cannot detect — verify Developer options"
+        const val REDACTED = "Android hides this setting from apps."
     }
 
     private val checker = DeveloperSettingsChecker(mock(Context::class.java).also {
         `when`(it.getString(R.string.status_usb_debugging_unknown)).thenReturn(USB_UNKNOWN)
         `when`(it.getString(R.string.status_developer_options_unknown)).thenReturn(DEV_UNKNOWN)
+        `when`(it.getString(R.string.status_developer_settings_redacted)).thenReturn(REDACTED)
     })
 
     private val noSignal = { false }
@@ -73,7 +75,7 @@ class DeveloperSettingsCheckerTest {
 
     @Test
     fun `usb debugging read as 0 on SDK 37 without an ADB signal is unknown`() {
-        assertUnknownAtZero(checker.usbDebuggingIssue(0, SDK_17, noSignal), USB_UNKNOWN)
+        assertUnknownAtZero(checker.usbDebuggingIssue(0, SDK_17, noSignal), REDACTED)
     }
 
     @Test
@@ -104,7 +106,7 @@ class DeveloperSettingsCheckerTest {
 
     @Test
     fun `developer options read as 0 on SDK 37 without an ADB signal are unknown`() {
-        assertUnknownAtZero(checker.developerOptionsIssue(0, 0, SDK_17, noSignal), DEV_UNKNOWN)
+        assertUnknownAtZero(checker.developerOptionsIssue(0, 0, SDK_17, noSignal), REDACTED)
     }
 
     @Test

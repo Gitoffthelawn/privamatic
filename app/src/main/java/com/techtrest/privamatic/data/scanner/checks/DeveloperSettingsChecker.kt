@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.IntentFilter
 import android.os.Build
 import android.provider.Settings
+import androidx.annotation.StringRes
 import com.techtrest.privamatic.R
 import com.techtrest.privamatic.data.model.PrivacyCheck
 import com.techtrest.privamatic.data.model.PrivacyIssue
@@ -53,7 +54,10 @@ class DeveloperSettingsChecker(private val context: Context) {
                 technicalDetails = "Checked Settings.Global.ADB_ENABLED"
             )
             adbActiveOverUsb() -> usbDebuggingEnabled("USB_STATE broadcast reports adb active")
-            else -> unknownUsbDebugging("Settings.Global.ADB_ENABLED reads 0, which Android $sdkInt+ reports whatever the real value")
+            else -> unknownUsbDebugging(
+                "Settings.Global.ADB_ENABLED reads 0, which Android $sdkInt+ reports whatever the real value",
+                status = R.string.status_developer_settings_redacted
+            )
         }
 
     /** ADB can only be on while Developer options are, so a detected ADB proves them on. */
@@ -72,7 +76,10 @@ class DeveloperSettingsChecker(private val context: Context) {
         )
         adbSetting == 1 -> developerOptionsEnabled("Settings.Global.ADB_ENABLED = 1")
         adbActiveOverUsb() -> developerOptionsEnabled("USB_STATE broadcast reports adb active")
-        else -> unknownDeveloperOptions("Settings.Global.DEVELOPMENT_SETTINGS_ENABLED reads 0, which Android $sdkInt+ reports whatever the real value")
+        else -> unknownDeveloperOptions(
+            "Settings.Global.DEVELOPMENT_SETTINGS_ENABLED reads 0, which Android $sdkInt+ reports whatever the real value",
+            status = R.string.status_developer_settings_redacted
+        )
     }
 
     private fun readGlobal(name: String): Int = Settings.Global.getInt(context.contentResolver, name, 0)
@@ -109,23 +116,24 @@ class DeveloperSettingsChecker(private val context: Context) {
 
     /**
      * Undetermined results cost 0 points and display as unknown, but stay isSecure = false
-     * so the related tips still appear.
+     * so the related tips still appear. [status] is the generic text for an error; a redacted
+     * read on SDK 37+ explains why instead (status_developer_settings_redacted).
      */
-    private fun unknownUsbDebugging(details: String) = PrivacyIssue(
+    private fun unknownUsbDebugging(details: String, @StringRes status: Int = R.string.status_usb_debugging_unknown) = PrivacyIssue(
         check = PrivacyCheck.USB_DEBUGGING,
         isSecure = false,
         isUnknown = true,
         customPointDeduction = 0,
-        currentStatus = context.getString(R.string.status_usb_debugging_unknown),
+        currentStatus = context.getString(status),
         technicalDetails = details
     )
 
-    private fun unknownDeveloperOptions(details: String) = PrivacyIssue(
+    private fun unknownDeveloperOptions(details: String, @StringRes status: Int = R.string.status_developer_options_unknown) = PrivacyIssue(
         check = PrivacyCheck.DEVELOPER_OPTIONS,
         isSecure = false,
         isUnknown = true,
         customPointDeduction = 0,
-        currentStatus = context.getString(R.string.status_developer_options_unknown),
+        currentStatus = context.getString(status),
         technicalDetails = details
     )
 
