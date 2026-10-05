@@ -62,6 +62,15 @@ class QuickWinsDetectorTest {
     }
 
     @Test
+    fun `no dev options win while developer options are unknown`() {
+        // Android 17 redaction: neither check can be confirmed, so no gain can be promised
+        assertNull(QuickWinsDetector.checkDeveloperOptions(score(
+            issue(PrivacyCheck.DEVELOPER_OPTIONS, isSecure = false, isUnknown = true),
+            issue(PrivacyCheck.USB_DEBUGGING, isSecure = false, isUnknown = true)
+        )))
+    }
+
+    @Test
     fun `combined gain is what sorting sees`() {
         val devOptions = QuickWinsDetector.checkDeveloperOptions(score(
             issue(PrivacyCheck.DEVELOPER_OPTIONS, isSecure = false),

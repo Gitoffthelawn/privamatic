@@ -10,13 +10,15 @@ private const val KEY_LAST_SEEN_VERSION_CODE = "last_seen_version_code"
 private const val NONE = -1
 
 /**
- * Notes for the Dashboard's one-time "What's new" card. Holds one release at a time: for a
- * release with news, set [NOTES_VERSION_CODE] to its versionCode and replace [items]. A release
- * that doesn't touch this file shows no card, rather than repeating the previous notes.
+ * Notes for the Dashboard's one-time "What's new" card. Holds one release's notes at a time,
+ * keyed by the versionCode that introduced them: for a release with news, set
+ * [NOTES_INTRODUCED_IN] to its versionCode and replace [items]. Later releases that leave this
+ * file alone keep showing these notes, but only to users who haven't seen them yet.
+ * (v1.6 plan: notes kept per version, showing every version newer than the last one seen.)
  */
 object WhatsNew {
-    /** versionCode these notes ship with: v1.5.0. */
-    const val NOTES_VERSION_CODE = 8
+    /** versionCode that introduced these notes: v1.5.0. v1.5.1 (9) ships them unchanged. */
+    const val NOTES_INTRODUCED_IN = 8
 
     @StringRes
     val items: List<Int> = listOf(
@@ -37,16 +39,17 @@ class WhatsNewPreferences(private val prefs: SharedPreferences) {
 
     /**
      * Whether to show the card on this launch. A fresh install has nothing to compare against,
-     * so it is marked as seen and shows nothing; an update shows the card while notes exist for
-     * this exact versionCode and the user hasn't dismissed it.
+     * so it is marked as seen and shows nothing; an update shows the card until dismissed if the
+     * last version the user saw is older than the one that introduced the notes. Dismissing on
+     * any later version (markSeen with the running versionCode) also covers these notes.
      */
-    fun shouldShow(currentVersionCode: Int, isUpdate: Boolean, notesVersionCode: Int): Boolean {
+    fun shouldShow(currentVersionCode: Int, isUpdate: Boolean, notesIntroducedIn: Int): Boolean {
         val lastSeen = prefs.getInt(KEY_LAST_SEEN_VERSION_CODE, NONE)
         if (lastSeen == NONE && !isUpdate) {
             markSeen(currentVersionCode)
             return false
         }
-        return notesVersionCode == currentVersionCode && lastSeen < currentVersionCode
+        return lastSeen < notesIntroducedIn
     }
 
     fun markSeen(versionCode: Int) {

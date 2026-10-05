@@ -82,12 +82,15 @@ opens the Actions tab immediately.
 
 **What's new card** — one-time Dashboard card below the Score card after an update, never on a
 fresh install (`WhatsNewCard`, `WhatsNew`, `WhatsNewPreferences`). Notes live in `WhatsNew`:
-`NOTES_VERSION_CODE` plus a list of `copy_whats_new_*` strings. For a release with news, set it to
-that release's versionCode and replace the items; a release that leaves it alone shows nothing,
-so old notes never repeat. Seen state is `last_seen_version_code` in SharedPreferences
-(`whats_new_prefs`), written on dismiss; a fresh install (`firstInstallTime == lastUpdateTime`)
-is marked seen silently. The card shows only when `BuildConfig.VERSION_CODE ==
-NOTES_VERSION_CODE`, so the versionCode bump at release is what turns it on.
+`NOTES_INTRODUCED_IN` (the versionCode that introduced the notes) plus a list of
+`copy_whats_new_*` strings. For a release with news, set it to that release's versionCode and
+replace the items; a later release that leaves it alone (e.g. a hotfix) keeps the same notes,
+so users who skip a version still see them. Seen state is `last_seen_version_code` in
+SharedPreferences (`whats_new_prefs`), written on dismiss with the running versionCode; a fresh
+install (`firstInstallTime == lastUpdateTime`) is marked seen silently. The card shows while
+`last_seen_version_code < NOTES_INTRODUCED_IN` (no stored value, from v1.4.1, counts as below),
+so notes never repeat for someone who dismissed them on any version since. v1.6 plan: notes
+kept per version, showing every version newer than the last one seen.
 
 **Rescan after a fix deep link** — Settings intents that let the user fix a check (Quick Win
 detail, check-row "Open settings") call `IntentHelper.launchActionIntent(…, rescanOnReturn = true)`;
@@ -136,6 +139,24 @@ and costs 0 points (`customPointDeduction = 0` when `isSecure = false`); its sta
 tells the user to verify manually. `isUnknown` controls display and counting everywhere:
 info icon, excluded from pass AND issue counts (category chips, Dashboard tiles, Breakdown).
 `isSecure` only controls whether quick wins and tips appear.
+A value the OS may redact is never proof of a pass. When a platform can hand apps a fake
+"off" value, only a value that proves the risky state counts; otherwise the check is unknown.
+A side channel may confirm a failure, never a pass.
+SDK 37 redaction (found 2026-10-05 on stock Pixel 8, Android 17 CP3A.260905.009): apps read
+`Settings.Global.ADB_ENABLED` and `DEVELOPMENT_SETTINGS_ENABLED` as `0` whatever the real
+value (`getInt`/`getString` both return 0, no exception, nothing in logcat), while
+`adb shell settings get` reads 1. Other Settings reads were unaffected. Likely mechanism:
+aconfig flag `app_compat/android.provider.enable_redacted_value_for_readable_v2` (true in the
+build image). GrapheneOS on the same build ID (Pixel 9) does not redact. On SDK 37+,
+`DeveloperSettingsChecker` treats a 0 as unknown unless the sticky `USB_STATE` broadcast
+reports `adb=true` (positive signal only); a 1 is still trusted.
+`USB_STATE` is reliable only while the phone is connected to a computer by USB. Manual test on
+the Pixel 8 with the cable unplugged: USB debugging off gave `adb=false` (both checks unknown);
+turned back on, still unplugged, it still gave `adb=false` (both stayed unknown); plugged back
+in, both read Enabled (−4 / −1). Unplugged, the value may be stale in either direction, so
+`adb=false` never means "off" and must never be treated as a pass — it is only "no signal".
+The Developer options Quick Win is hidden while that check is unknown: on SDK 37 turning the
+option off can't be confirmed, so its "+1 pt" would never reach the score.
 Documented exception: Advertising ID keeps its −5 until the user confirms — a deliberate
 nudge, since the state can't be read without Google's AD_ID permission. It stays
 `isUnknown = false` with "Not verified — confirm in Actions"; see the comment at
@@ -292,4 +313,4 @@ Locale folder: `en-US` (hyphen not underscore).
   (row status, category chips, category headers) use `Icons.Outlined.*` for consistency
   with the chips
 
-*Last updated: 2026-10-03*
+*Last updated: 2026-10-05*

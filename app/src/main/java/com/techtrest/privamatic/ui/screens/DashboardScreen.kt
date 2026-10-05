@@ -87,7 +87,7 @@ fun DashboardScreen(
             whatsNewPrefs.shouldShow(
                 currentVersionCode = BuildConfig.VERSION_CODE,
                 isUpdate = WhatsNewPreferences.isUpdate(context),
-                notesVersionCode = WhatsNew.NOTES_VERSION_CODE
+                notesIntroducedIn = WhatsNew.NOTES_INTRODUCED_IN
             )
         )
     }

@@ -121,10 +121,12 @@ object QuickWinsDetector {
      * Turning Developer options off also turns USB debugging off, so the win includes USB
      * debugging's points while it is currently on (an unknown result costs nothing, so it
      * adds nothing).
+     * No win while Developer options are unknown: on Android 17 the setting is redacted, so
+     * turning them off can't be confirmed and the promised +1 would never reach the score.
      */
     internal fun checkDeveloperOptions(privacyScore: PrivacyScore): QuickWin? {
         val issue = privacyScore.issues.find { it.check == PrivacyCheck.DEVELOPER_OPTIONS }
-        return if (issue != null && !issue.isSecure) {
+        return if (issue != null && !issue.isSecure && !issue.isUnknown) {
             val usbDebugging = privacyScore.issues.find {
                 it.check == PrivacyCheck.USB_DEBUGGING && !it.isSecure && !it.isUnknown
             }
