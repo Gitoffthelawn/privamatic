@@ -309,6 +309,8 @@ Locale folder: `en-US` (hyphen not underscore).
 - Widget ARGB colors as named constants, never inline hex
 - Material Design spacing: 4dp, 8dp, 12dp, 16dp, 24dp, 32dp — no arbitrary values
 - Corner radius: 8dp small, 12dp standard
+- Composable parameters: `modifier: Modifier = Modifier` is the last parameter, with that default
+- Composables are stateless: state is hoisted to the caller, which passes values and event lambdas
 - Switch rows: the whole row is `Modifier.toggleable(value, enabled, role = Role.Switch)` and the
   `Switch` gets `onCheckedChange = null`, so accessibility services see one checkable node with
   its checked and enabled state (a `clickable` row exposes neither)

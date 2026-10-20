@@ -24,7 +24,8 @@ There is no guard hook or verify subagent yet. The deny list is the only hard bl
   - limit `55290DLAQ000MR` to read-only commands;
   - block `git push` / `git tag` / `gh` writes;
   - catch forms that prefix deny rules miss: `git -C <dir> push`, `adb -s … shell "pm clear …"`;
-  - consider moving the deny list into the tracked `.claude/settings.json`, so the Framework laptop gets it too.
+  - consider moving the deny list into the tracked `.claude/settings.json`, so the Framework laptop gets it too;
+  - reject `git switch` / `git checkout` to a branch that lacks `c837e59` (it would overwrite the untracked `settings.local.json`).
 - [ ] **Backup-rules fix.** Gate: run `bmgr` on the Pixel 8 before and after the change. Check that:
   - [ ] the `sharedpref` excludes `ad_id_prefs` and `score_history` lack `.xml` and may match nothing;
   - [ ] `backup_rules.xml` excludes `-shm` / `-wal` (it doesn't yet);
@@ -37,6 +38,17 @@ There is no guard hook or verify subagent yet. The deny list is the only hard bl
 None open.
 
 ## Runs
+
+### 2026-10-20 — STATE and CONVENTIONS fixes (`chore/state-and-conventions` → `master`)
+
+- [x] STATE settings-file note corrected: a pull *and* a switch to any pre-`c837e59` branch overwrite or delete the untracked file.
+      The guard-hook item gains a switch check.
+- [x] CONVENTIONS.md Design Constraints gains two Compose rules from the deleted `docs/QUICK_REFERENCE.md`:
+  - `Modifier` is the last parameter, with a default;
+  - composables are stateless, with state hoisted.
+
+  Evidence: `git show d1fb5ce^:docs/QUICK_REFERENCE.md`, lines 15, 26 and 28.
+- [x] Docs only, so there is no build gate. Diff reviewed against `master`: no blockers. Merged with `--no-ff`.
 
 ### 2026-10-20 — workflow setup, round 2: rulebook cleanup and merge (`chore/workflow-setup` → `master`)
 
@@ -53,8 +65,13 @@ None open.
 - [x] Reviewed the branch diff against `master`: no merge blockers. No app code, Gradle or resources changed, so there is no build gate.
 - [x] Merged into `master` locally with `--no-ff`. Not pushed.
 - [ ] Not verified: whether the allow and deny rules match as intended in a live session.
-- Note: after the push, the Framework laptop's next `git pull` will **delete** its local
-  `.claude/settings.local.json`, because the file is untracked now. Back it up before pulling.
+- Note: `.claude/settings.local.json` is untracked since `c837e59`, so git can overwrite or
+  delete it on any machine. This happens:
+  - on the Framework laptop's next `git pull`;
+  - on `git switch` / `git checkout` to any branch created before `c837e59`, because those branches still track the file.
+
+  Back it up before either. The guard hook (Next) will block switches to such branches.
+  Check with `git merge-base --is-ancestor c837e59 <branch>`.
 
 ### 2026-10-20 — workflow setup (`chore/workflow-setup`, from `chore/workflow-inventory`)
 
