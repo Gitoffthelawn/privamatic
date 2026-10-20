@@ -240,7 +240,8 @@ Declared in both `data_extraction_rules.xml` and `backup_rules.xml`.
 - Never tag before bumping versionCode
 
 **Keystore:**
-- Release keystore at `~/privamatic-release.jks`
+- Release keystore lives on the Framework laptop, not the MiniPC. It is not used for F-Droid
+  builds (release `signingConfig = null`; F-Droid signs). Never commit it
 - Passwords via env vars `PRIVAMATIC_STORE_PASSWORD` / `PRIVAMATIC_KEY_PASSWORD`
 
 **On-device comparison against the F-Droid release:**

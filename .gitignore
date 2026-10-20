@@ -48,7 +48,7 @@ lint-results*.html
 
 # IDE and tool files
 .idea/
-.claude/
+.claude/settings.local.json
 devcheck_decompiled/
 
 # Aider local session state
