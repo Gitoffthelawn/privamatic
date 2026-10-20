@@ -1,0 +1,70 @@
+{
+  "permissions": {
+    "deny": [
+      "Bash(git push:*)",
+      "Bash(git clean:*)",
+      "Bash(git reset --hard:*)",
+      "Bash(git rebase:*)",
+      "Bash(git filter-branch:*)",
+      "Bash(gh issue comment:*)",
+      "Bash(gh issue close:*)",
+      "Bash(gh issue create:*)",
+      "Bash(gh issue edit:*)",
+      "Bash(gh issue reopen:*)",
+      "Bash(gh pr checkout:*)",
+      "Bash(gh pr close:*)",
+      "Bash(gh pr comment:*)",
+      "Bash(gh pr create:*)",
+      "Bash(gh pr edit:*)",
+      "Bash(gh pr lock:*)",
+      "Bash(gh pr merge:*)",
+      "Bash(gh pr ready:*)",
+      "Bash(gh pr reopen:*)",
+      "Bash(gh pr revert:*)",
+      "Bash(gh pr review:*)",
+      "Bash(gh pr unlock:*)",
+      "Bash(gh pr update-branch:*)",
+      "Bash(gh release:*)",
+      "Bash(gh repo edit:*)",
+      "Bash(gh repo delete:*)",
+      "Bash(gh repo rename:*)",
+      "Bash(gh api:*)",
+      "Bash(ssh:*)",
+      "Bash(scp:*)",
+      "Bash(rsync:*)",
+      "Bash(sudo:*)",
+      "Bash(adb -s 55290DLAQ000MR uninstall:*)",
+      "Bash(adb -s 55290DLAQ000MR shell pm:*)",
+      "Bash(adb -s 55290DLAQ000MR shell cmd:*)",
+      "Bash(adb -s 55290DLAQ000MR shell rm:*)",
+      "Bash(adb -s 55290DLAQ000MR shell run-as:*)",
+      "Bash(adb -s 55290DLAQ000MR shell settings:*)",
+      "Bash(adb -s 55290DLAQ000MR shell input:*)",
+      "Bash(adb -s 55290DLAQ000MR shell am clear-debug-app:*)",
+      "Bash(adb -s 55290DLAQ000MR push:*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard.sh\" || exit 2"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard.sh\" || exit 2"
+          }
+        ]
+      }
+    ]
+  },
+  "disableAllHooks": false
+}

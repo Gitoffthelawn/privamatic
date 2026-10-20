@@ -49,6 +49,7 @@ lint-results*.html
 # IDE and tool files
 .idea/
 .claude/settings.local.json
+.claude/hook.log
 devcheck_decompiled/
 
 # Aider local session state
