@@ -8,6 +8,7 @@ import android.provider.Settings
 import android.provider.Telephony
 import android.util.Log
 import com.techtrest.privamatic.BuildConfig
+import com.techtrest.privamatic.R
 import com.techtrest.privamatic.data.model.PrivacyCheck
 import com.techtrest.privamatic.data.model.PrivacyIssue
 import com.techtrest.privamatic.data.util.PackageManagerUtil
@@ -375,7 +376,7 @@ class DefaultAppsChecker(private val context: Context) {
                     check = PrivacyCheck.DEFAULT_LAUNCHER,
                     isSecure = true,
                     isUnknown = true,
-                    currentStatus = "Using $appName (unknown, 0 pts)",
+                    currentStatus = context.getString(R.string.fmt_launcher_not_rated, appName),
                     technicalDetails = "Package: $packageName",
                     customPointDeduction = 0
                 )
