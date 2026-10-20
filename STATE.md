@@ -9,11 +9,13 @@ Released version is v1.5.1 (versionCode 9). F-Droid serves it, and it is install
 The debug build of v1.5.1 is installed on the Pixel 8.
 The Claude Code workflow files are merged into local `master` with `--no-ff`. They are not pushed yet; Oliver pushes. They are:
 - CLAUDE.md and STATE.md;
-- the narrowed `.claude/settings.local.json`, which is untracked and has a deny list;
+- the narrowed `.claude/settings.local.json` (untracked; it now holds only the allow list);
 - the inventory.
 
 CONVENTIONS.md is the single rulebook: `.cursorrules` now points to it, and the duplicate docs are deleted.
-There is no guard hook or verify subagent yet. The deny list is the only hard block.
+The guard hook is merged into local `master` but not yet live-tested (see Guard hook below). There is no verify subagent yet.
+`.claude/settings.local.json` is untracked since `c837e59`, so a `git pull` on the Framework laptop, or a switch to any
+pre-`c837e59` branch, overwrites or deletes it. Back it up first. The guard hook now denies such switches.
 
 ## Next
 
@@ -22,13 +24,9 @@ There is no guard hook or verify subagent yet. The deny list is the only hard bl
       `"Using $appName (unknown, 0 pts)"` as hardcoded English. Same fix as the launcher row.
 - [ ] **`QuickWinsDetector.extractAppName` parses UI copy** (`removePrefix("Using ")`). This breaks once the
       `Using …` statuses are localised. Pass the app name as a field instead.
-- [ ] **Guard hook** (`.claude/hooks/`, registered in a tracked `.claude/settings.json`). It must:
-  - reject adb calls without `-s <serial>`;
-  - limit `55290DLAQ000MR` to read-only commands;
-  - block `git push` / `git tag` / `gh` writes;
-  - catch forms that prefix deny rules miss: `git -C <dir> push`, `adb -s … shell "pm clear …"`;
-  - consider moving the deny list into the tracked `.claude/settings.json`, so the Framework laptop gets it too;
-  - reject `git switch` / `git checkout` to a branch that lacks `c837e59` (it would overwrite the untracked `settings.local.json`).
+- [x] **Guard hook.** Done; see Runs and Guard hook below.
+- [ ] **Guard hook live smoke test** (Oliver, next session): the steps are in the 2026-10-20 guard-hook run.
+      It also covers "allow and deny rules match as intended in a live session", still open from the workflow-setup run.
 - [ ] **Backup-rules fix.** Gate: run `bmgr` on the Pixel 8 before and after the change. Check that:
   - [ ] the `sharedpref` excludes `ad_id_prefs` and `score_history` lack `.xml` and may match nothing;
   - [ ] `backup_rules.xml` excludes `-shm` / `-wal` (it doesn't yet);
@@ -36,11 +34,60 @@ There is no guard hook or verify subagent yet. The deny list is the only hard bl
   - [ ] the score-history chart lives in Room (`privacy_history.db`), so its exclude must use `domain="database"`, not `sharedpref`.
         The `score_history` sharedpref holds only the daily baseline and delta.
 
+## Guard hook
+
+`.claude/hooks/guard.sh` is a PreToolUse hook, registered in the tracked `.claude/settings.json` for `Bash` and for `Edit|Write|MultiEdit|NotebookEdit`.
+It is the real guard. The allow and deny lists are a convenience.
+- **Silent by default.** It outputs a decision only for the patterns below; anything else (heredocs, long scripts) gets none.
+- **It sees through:** `&&`, `||`, `;`, `|`, subshells, `$(...)` and backticks, `bash -c` / `sh -c` / `eval`, quotes, env prefixes,
+  `command`/`env`/`exec`/`nohup`/`timeout`/`xargs`, absolute paths, `git -C`/`-c`, git aliases, `find -exec`, heredoc lines and `adb shell "..."` strings.
+- **Deny:**
+  - git: `push` (any form), tag create or delete, `clean -f`, and `reset --hard` / `commit` / `merge --continue` / `cherry-pick` / `revert` / `am` while `master` is checked out;
+  - a switch or checkout to anything without `c837e59` (resolved locally, then as `origin/<x>`), and `--orphan`;
+  - gh writes, `ssh`/`scp`/`rsync`/`sftp`, `sudo`/`su`;
+  - adb without `-s`, except `devices [-l]`, `start-server`, `kill-server`, `version`;
+  - on the Pixel 9, a variable serial or an unknown serial: data/package/settings changes (`pm`, `cmd`, `rm`, `run-as`, `settings`, `input`, `am` writes, `push`, `uninstall`, install without `--user 0`, `logcat -c`, device-side redirects);
+  - Gradle `install*`/`uninstall*`/`connected*` without `ANDROID_SERIAL=38041FDJH001MA`;
+  - keystore reads, `keytool`, and printing `*PASSWORD*`/`*KEY*`/`*SECRET*`/`*TOKEN*` variables or the whole environment.
+- **Allow silently:** Pixel 9 `exec-out screencap -p > *.png`, `shell getprop [prop]`, `shell dumpsys package <debug>`,
+  `shell pidof <debug>`, `logcat --pid=…`, optionally piped into `grep`/`head`/`tail`/`wc`. This applies only when every part of the command is on that list; otherwise ask.
+- **Ask:**
+  - any other Pixel 9 or unknown-serial command;
+  - `git branch -D`, or a switch target it can't resolve;
+  - unknown `gh` subcommands;
+  - Bash writes to `.claude/settings*.json` or `.claude/hooks/**`;
+  - Edit/Write on those paths, or on Gradle files whose new text contains `signingConfig`.
+- **Fail closed:** missing `jq`, bad JSON or a script error exit 2, which blocks. The hook command ends in `|| exit 2`, so a missing `guard.sh` blocks too.
+- **Log:** every deny and ask goes to `.claude/hook.log` (git-ignored) as timestamp, decision, rule id and the first 200 characters of the command.
+- **Test:** `bash scripts/test-hook.sh` prints one line per case and exits non-zero on any failure. It needs no device.
+- **Hook contract** (code.claude.com/docs/en/hooks, via Context7, 2026-10-20):
+  - **Input:** JSON on stdin with `tool_name`, `tool_input` (`command`, `file_path`, …) and `cwd`.
+  - **Output:** `hookSpecificOutput.permissionDecision` is `allow`, `deny`, `ask` or `defer`, with a `permissionDecisionReason`. Precedence is deny > defer > ask > allow.
+    Settings deny and ask rules still apply over a hook `allow`.
+  - **Exit codes:** JSON is read only on exit 0. Exit 2 blocks, and its stderr goes to Claude. Any other exit code is a non-blocking error, and the call goes ahead; hence the trap and `|| exit 2`.
+  - **Loading:** settings files are watched, so hook edits normally apply mid-session. `/hooks` is a read-only browser.
+    Hooks run only after the workspace trust dialog is accepted. To be sure, start a new session after changing them.
+  - **Auto mode:** a hook `ask` still shows the prompt. The classifier can deny the call but cannot approve it silently.
+    Before v2.1.211 it could approve an unsandboxed Bash command. Installed is 2.1.304, so no ask rule needs to become deny.
+
 ## Open questions for Oliver
 
 None open.
 
 ## Runs
+
+### 2026-10-20 — guard hook (`chore/guard-hook` → `master`)
+
+- [x] Hook contract confirmed from the official docs; see Guard hook.
+- [x] `.claude/hooks/guard.sh` (bash + jq) and `scripts/test-hook.sh`.
+      Evidence: `SUMMARY: 224 passed, 0 failed, 224 cases`. That covers every rule in plain and evasive forms, Edit/Write, fail-closed (no `jq`, bad JSON, missing script) and logging.
+- [x] `.claude/settings.json` (tracked) written after Oliver's OK. It registers the hook, sets `"disableAllHooks": false` and holds the deny list (41 entries).
+  - `git tag`, `git branch -D` and `git commit --amend` were dropped from the list, because the hook is the precise version of each.
+  - The tests prove they are still covered.
+- [x] `.claude/settings.local.json`: the allow list only (20 entries). Both files parse with `jq empty`. `.gitignore` adds `.claude/hook.log`.
+- [x] STATE.md: the three oldest runs moved to `docs/state-archive/2026-10.md`.
+- [ ] Not verified live: the hook in a real Claude Code session. Hooks load on a new session, and Oliver runs the smoke test (Next).
+      No device commands were run; the adb rules are tested only through `test-hook.sh`.
 
 ### 2026-10-20 — Default Launcher row copy (`fix/launcher-row-copy` → `master`)
 
@@ -69,50 +116,3 @@ None open.
 
   Evidence: `git show d1fb5ce^:docs/QUICK_REFERENCE.md`, lines 15, 26 and 28.
 - [x] Docs only, so there is no build gate. Diff reviewed against `master`: no blockers. Merged with `--no-ff`.
-
-### 2026-10-20 — workflow setup, round 2: rulebook cleanup and merge (`chore/workflow-setup` → `master`)
-
-- [x] `.cursorrules` replaced with a 3-line pointer to CONVENTIONS.md: read it before any edit, never push.
-- [x] Deleted `docs/QUICK_REFERENCE.md` and `docs/POST_IMPLEMENTATION_CHECKLIST.md` (they were identical).
-      Evidence: `git grep` finds no other references to them.
-- [x] Compared the "Add New Check" checklist with CONVENTIONS.md:
-  - step 3 "Add to relevant PrivacyCategory" was missing, so I added it under the `PrivacyCheck` rule;
-  - step 4 "Update Scoring System page" needs no separate step.
-
-  Evidence: `ScoringSystemScreen.kt:56` builds from `PrivacyCategory.entries`.
-- [x] CONVENTIONS.md push line: Oliver pushes; Claude Code and Cursor never push.
-- [x] CONVENTIONS.md Framework laptop JBR path marked "unverified since Oct 2026, Framework laptop only".
-- [x] Reviewed the branch diff against `master`: no merge blockers. No app code, Gradle or resources changed, so there is no build gate.
-- [x] Merged into `master` locally with `--no-ff`. Not pushed.
-- [ ] Not verified: whether the allow and deny rules match as intended in a live session.
-- Note: `.claude/settings.local.json` is untracked since `c837e59`, so git can overwrite or
-  delete it on any machine. This happens:
-  - on the Framework laptop's next `git pull`;
-  - on `git switch` / `git checkout` to any branch created before `c837e59`, because those branches still track the file.
-
-  Back it up before either. The guard hook (Next) will block switches to such branches.
-  Check with `git merge-base --is-ancestor c837e59 <branch>`.
-
-### 2026-10-20 — workflow setup (`chore/workflow-setup`, from `chore/workflow-inventory`)
-
-- [x] `.claude/settings.local.json` untracked.
-      Evidence: `git rm --cached` → `D  .claude/settings.local.json`; the file is still on disk.
-- [x] `.gitignore` ignores only `.claude/settings.local.json`.
-      Evidence: `git check-ignore -v`.
-- [x] Allow list narrowed to 20 entries, and a deny list of 44 entries added. Oliver approved both.
-      Evidence: `jq .` parses.
-- [x] CLAUDE.md written (108 lines). Its Gradle commands match the allow list exactly.
-- [x] STATE.md and `docs/state-archive/README.md` written.
-- [x] CONVENTIONS.md keystore line: the keystore is on the Framework laptop, is not used by F-Droid, and is never committed.
-
-### 2026-10-20 — workflow inventory (`chore/workflow-inventory`, commit `549e47b`)
-
-- [x] Repo, build, signing, data stores, backup rules and devices inventoried.
-      Evidence: `docs/workflow/inventory.md`, with the commands quoted.
-- [x] JDK: `temurin-21` builds, JBR 25 fails.
-      Evidence: `compileDebugKotlin` exit 0 vs `BUILD FAILED ("25.0.2")`.
-- [x] Unit tests: 16 suites, 146 tests, 0 failures.
-      Evidence: `testDebugUnitTest --rerun`, results timestamp 2026-10-20T18:26:37.
-- [x] Debug APK confirmed.
-      Evidence: `aapt2 dump badging` → `com.techtrest.privamatic.debug`, versionCode 9.
-- [ ] Backup `sharedpref` `.xml` suffix: hypothesis only. Moved to Next.
