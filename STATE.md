@@ -17,8 +17,11 @@ There is no guard hook or verify subagent yet. The deny list is the only hard bl
 
 ## Next
 
-- [ ] **Step 1b — trial fix: Default Launcher row debug text.** The row shows
-      "Using Pixel Launcher (unknown, 0 pts)". Oliver starts this in a fresh session.
+- [x] **Step 1b — trial fix: Default Launcher row debug text.** Done; see Runs.
+- [ ] **Same leak in three more rows.** `DefaultAppsChecker.kt` lines 99 (browser), 169 (SMS) and 304 (email) still set
+      `"Using $appName (unknown, 0 pts)"` as hardcoded English. Same fix as the launcher row.
+- [ ] **`QuickWinsDetector.extractAppName` parses UI copy** (`removePrefix("Using ")`). This breaks once the
+      `Using …` statuses are localised. Pass the app name as a field instead.
 - [ ] **Guard hook** (`.claude/hooks/`, registered in a tracked `.claude/settings.json`). It must:
   - reject adb calls without `-s <serial>`;
   - limit `55290DLAQ000MR` to read-only commands;
@@ -38,6 +41,23 @@ There is no guard hook or verify subagent yet. The deny list is the only hard bl
 None open.
 
 ## Runs
+
+### 2026-10-20 — Default Launcher row copy (`fix/launcher-row-copy` → `master`)
+
+- [x] Investigation: the exact reported text, "Using **Pixel Launcher** (unknown, 0 pts)", has not occurred since v1.5.0.
+  - `f8221e1` classifies `com.google.android.apps.nexuslauncher` as invasive, so the row shows "Using Pixel Launcher" with −2.
+  - Evidence: `git tag --contains f8221e1` → v1.5.0, v1.5.1.
+  - The leak was still live on `master` for any launcher on neither list (`DefaultAppsChecker.kt:378`), so I fixed it.
+- [x] Fix: the unknown branch now uses `fmt_launcher_not_rated` ("Using %s — not rated yet") via `context.getString`.
+      The row's Info icon and missing chip already say "unknown" and "no deduction".
+- [x] Gate: `compileDebugKotlin` OK; `testDebugUnitTest --rerun`: 16 suites, 146 tests, 0 failures; `assembleDebug` OK.
+- [x] Device, Pixel 8: a throwaway resource-only HOME stub (`org.example.teststub.home`, label "Test Home", built in the scratchpad) was set as the HOME role holder.
+  - Cold start → Details → Default Apps shows "Default Launcher / Using Test Home — not rated yet", with the Info icon and no chip.
+  - Evidence: `docs/screens/2026-10-20-launcher-row-not-rated.png` and a `uiautomator` dump.
+  - Afterwards the HOME role was set back to Pixel Launcher and the stub uninstalled; `resolve-activity` confirms.
+  - Settings `FallbackHome` was tried first and doesn't work: at priority −1000, `resolveActivity` ignores it.
+- [x] Diff reviewed against `master`: no blockers. The launcher Quick Win reads `currentStatus` only when `!isSecure`, and the unknown branch is secure.
+- [ ] Not verified: the stock Pixel Launcher row with this build. That branch is unchanged.
 
 ### 2026-10-20 — STATE and CONVENTIONS fixes (`chore/state-and-conventions` → `master`)
 
