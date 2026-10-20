@@ -1,0 +1,108 @@
+# Privamatic — Claude Code rules
+
+## Project
+- Package `com.techtrest.privamatic`; debug build `com.techtrest.privamatic.debug`.
+- Path: `"/home/techtresthome/Local App Projects/Privamatic"` — always quote (spaces).
+- Repo `techtrest/privamatic`, default branch `master`.
+- Sources of truth:
+  - `CONVENTIONS.md` — code standards. Follow it; don't restate it here.
+  - `docs/specs/<feature>.md` — scope, one spec per feature.
+  - `STATE.md` — progress and evidence.
+
+## Session
+- At start, read CLAUDE.md, STATE.md and the relevant spec.
+- Investigate before changing code. Record findings in STATE.md.
+- Make minimal changes. No rewrites.
+- STATE.md is the task list: tick items with evidence, add what you find.
+- Keep STATE.md under ~150 lines: move older runs to `docs/state-archive/YYYY-MM.md`.
+
+## Keep going / stop
+- When a step doesn't need Oliver, keep going. Put status notes in the same message as the next action.
+- Never end with "want me to continue?".
+- Stop only when:
+  1. you can't continue without Oliver;
+  2. before anything destructive, or anything outside this repository;
+  3. at a STOP point in the spec.
+- Spec items marked "Oliver's call": build the stated default, report it under Found.
+
+## Park, don't patch
+- If a fix round creates new problems, stop after the second round.
+- Propose a different approach instead of patching again.
+
+## Evidence
+- Reading code is a hypothesis, not evidence.
+- A change is done only when its gate passes on a running build.
+- Mark anything you could not verify on a device, and say why.
+- Never say "fixed" without device evidence.
+
+## Run types
+- **Implementation run**: change code per the spec, verify on the Pixel 8, update STATE.md.
+- **Read-only design run**: investigate, write a decision paper in `docs/decisions/`, change no code.
+- **Release run**:
+  - May edit `versionCode`, `versionName`, the fastlane changelog and descriptions, once Oliver has agreed the text.
+  - Verifies `assembleRelease`.
+  - Then STOPS and hands Oliver the tag commands. Claude never tags.
+
+## Git
+- One feature branch per change. Never commit on `master`.
+- Order: `git diff` → `git status` → `git add` → `git commit`.
+- Prefixes `feat:` / `fix:` / `chore:` / `release:`. Messages say why.
+- Before merging:
+  - Review the diff against `master`.
+  - List only problems you'd block the merge for: file, line, why, how to show it fails.
+  - Fix them, re-run the gate, merge locally with `git merge --no-ff`.
+- Never push, never tag, never `git clean -f`, never `git reset --hard` on `master`. Oliver pushes.
+
+## GitHub
+- `gh` is read-only.
+- Never comment on, close or create issues, PRs or releases.
+- Oliver posts replies, and only after the F-Droid build is live.
+
+## Devices
+- Every adb call uses `-s <serial>`. Never bare `adb` (only `adb devices` / `adb devices -l` are fine).
+- **Pixel 8 `38041FDJH001MA`** — test device. Free for builds, installs, tests, UI automation.
+- **Pixel 9 `55290DLAQ000MR`** — GrapheneOS, Oliver's daily phone, real score history, four users.
+  - Use only when Oliver asks in this run.
+  - Allowed: `screencap`, app-filtered `logcat`, `getprop`, `dumpsys package`.
+  - When asked: install the debug build with `install --user 0`.
+  - Never: `uninstall`, `pm clear`, `rm`, `run-as`, `input`, `settings put`, `pm disable`.
+  - Never touch `com.techtrest.privamatic` (the F-Droid install).
+  - If it shows `offline` or `unauthorized`: stop and ask Oliver to unlock it. No retry loops.
+- **Any other or unknown device**: treat as protected, ask first.
+
+## Secrets
+- Never read or print keystores, `local.properties` values, `gradle.properties` values,
+  or env vars named `*PASSWORD*` / `*KEY*` / `*SECRET*` / `*TOKEN*`. Report names only.
+- No `ssh` / `scp` / `rsync` — no server belongs to this project.
+
+## Build & test
+Use these exact commands. They match the allow list in `.claude/settings.local.json`; other forms prompt.
+JDK is always `/home/techtresthome/.local/share/jdk/temurin-21` (JDK 25 breaks Gradle 8.10).
+
+```
+JAVA_HOME=/home/techtresthome/.local/share/jdk/temurin-21 ./gradlew :app:compileDebugKotlin
+JAVA_HOME=/home/techtresthome/.local/share/jdk/temurin-21 ./gradlew :app:testDebugUnitTest --rerun
+JAVA_HOME=/home/techtresthome/.local/share/jdk/temurin-21 ./gradlew :app:assembleDebug
+JAVA_HOME=/home/techtresthome/.local/share/jdk/temurin-21 ./gradlew :app:assembleRelease
+```
+- Run `compileDebugKotlin` before every commit.
+- Unit tests always run with `--rerun`. Without it Gradle may report UP-TO-DATE and run nothing.
+- The "SDK XML version 4" warning is harmless.
+- Install on the Pixel 8:
+  `adb -s 38041FDJH001MA install -r app/build/outputs/apk/debug/app-debug.apk`
+- Before judging any UI change, force-stop, then cold-start:
+  `adb -s 38041FDJH001MA shell am force-stop com.techtrest.privamatic.debug`
+  `adb -s 38041FDJH001MA shell am start -n com.techtrest.privamatic.debug/com.techtrest.privamatic.MainActivity`
+
+## Risky code — needs the extra review once it's set up
+- Room database and migrations (`PrivacyDatabase`: version 1, `exportSchema = false`, no migrations yet).
+- DataStore and SharedPreferences keys and file names.
+- Score history (`score_history`, `privacy_history.db`).
+- Trusted list (`trusted_apps_prefs`).
+- Backup and data-extraction rules (`res/xml/backup_rules.xml`, `res/xml/data_extraction_rules.xml`).
+
+## End of run
+End every run with three headings:
+- **Blocked on me**
+- **Changed**
+- **Found**

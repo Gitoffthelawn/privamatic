@@ -8,7 +8,8 @@
   — pinned Temurin 21.0.7 (extracted from Gradle's downloaded tarball, Sept 2026). The Android Studio JBR at
   `/opt/android-studio/jbr` was upgraded to Java 25, which Gradle 8.10 rejects (`IllegalArgumentException: 25.0.2`);
   `~/.gradle/jdks/` is an auto-managed toolchain cache, so don't depend on it.
-- **Build command (Framework laptop)**: `JAVA_HOME=/home/techtrest/.local/share/android-studio/jbr ./gradlew compileDebugKotlin`
+- **Build command (Framework laptop)** — unverified since Oct 2026, Framework laptop only:
+  `JAVA_HOME=/home/techtrest/.local/share/android-studio/jbr ./gradlew compileDebugKotlin`
   — if that JBR has also moved to 25, replicate the MiniPC fix (extract a JDK 21 to `~/.local/share/jdk/temurin-21`)
 - System JDK 25 breaks Kotlin parser on both machines; never omit JAVA_HOME prefix
 - **Default branch**: `master` (not `main`)
@@ -64,6 +65,8 @@ items, losing those points.
 
 **`PrivacyCheck` enum is single source of truth** — all scoring logic lives in the enum.
 ViewModel and widget both derive from the same enum values. No dead code drift.
+A new check also goes in its category's `PrivacyCategory.checks` list — the Scoring System
+screen is built from `PrivacyCategory.entries`, so a check left out never appears there.
 
 **Details tabs** — Checks / Trusted / SDKs (`DetailsTab`). Score Breakdown is not a tab: it is
 the alternate view of the Checks tab (`ChecksView.BREAKDOWN`, `BreakdownContent.kt`).
@@ -240,7 +243,8 @@ Declared in both `data_extraction_rules.xml` and `backup_rules.xml`.
 - Never tag before bumping versionCode
 
 **Keystore:**
-- Release keystore at `~/privamatic-release.jks`
+- Release keystore lives on the Framework laptop, not the MiniPC. It is not used for F-Droid
+  builds (release `signingConfig = null`; F-Droid signs). Never commit it
 - Passwords via env vars `PRIVAMATIC_STORE_PASSWORD` / `PRIVAMATIC_KEY_PASSWORD`
 
 **On-device comparison against the F-Droid release:**
@@ -281,7 +285,7 @@ Declared in both `data_extraction_rules.xml` and `backup_rules.xml`.
 - `git diff → git status → git add → git commit` — always in this order
 - Prefixes: `feat:` / `fix:` / `chore:` / `release:`
 - Never commit `.env`, secrets, or the release keystore
-- Default branch is `master` — push to `git push origin master`
+- Default branch is `master`. Oliver pushes (`git push origin master`); Claude Code and Cursor never push
 
 **F-Droid fastlane metadata:**
 fastlane/metadata/android/en-US/
