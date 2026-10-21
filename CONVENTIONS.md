@@ -221,10 +221,12 @@ OS brand detection strings (GrapheneOS, CalyxOS), format placeholders.
 **Debug logging** — all `Log.*` calls wrapped in `if (BuildConfig.DEBUG)`.
 Sensitive data (package names, device fingerprints) never in logs, even debug.
 
-**Android Auto Backup exclusions** — exclude from cloud backup:
-- `ad_id_prefs` (SharedPreferences)
-- `maintenance_prefs` (DataStore)
-Declared in both `data_extraction_rules.xml` and `backup_rules.xml`.
+**No app data in backup or device transfer** (Oliver, 2026-10-21; spec `docs/specs/backup-exclusions.md`):
+- `android:allowBackup="false"`. It is not enough on its own: on Android 12+ it doesn't stop D2D transfer.
+- `data_extraction_rules.xml` excludes all nine domains with `path="."` in both `<cloud-backup>` and `<device-transfer>`, and includes nothing.
+- `backup_rules.xml` (Android 11 and lower) excludes the same nine domains.
+- Each domain needs its own exclude: an exclude of `root` doesn't cover `file`, `database` or `sharedpref`.
+- A new store needs no rule change. `BackupRulesTest` keeps the files in line.
 
 ## Build & Release Rules
 

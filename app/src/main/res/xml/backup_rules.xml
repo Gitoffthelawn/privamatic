@@ -1,17 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?><!--
-   Sample backup rules file; uncomment and customize as necessary.
-   See https://developer.android.com/guide/topics/data/autobackup
-   for details.
-   Note: This file is ignored for devices older than API 31
-   See https://developer.android.com/about/versions/12/backup-restore
+   Android 11 and lower (ignored on 12+, where data_extraction_rules.xml applies).
+   allowBackup="false" already stops backup there; these excludes are a second layer in case
+   a device or transport ignores it. No app data leaves the device
+   (docs/specs/backup-exclusions.md). Each domain is walked separately: excluding "root"
+   doesn't cover the others.
+   See https://developer.android.com/identity/data/autobackup
 -->
 <full-backup-content>
-    <!-- Exclude privacy-sensitive preference stores from auto-backup (API < 31) -->
-    <exclude domain="sharedpref" path="ad_id_prefs"/>
-    <exclude domain="file" path="datastore/maintenance_prefs.preferences_pb"/>
-    <exclude domain="file" path="datastore/sdk_scan_prefs.preferences_pb"/>
-    <exclude domain="file" path="datastore/trusted_apps_prefs.preferences_pb"/>
-    <exclude domain="file" path="datastore/quick_win_dismissals.preferences_pb"/>
-    <exclude domain="sharedpref" path="score_history"/>
-    <exclude domain="database" path="privacy_history.db"/>
+    <exclude domain="root" path="."/>
+    <exclude domain="file" path="."/>
+    <exclude domain="database" path="."/>
+    <exclude domain="sharedpref" path="."/>
+    <exclude domain="external" path="."/>
+    <exclude domain="device_root" path="."/>
+    <exclude domain="device_file" path="."/>
+    <exclude domain="device_database" path="."/>
+    <exclude domain="device_sharedpref" path="."/>
 </full-backup-content>
