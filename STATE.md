@@ -39,6 +39,12 @@ pre-`c837e59` branch, overwrites or deletes it. Back it up first. The guard hook
   - [x] Room was already excluded with `domain="database"` on `master` (device, before-run).
 - [ ] **Legacy-rules and real-D2D check** (optional): run the same bmgr cycle on an API 30 emulator, and do one phone-to-phone transfer.
 - [ ] **Release note for the backup change** (Oliver agrees the text): trusted apps and settings no longer move to a new phone.
+- [x] **Widget readability: design run.** Paper `docs/decisions/widget-readability.md`; see Runs.
+- [ ] **Widget readability + widget pack: implementation run** (waits on Oliver's option pick). It covers the floor or the no-card style,
+      the icon tint, the score tint, "↓N pts" and font scale 2.0. Gate: repeat the sweep with `contrast.py`. External review applies.
+- [ ] **Widget opacity on Android 8–11 probably does nothing** (`setImageAlpha` on a background-only `ImageView`). Hypothesis; needs an API 30 emulator.
+- [ ] **device-verify ran its sweep from a scratchpad script**, which hides each adb call from the guard hook. The commands matched the prompt, Pixel 8 only.
+      Consider a line in the agent file: "run commands inline, never from a script file".
 
 ## Guard hook
 
@@ -78,9 +84,23 @@ It is the real guard. The allow and deny lists are a convenience.
 
 ## Open questions for Oliver
 
-None open.
+- Widget readability: option A, B or C (recommended B), and the defaults table at the end of `docs/decisions/widget-readability.md`.
 
 ## Runs
+
+### 2026-10-21 — widget readability design run (`docs/widget-readability` → `master`)
+
+- [x] Code: on API 31+ the text and icon use fixed Material You tones picked for the card at 100 %. The slider changes only the card's alpha.
+      So the blended background moves through the text's own tone, and contrast dips in the middle of the range.
+- [x] Device, Pixel 8 (device-verify, fresh APK): widget id 16, 3 wallpapers (the phone's photo, White, Black) × light/dark × 0/25/50/75/100 %.
+      Opacity was written via `run-as`, then `ACTION_UPDATE_WIDGET`. Crash buffer empty.
+  - Only 100 % passes for all text. The shield fails everywhere (2.0:1 light, 2.9:1 dark at 100 %).
+  - Mismatched theme and wallpaper fail from 0 % up to 50–75 %. The dark-theme "↓" is olive/lavender, not red.
+  - The measured 100 % values match the tone model to within 0.1, and `floors.py` gives the floors.
+  - Evidence: `docs/screens/2026-10-21-widget-readability/` (cropped sweeps, `contact-sheet.png`, `measurements.md`, `floors.md`, both scripts).
+- [x] Restored: night mode "no". The wallpaper is Floating Himalayas again: crop hint identical, wallpaper area pixel-identical to the baseline (`c1`/`c7`).
+      The test widget was removed. Two older invisible instances (ids 14, 15) were left alone. The debug app's stale `widget_opacity_12` key was overwritten.
+- [ ] Not verified: the ↑ (green) delta (the score only fell), and the Android 8–11 path (no API 30 emulator).
 
 ### 2026-10-21 — default-app row copy (`fix/default-app-copy` → `master`)
 
