@@ -14,7 +14,7 @@ The Claude Code workflow files are merged into local `master` with `--no-ff`. Th
 
 CONVENTIONS.md is the single rulebook: `.cursorrules` now points to it, and the duplicate docs are deleted.
 The guard hook is merged into local `master` and passed its live smoke test (see Next).
-On `fix/backup-exclusions` (not merged), there are now a spec template, a `device-verify` subagent and an external-review step (CLAUDE.md).
+`master` now also has a spec template, a `device-verify` subagent and an external-review step (CLAUDE.md), all merged from `fix/backup-exclusions`.
 `device-verify` is registered only in sessions started after it was committed. Until then, a general-purpose agent reads its file.
 `.claude/settings.local.json` is untracked since `c837e59`, so a `git pull` on the Framework laptop, or a switch to any
 pre-`c837e59` branch, overwrites or deletes it. Back it up first. The guard hook now denies such switches.
@@ -32,12 +32,12 @@ pre-`c837e59` branch, overwrites or deletes it. Back it up first. The guard hook
       This also closes "allow and deny rules match as intended in a live session" from the workflow-setup run.
       Side effect: `adb devices` starts the adb daemon if it isn't running. That is harmless, but it means a
       "first" adb call is never fully read-only on the host.
-- [x] **Backup-rules fix.** On branch `fix/backup-exclusions`, gate passed; waiting for external review (see Runs). The four suspicions:
+- [x] **Backup-rules fix.** Merged into local `master` with `--no-ff` after external review round 1 (no findings); see Runs. The four suspicions:
   - [x] The missing `.xml` was **not** a bug: on `master`, `ad_id_prefs.xml` and `score_history.xml` stayed out of backup (device, before-run).
   - [x] `-shm` / `-wal`: moot. The whole database domain is now excluded, and Room uses TRUNCATE mode, so the files never exist.
   - [x] Both `<cloud-backup>` and `<device-transfer>` are fixed, mirrored, and enforced by `BackupRulesTest`.
   - [x] Room was already excluded with `domain="database"` on `master` (device, before-run).
-- [ ] **Merge `fix/backup-exclusions`** after external review round 1 has no High findings.
+- [ ] **Legacy-rules and real-D2D check** (optional): run the same bmgr cycle on an API 30 emulator, and do one phone-to-phone transfer.
 - [ ] **Release note for the backup change** (Oliver agrees the text): trusted apps and settings no longer move to a new phone.
 
 ## Guard hook
@@ -82,7 +82,7 @@ None open.
 
 ## Runs
 
-### 2026-10-21 — workflow pieces + backup exclusions (`fix/backup-exclusions`, not merged; stopped at external review)
+### 2026-10-21 — workflow pieces + backup exclusions (`fix/backup-exclusions` → `master`)
 
 - [x] Workflow, one commit each: `docs/specs/TEMPLATE.md`, `.claude/agents/device-verify.md`, `docs/reviews/REVIEW_PROMPT.md` (verbatim),
       and the CLAUDE.md "External review" section (119 lines).
@@ -103,7 +103,9 @@ None open.
   - Details screen OK. Evidence is in `docs/screens/2026-10-21-backup-*`.
 - [ ] COULD NOT VERIFY: legacy rules (needs Android 11 or lower) and a real two-phone D2D. Covered by the test and the D2D-mode run.
 - [x] Own diff review: no blockers. Review files written: `docs/reviews/fix-backup-exclusions.diff` and `docs/reviews/fix-backup-exclusions-prompt-1.md`.
-- [ ] STOP: external review round 1 (Oliver).
+- [x] External review round 1 (Cursor, non-Claude): no findings, with file:line evidence for all 10 invariants (spot-checked).
+      Weakest point: runtime coverage on API ≤ 30 and on a real two-phone D2D (see Next). Processing notes are in `docs/reviews/fix-backup-exclusions-findings-1.md`.
+- [x] Pre-merge gate re-run: `compileDebugKotlin` OK; `testDebugUnitTest --rerun` 17 suites, 152 tests, 0 failures. Merged with `--no-ff`; not pushed.
 
 ### 2026-10-20 — guard hook (`chore/guard-hook` → `master`)
 
