@@ -61,8 +61,9 @@ class DefaultAppsChecker(private val context: Context) {
                 return PrivacyIssue(
                     check = PrivacyCheck.DEFAULT_BROWSER,
                     isSecure = false,
-                    currentStatus = "Using $name",
-                    technicalDetails = "Package: $finalPackage",
+                    currentStatus = context.getString(R.string.fmt_default_app_using, name),
+                    appName = name,
+                    technicalDetails = context.getString(R.string.fmt_technical_package, finalPackage),
                     customPointDeduction = points
                 )
             }
@@ -74,8 +75,9 @@ class DefaultAppsChecker(private val context: Context) {
                 return PrivacyIssue(
                     check = PrivacyCheck.DEFAULT_BROWSER,
                     isSecure = true,
-                    currentStatus = "Using $friendly",
-                    technicalDetails = "Package: $finalPackage",
+                    currentStatus = context.getString(R.string.fmt_default_app_using, friendly),
+                    appName = friendly,
+                    technicalDetails = context.getString(R.string.fmt_technical_package, finalPackage),
                     customPointDeduction = 0
                 )
             }
@@ -85,8 +87,8 @@ class DefaultAppsChecker(private val context: Context) {
                 PrivacyIssue(
                     check = PrivacyCheck.DEFAULT_BROWSER,
                     isSecure = true,
-                    currentStatus = "No default browser set",
-                    technicalDetails = "Package: $finalPackage",
+                    currentStatus = context.getString(R.string.status_no_default_browser),
+                    technicalDetails = context.getString(R.string.fmt_technical_package, finalPackage),
                     customPointDeduction = 0
                 )
             } else {
@@ -96,8 +98,9 @@ class DefaultAppsChecker(private val context: Context) {
                     check = PrivacyCheck.DEFAULT_BROWSER,
                     isSecure = true,
                     isUnknown = true,
-                    currentStatus = "Using $appName (unknown, 0 pts)",
-                    technicalDetails = "Package: $finalPackage",
+                    currentStatus = context.getString(R.string.fmt_default_app_not_rated, appName),
+                    appName = appName,
+                    technicalDetails = context.getString(R.string.fmt_technical_package, finalPackage),
                     customPointDeduction = 0
                 )
             }
@@ -107,8 +110,8 @@ class DefaultAppsChecker(private val context: Context) {
                 check = PrivacyCheck.DEFAULT_BROWSER,
                 isSecure = true,
                 isUnknown = true,
-                currentStatus = "Unable to determine default browser",
-                technicalDetails = "Error: ${e.message}",
+                currentStatus = context.getString(R.string.status_default_browser_unknown),
+                technicalDetails = context.getString(R.string.fmt_technical_error, e.message),
                 customPointDeduction = 0
             )
         }
@@ -132,8 +135,9 @@ class DefaultAppsChecker(private val context: Context) {
                 return PrivacyIssue(
                     check = PrivacyCheck.DEFAULT_SMS,
                     isSecure = false,
-                    currentStatus = "Using $name",
-                    technicalDetails = "Package: $defaultSmsPackage",
+                    currentStatus = context.getString(R.string.fmt_default_app_using, name),
+                    appName = name,
+                    technicalDetails = context.getString(R.string.fmt_technical_package, defaultSmsPackage),
                     customPointDeduction = points
                 )
             }
@@ -145,8 +149,9 @@ class DefaultAppsChecker(private val context: Context) {
                 return PrivacyIssue(
                     check = PrivacyCheck.DEFAULT_SMS,
                     isSecure = true,
-                    currentStatus = "Using $friendly",
-                    technicalDetails = "Package: $defaultSmsPackage",
+                    currentStatus = context.getString(R.string.fmt_default_app_using, friendly),
+                    appName = friendly,
+                    technicalDetails = context.getString(R.string.fmt_technical_package, defaultSmsPackage),
                     customPointDeduction = 0
                 )
             }
@@ -156,8 +161,8 @@ class DefaultAppsChecker(private val context: Context) {
                 PrivacyIssue(
                     check = PrivacyCheck.DEFAULT_SMS,
                     isSecure = true,
-                    currentStatus = "No default SMS app set",
-                    technicalDetails = "Package: $defaultSmsPackage",
+                    currentStatus = context.getString(R.string.status_no_default_sms),
+                    technicalDetails = context.getString(R.string.fmt_technical_package, defaultSmsPackage),
                     customPointDeduction = 0
                 )
             } else {
@@ -166,8 +171,9 @@ class DefaultAppsChecker(private val context: Context) {
                     check = PrivacyCheck.DEFAULT_SMS,
                     isSecure = true,
                     isUnknown = true,
-                    currentStatus = "Using $appName (unknown, 0 pts)",
-                    technicalDetails = "Package: $defaultSmsPackage",
+                    currentStatus = context.getString(R.string.fmt_default_app_not_rated, appName),
+                    appName = appName,
+                    technicalDetails = context.getString(R.string.fmt_technical_package, defaultSmsPackage),
                     customPointDeduction = 0
                 )
             }
@@ -177,8 +183,8 @@ class DefaultAppsChecker(private val context: Context) {
                 check = PrivacyCheck.DEFAULT_SMS,
                 isSecure = true,
                 isUnknown = true,
-                currentStatus = "Unable to determine default SMS app",
-                technicalDetails = "Error: ${e.message}",
+                currentStatus = context.getString(R.string.status_default_sms_unknown),
+                technicalDetails = context.getString(R.string.fmt_technical_error, e.message),
                 customPointDeduction = 0
             )
         }
@@ -204,6 +210,7 @@ class DefaultAppsChecker(private val context: Context) {
                     check = PrivacyCheck.DEFAULT_KEYBOARD,
                     isSecure = true,
                     currentStatus = "Using $friendly",
+                    appName = friendly,
                     technicalDetails = "IME: $currentKeyboard",
                     customPointDeduction = 0
                 )
@@ -227,6 +234,7 @@ class DefaultAppsChecker(private val context: Context) {
                 check = PrivacyCheck.DEFAULT_KEYBOARD,
                 isSecure = false,
                 currentStatus = "Using $appName",
+                appName = appName,
                 technicalDetails = "IME: $currentKeyboard",
                 customPointDeduction = 3,
                 flaggedPackages = listOf(keyboardPackage)
@@ -267,8 +275,9 @@ class DefaultAppsChecker(private val context: Context) {
                 return PrivacyIssue(
                     check = PrivacyCheck.DEFAULT_EMAIL,
                     isSecure = false,
-                    currentStatus = "Using $name",
-                    technicalDetails = "Package: $packageName",
+                    currentStatus = context.getString(R.string.fmt_default_app_using, name),
+                    appName = name,
+                    technicalDetails = context.getString(R.string.fmt_technical_package, packageName),
                     customPointDeduction = points
                 )
             }
@@ -280,8 +289,9 @@ class DefaultAppsChecker(private val context: Context) {
                 return PrivacyIssue(
                     check = PrivacyCheck.DEFAULT_EMAIL,
                     isSecure = true,
-                    currentStatus = "Using $friendly",
-                    technicalDetails = "Package: $packageName",
+                    currentStatus = context.getString(R.string.fmt_default_app_using, friendly),
+                    appName = friendly,
+                    technicalDetails = context.getString(R.string.fmt_technical_package, packageName),
                     customPointDeduction = 0
                 )
             }
@@ -291,8 +301,8 @@ class DefaultAppsChecker(private val context: Context) {
                 PrivacyIssue(
                     check = PrivacyCheck.DEFAULT_EMAIL,
                     isSecure = true,
-                    currentStatus = "No default email app set",
-                    technicalDetails = "Package: $packageName",
+                    currentStatus = context.getString(R.string.status_no_default_email),
+                    technicalDetails = context.getString(R.string.fmt_technical_package, packageName),
                     customPointDeduction = 0
                 )
             } else {
@@ -301,8 +311,9 @@ class DefaultAppsChecker(private val context: Context) {
                     check = PrivacyCheck.DEFAULT_EMAIL,
                     isSecure = true,
                     isUnknown = true,
-                    currentStatus = "Using $appName (unknown, 0 pts)",
-                    technicalDetails = "Package: $packageName",
+                    currentStatus = context.getString(R.string.fmt_default_app_not_rated, appName),
+                    appName = appName,
+                    technicalDetails = context.getString(R.string.fmt_technical_package, packageName),
                     customPointDeduction = 0
                 )
             }
@@ -312,8 +323,8 @@ class DefaultAppsChecker(private val context: Context) {
                 check = PrivacyCheck.DEFAULT_EMAIL,
                 isSecure = true,
                 isUnknown = true,
-                currentStatus = "Unable to determine default email app",
-                technicalDetails = "Error: ${e.message}",
+                currentStatus = context.getString(R.string.status_default_email_unknown),
+                technicalDetails = context.getString(R.string.fmt_technical_error, e.message),
                 customPointDeduction = 0
             )
         }
@@ -342,8 +353,9 @@ class DefaultAppsChecker(private val context: Context) {
                 return PrivacyIssue(
                     check = PrivacyCheck.DEFAULT_LAUNCHER,
                     isSecure = false,
-                    currentStatus = "Using $name",
-                    technicalDetails = "Package: $packageName",
+                    currentStatus = context.getString(R.string.fmt_default_app_using, name),
+                    appName = name,
+                    technicalDetails = context.getString(R.string.fmt_technical_package, packageName),
                     customPointDeduction = points
                 )
             }
@@ -355,8 +367,9 @@ class DefaultAppsChecker(private val context: Context) {
                 return PrivacyIssue(
                     check = PrivacyCheck.DEFAULT_LAUNCHER,
                     isSecure = true,
-                    currentStatus = "Using $friendly",
-                    technicalDetails = "Package: $packageName",
+                    currentStatus = context.getString(R.string.fmt_default_app_using, friendly),
+                    appName = friendly,
+                    technicalDetails = context.getString(R.string.fmt_technical_package, packageName),
                     customPointDeduction = 0
                 )
             }
@@ -366,8 +379,8 @@ class DefaultAppsChecker(private val context: Context) {
                 PrivacyIssue(
                     check = PrivacyCheck.DEFAULT_LAUNCHER,
                     isSecure = true,
-                    currentStatus = "No default launcher set",
-                    technicalDetails = "Package: $packageName",
+                    currentStatus = context.getString(R.string.status_no_default_launcher),
+                    technicalDetails = context.getString(R.string.fmt_technical_package, packageName),
                     customPointDeduction = 0
                 )
             } else {
@@ -376,8 +389,9 @@ class DefaultAppsChecker(private val context: Context) {
                     check = PrivacyCheck.DEFAULT_LAUNCHER,
                     isSecure = true,
                     isUnknown = true,
-                    currentStatus = context.getString(R.string.fmt_launcher_not_rated, appName),
-                    technicalDetails = "Package: $packageName",
+                    currentStatus = context.getString(R.string.fmt_default_app_not_rated, appName),
+                    appName = appName,
+                    technicalDetails = context.getString(R.string.fmt_technical_package, packageName),
                     customPointDeduction = 0
                 )
             }
@@ -387,8 +401,8 @@ class DefaultAppsChecker(private val context: Context) {
                 check = PrivacyCheck.DEFAULT_LAUNCHER,
                 isSecure = true,
                 isUnknown = true,
-                currentStatus = "Unable to determine default launcher",
-                technicalDetails = "Error: ${e.message}",
+                currentStatus = context.getString(R.string.status_default_launcher_unknown),
+                technicalDetails = context.getString(R.string.fmt_technical_error, e.message),
                 customPointDeduction = 0
             )
         }

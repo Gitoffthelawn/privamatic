@@ -17,7 +17,9 @@ data class PrivacyIssue(
      * everywhere: info icon, excluded from both pass and issue counts. isSecure only
      * decides whether the related quick win and tips appear.
      */
-    val isUnknown: Boolean = false
+    val isUnknown: Boolean = false,
+    /** The detected app's display name, for checks that report one (default apps). */
+    val appName: String? = null
 ) {
     val pointDeduction: Int
         get() = if (isSecure) 0 else (customPointDeduction ?: check.pointDeduction)

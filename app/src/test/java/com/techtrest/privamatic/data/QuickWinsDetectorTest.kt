@@ -1,5 +1,6 @@
 package com.techtrest.privamatic.data
 
+import android.content.Context
 import com.techtrest.privamatic.data.model.PrivacyCheck
 import com.techtrest.privamatic.data.model.PrivacyIssue
 import com.techtrest.privamatic.data.model.PrivacyScore
@@ -9,6 +10,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.mockito.Mockito.mock
 
 class QuickWinsDetectorTest {
 
@@ -80,5 +82,15 @@ class QuickWinsDetectorTest {
 
         // 1 + 4 = 5 now outranks the browser's 3; alone, Dev Options (1) would sort last.
         assertEquals(devOptions, listOf(browser, devOptions).sortedByDescending { it.impact }.first())
+    }
+
+    @Test
+    fun `default app wins take the app name from data, not from the status text`() {
+        val browser = PrivacyIssue(
+            check = PrivacyCheck.DEFAULT_BROWSER, isSecure = false,
+            currentStatus = "Verwendet Chrome", appName = "Chrome"
+        )
+        val wins = QuickWinsDetector.detectQuickWins(score(browser), mock(Context::class.java))
+        assertEquals("Chrome", wins.single { it.type == QuickWinType.REPLACE_BROWSER }.currentAppName)
     }
 }
