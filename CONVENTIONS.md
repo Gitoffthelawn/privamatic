@@ -210,6 +210,15 @@ In non-Composable (widget, checker): `context.getString(rating.displayNameRes)`
 **Do NOT extract to strings.xml:** package names, log tags, DataStore keys,
 OS brand detection strings (GrapheneOS, CalyxOS), format placeholders.
 
+## Copy voice
+
+- Direct and calm. Say what is going on; don't alarm.
+- Everyday words. Write for people who aren't privacy experts.
+- Short sentences. Fragments are fine ("Using Firefox", "Not rated yet").
+- No exclamation marks in calls to action.
+- No internal tokens or point math in row text: no "unknown", "0 pts" or score arithmetic.
+  The row's icon and deduction chip already show that.
+
 ## Security & Privacy Rules
 
 **Zero network permissions** — no library that makes network calls may be added.

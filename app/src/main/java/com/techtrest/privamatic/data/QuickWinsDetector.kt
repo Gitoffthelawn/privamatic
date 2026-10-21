@@ -146,7 +146,7 @@ object QuickWinsDetector {
             QuickWin(
                 type = QuickWinType.REPLACE_BROWSER,
                 relatedCheck = PrivacyCheck.DEFAULT_BROWSER,
-                currentAppName = extractAppName(issue.currentStatus)
+                currentAppName = issue.appName
             )
         } else null
     }
@@ -157,7 +157,7 @@ object QuickWinsDetector {
             QuickWin(
                 type = QuickWinType.REPLACE_KEYBOARD,
                 relatedCheck = PrivacyCheck.DEFAULT_KEYBOARD,
-                currentAppName = extractAppName(issue.currentStatus)
+                currentAppName = issue.appName
             )
         } else null
     }
@@ -168,7 +168,7 @@ object QuickWinsDetector {
             QuickWin(
                 type = QuickWinType.REPLACE_DEFAULT_SMS,
                 relatedCheck = PrivacyCheck.DEFAULT_SMS,
-                currentAppName = extractAppName(issue.currentStatus)
+                currentAppName = issue.appName
             )
         } else null
     }
@@ -179,7 +179,7 @@ object QuickWinsDetector {
             QuickWin(
                 type = QuickWinType.REPLACE_DEFAULT_EMAIL,
                 relatedCheck = PrivacyCheck.DEFAULT_EMAIL,
-                currentAppName = extractAppName(issue.currentStatus)
+                currentAppName = issue.appName
             )
         } else null
     }
@@ -190,7 +190,7 @@ object QuickWinsDetector {
             QuickWin(
                 type = QuickWinType.REPLACE_DEFAULT_LAUNCHER,
                 relatedCheck = PrivacyCheck.DEFAULT_LAUNCHER,
-                currentAppName = extractAppName(issue.currentStatus)
+                currentAppName = issue.appName
             )
         } else null
     }
@@ -208,14 +208,5 @@ object QuickWinsDetector {
                 )
             } else null
         }
-    }
-
-    /**
-     * Extract app name from status string
-     * e.g., "Using SwiftKey" -> "SwiftKey"
-     * e.g., "Using Chrome" -> "Chrome"
-     */
-    private fun extractAppName(status: String): String? {
-        return status.removePrefix("Using ").takeIf { it != status }
     }
 }

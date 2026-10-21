@@ -22,10 +22,10 @@ pre-`c837e59` branch, overwrites or deletes it. Back it up first. The guard hook
 ## Next
 
 - [x] **Step 1b — trial fix: Default Launcher row debug text.** Done; see Runs.
-- [ ] **Same leak in three more rows.** `DefaultAppsChecker.kt` lines 99 (browser), 169 (SMS) and 304 (email) still set
-      `"Using $appName (unknown, 0 pts)"` as hardcoded English. Same fix as the launcher row.
-- [ ] **`QuickWinsDetector.extractAppName` parses UI copy** (`removePrefix("Using ")`). This breaks once the
-      `Using …` statuses are localised. Pass the app name as a field instead.
+- [x] **Same leak in three more rows** (browser, SMS, email). Done 2026-10-21; see Runs.
+- [x] **`QuickWinsDetector.extractAppName` parses UI copy.** Replaced by `PrivacyIssue.appName`; see Runs.
+- [ ] **Default Keyboard row copy is still hardcoded English** ("Using …", "No default keyboard set", "IME: …").
+      It was out of scope for `fix/default-app-copy`. It has no unknown branch, so it doesn't leak.
 - [x] **Guard hook.** Done; see Runs and Guard hook below.
 - [x] **Guard hook live smoke test** (2026-10-20, live session): all 11 checks matched as intended: 5 deny, 3 ask,
       1 silent allow on the Pixel 9. `.claude/hook.log` had 8 lines afterwards, one per deny and ask.
@@ -82,45 +82,32 @@ None open.
 
 ## Runs
 
+### 2026-10-21 — default-app row copy (`fix/default-app-copy` → `master`)
+
+- [x] Investigation (code): on `master` the unknown branch of browser, SMS and email (`DefaultAppsChecker.kt:99/169/304`)
+      showed "Using X (unknown, 0 pts)". It fires for any default app on neither list; the launcher was fixed already.
+      On the Pixel 8 today none of them leaks: Chrome, Fossify Messages and Gmail are all rated (`cmd role get-role-holders`, `resolve-activity`).
+- [x] Fix: the four rows (browser, SMS, email, launcher) take all their text from `strings.xml`: `fmt_default_app_using`,
+      `fmt_default_app_not_rated` (replaces `fmt_launcher_not_rated`), `status_no_default_*`, `status_default_*_unknown`,
+      `fmt_technical_package` and `fmt_technical_error`. The English text is unchanged except for the leak.
+- [x] `PrivacyIssue.appName` carries the name; QuickWinsDetector reads it, and `extractAppName` is gone. Pure pass-through:
+      every quick-win branch is `!isSecure`, where `appName` is the same name the old code parsed back out of "Using …".
+- [x] Scoring unchanged: `DefaultAppsCheckerScoringTest` pins (isSecure, isUnknown, points) for every branch of the five default-app checks.
+      It passed on the unchanged code first (baseline), then after the change. New tests cover the not-rated copy, `appName`,
+      and a quick win whose status text is translated.
+- [x] `compileDebugKotlin` OK; `testDebugUnitTest --rerun`: 18 suites, 160 tests, 0 failures.
+- [x] Device, Pixel 8 (stand-in verify agent, fresh APK). Throwaway placeholders were built in the scratchpad, signed with a
+      throwaway openssl key (the guard hook blocks the JDK key tool), and set as defaults: Test Browser and Test Messages through roles.
+      The EMAIL role refused Test Mail, so Gmail was disabled for user 0 while the screenshots were taken.
+  - Details → Default Apps: "Using Test Browser / Test Messages / Test Mail — not rated yet", each with the Info icon and no chip.
+    The rated comparison "Using Pixel Launcher" shows the −2 chip. The `uiautomator` text has no "pts" or "(unknown".
+    "Package: org.example.teststub.browser" shows when the row is expanded. Crash buffer empty.
+  - Evidence: `docs/screens/2026-10-21-default-app-copy/` (one screen covers all four rows).
+  - Restored: Chrome, Fossify Messages, Pixel Launcher and Gmail (`mailto:`) as before; placeholders uninstalled; `pm list packages org.example.teststub` is empty.
+- [ ] Not verified on a device: the "No default … set" and "Unable to determine …" branches (covered by the unit test only).
+- [x] Own diff review against `master`: no blockers. External review is not required: the QuickWinsDetector change only passes the name through.
+
 ### 2026-10-21 — CLAUDE.md tweaks (`chore/claude-md-tweaks` → `master`)
 
 - [x] Found ends with a "Roadmap:" line. Review file names replace `/` with `-`. Backup-test gotcha: run `pm unstop` after `pm clear`. CLAUDE.md is 124 lines.
 - [x] Docs only, so there is no build gate. Diff reviewed against `master`: no blockers. Merged with `--no-ff`.
-
-### 2026-10-21 — workflow pieces + backup exclusions (`fix/backup-exclusions` → `master`)
-
-- [x] Workflow, one commit each: `docs/specs/TEMPLATE.md`, `.claude/agents/device-verify.md`, `docs/reviews/REVIEW_PROMPT.md` (verbatim),
-      and the CLAUDE.md "External review" section (119 lines).
-  - device-verify now deletes the old APK before `assembleDebug`. Otherwise an UP-TO-DATE build fails the freshness check (`111791a`).
-- [x] Spec `docs/specs/backup-exclusions.md`. Oliver decided on 2026-10-21: no app data in backup or D2D.
-      Findings, design, platform sources and results are recorded there.
-- [x] Before-run (master's app, Pixel 8, LocalTransport): 12 of 20 seeded files came back, identically in cloud mode and in D2D mode (`is_device_transfer=true`).
-  - Those 12: settings prefs, `profileInstalled`, root and `files` markers, and all device-protected storage.
-  - Room, DataStore, `ad_id_prefs` and `score_history` stayed out, so the `.xml` theory is disproven.
-  - Attempt 1 broke on "Backup is not allowed": `pm clear` leaves the app stopped. The fix was `pm unstop`.
-- [x] Fix: `allowBackup="false"`; all nine domains excluded with `"."` in both sections and in the legacy file. CONVENTIONS rule rewritten.
-- [x] `BackupRulesTest` fails 4/6 on master's rules, passes after. `testDebugUnitTest --rerun`: 17 suites, 152 tests, 0 failures.
-      `compileDebugKotlin` OK; `assembleRelease` + `lintVitalRelease` OK.
-- [x] After-run (branch build, fresh APK): no `ALLOW_BACKUP` flag.
-  - Cloud: "Backup is not allowed", 0 packages restored.
-  - D2D: the agent is bound but writes 0 files; the transport rejects the empty stream.
-  - No seeded file came back in either mode. Two app-written files appear: a widget broadcast restarted the app; their md5 differs from the seed.
-  - Details screen OK. Evidence is in `docs/screens/2026-10-21-backup-*`.
-- [ ] COULD NOT VERIFY: legacy rules (needs Android 11 or lower) and a real two-phone D2D. Covered by the test and the D2D-mode run.
-- [x] Own diff review: no blockers. Review files written: `docs/reviews/fix-backup-exclusions.diff` and `docs/reviews/fix-backup-exclusions-prompt-1.md`.
-- [x] External review round 1 (Cursor, non-Claude): no findings, with file:line evidence for all 10 invariants (spot-checked).
-      Weakest point: runtime coverage on API ≤ 30 and on a real two-phone D2D (see Next). Processing notes are in `docs/reviews/fix-backup-exclusions-findings-1.md`.
-- [x] Pre-merge gate re-run: `compileDebugKotlin` OK; `testDebugUnitTest --rerun` 17 suites, 152 tests, 0 failures. Merged with `--no-ff`; not pushed.
-
-### 2026-10-20 — guard hook (`chore/guard-hook` → `master`)
-
-- [x] Hook contract confirmed from the official docs; see Guard hook.
-- [x] `.claude/hooks/guard.sh` (bash + jq) and `scripts/test-hook.sh`.
-      Evidence: `SUMMARY: 224 passed, 0 failed, 224 cases`. That covers every rule in plain and evasive forms, Edit/Write, fail-closed (no `jq`, bad JSON, missing script) and logging.
-- [x] `.claude/settings.json` (tracked) written after Oliver's OK. It registers the hook, sets `"disableAllHooks": false` and holds the deny list (41 entries).
-  - `git tag`, `git branch -D` and `git commit --amend` were dropped from the list, because the hook is the precise version of each.
-  - The tests prove they are still covered.
-- [x] `.claude/settings.local.json`: the allow list only (20 entries). Both files parse with `jq empty`. `.gitignore` adds `.claude/hook.log`.
-- [x] STATE.md: the three oldest runs moved to `docs/state-archive/2026-10.md`.
-- [ ] Not verified live: the hook in a real Claude Code session. Hooks load on a new session, and Oliver runs the smoke test (Next).
-      No device commands were run; the adb rules are tested only through `test-hook.sh`.
