@@ -53,6 +53,17 @@
   - Fix them, re-run the gate, merge locally with `git merge --no-ff`.
 - Never push, never tag, never `git clean -f`, never `git reset --hard` on `master`. Oliver pushes.
 
+## External review
+- Applies to every feature-sized run, and always to risky code (list below). Test-only and copy-only runs skip it.
+- After your own diff review, write:
+  - `docs/reviews/<branch>.diff` (`git diff master...<branch>`);
+  - `docs/reviews/<branch>-prompt-<round>.md`: `docs/reviews/REVIEW_PROMPT.md` filled in with a one-line summary,
+    context from earlier rounds and 2–4 run-specific invariants.
+- Then STOP at "external review". Oliver runs it in Cursor with a non-Claude model and saves `docs/reviews/<branch>-findings-<round>.md`.
+- Every finding is a claim. Before fixing it, prove it with a failing test or a reproducible device check.
+  Or reject it, with reasons recorded in the findings file. A rejected High goes into the next round's prompt for judgement.
+- Stop review rounds when a round has no High findings; then merge.
+
 ## GitHub
 - `gh` is read-only.
 - Never comment on, close or create issues, PRs or releases.
