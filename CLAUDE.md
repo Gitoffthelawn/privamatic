@@ -55,6 +55,8 @@
 
 ## External review
 - Applies to every feature-sized run, and always to risky code (list below). Test-only and copy-only runs skip it.
+- In review file names, `<branch>` is the branch name with `/` replaced by `-`
+  (`fix/backup-exclusions` → `fix-backup-exclusions.diff`).
 - After your own diff review, write:
   - `docs/reviews/<branch>.diff` (`git diff master...<branch>`);
   - `docs/reviews/<branch>-prompt-<round>.md`: `docs/reviews/REVIEW_PROMPT.md` filled in with a one-line summary,
@@ -104,6 +106,8 @@ JAVA_HOME=/home/techtresthome/.local/share/jdk/temurin-21 ./gradlew :app:assembl
 - Before judging any UI change, force-stop, then cold-start:
   `adb -s 38041FDJH001MA shell am force-stop com.techtrest.privamatic.debug`
   `adb -s 38041FDJH001MA shell am start -n com.techtrest.privamatic.debug/com.techtrest.privamatic.MainActivity`
+- Backup tests: after `pm clear` the app is stopped, and Android won't back it up ("Backup is not allowed").
+  Run `pm unstop` (or launch the app) before `bmgr backupnow`.
 
 ## Risky code — needs the extra review once it's set up
 - Room database and migrations (`PrivacyDatabase`: version 1, `exportSchema = false`, no migrations yet).
@@ -116,4 +120,5 @@ JAVA_HOME=/home/techtresthome/.local/share/jdk/temurin-21 ./gradlew :app:assembl
 End every run with three headings:
 - **Blocked on me**
 - **Changed**
-- **Found**
+- **Found**: ends with a "Roadmap:" line, followed by one line per item, in plain words and without code paths:
+  what this run finished, new items worth putting on the roadmap, and decisions made. If there are none, write "Roadmap: nothing".

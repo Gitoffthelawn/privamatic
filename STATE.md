@@ -82,6 +82,11 @@ None open.
 
 ## Runs
 
+### 2026-10-21 — CLAUDE.md tweaks (`chore/claude-md-tweaks` → `master`)
+
+- [x] Found ends with a "Roadmap:" line. Review file names replace `/` with `-`. Backup-test gotcha: run `pm unstop` after `pm clear`. CLAUDE.md is 124 lines.
+- [x] Docs only, so there is no build gate. Diff reviewed against `master`: no blockers. Merged with `--no-ff`.
+
 ### 2026-10-21 — workflow pieces + backup exclusions (`fix/backup-exclusions` → `master`)
 
 - [x] Workflow, one commit each: `docs/specs/TEMPLATE.md`, `.claude/agents/device-verify.md`, `docs/reviews/REVIEW_PROMPT.md` (verbatim),
