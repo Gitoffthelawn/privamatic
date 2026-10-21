@@ -13,7 +13,7 @@ The Claude Code workflow files are merged into local `master` with `--no-ff`. Th
 - the inventory.
 
 CONVENTIONS.md is the single rulebook: `.cursorrules` now points to it, and the duplicate docs are deleted.
-The guard hook is merged into local `master` but not yet live-tested (see Guard hook below). There is no verify subagent yet.
+The guard hook is merged into local `master` and passed its live smoke test (see Next).
 `.claude/settings.local.json` is untracked since `c837e59`, so a `git pull` on the Framework laptop, or a switch to any
 pre-`c837e59` branch, overwrites or deletes it. Back it up first. The guard hook now denies such switches.
 
@@ -25,8 +25,11 @@ pre-`c837e59` branch, overwrites or deletes it. Back it up first. The guard hook
 - [ ] **`QuickWinsDetector.extractAppName` parses UI copy** (`removePrefix("Using ")`). This breaks once the
       `Using …` statuses are localised. Pass the app name as a field instead.
 - [x] **Guard hook.** Done; see Runs and Guard hook below.
-- [ ] **Guard hook live smoke test** (Oliver, next session): the steps are in the 2026-10-20 guard-hook run.
-      It also covers "allow and deny rules match as intended in a live session", still open from the workflow-setup run.
+- [x] **Guard hook live smoke test** (2026-10-20, live session): all 11 checks matched as intended: 5 deny, 3 ask,
+      1 silent allow on the Pixel 9. `.claude/hook.log` had 8 lines afterwards, one per deny and ask.
+      This also closes "allow and deny rules match as intended in a live session" from the workflow-setup run.
+      Side effect: `adb devices` starts the adb daemon if it isn't running. That is harmless, but it means a
+      "first" adb call is never fully read-only on the host.
 - [ ] **Backup-rules fix.** Gate: run `bmgr` on the Pixel 8 before and after the change. Check that:
   - [ ] the `sharedpref` excludes `ad_id_prefs` and `score_history` lack `.xml` and may match nothing;
   - [ ] `backup_rules.xml` excludes `-shm` / `-wal` (it doesn't yet);
