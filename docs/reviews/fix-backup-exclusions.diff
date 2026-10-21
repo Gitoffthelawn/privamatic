@@ -1,0 +1,1026 @@
+diff --git a/.claude/agents/device-verify.md b/.claude/agents/device-verify.md
+new file mode 100644
+index 0000000..ccb1f5b
+--- /dev/null
++++ b/.claude/agents/device-verify.md
+@@ -0,0 +1,81 @@
++---
++name: device-verify
++description: Builds the Privamatic debug APK, installs it on the Pixel 8 test device only, cold-starts it, takes and describes screenshots, checks the crash buffer and runs exactly the extra device checks the prompt lists. Reports evidence and a PASS / FAIL / COULD NOT VERIFY verdict per check. Never edits source, never touches git, never fixes anything, never uses the Pixel 9.
++tools: Bash, Read
++---
++
++You verify a Privamatic build on the Pixel 8 and report what you saw. You are a witness, not a fixer.
++The main session checks your evidence before it accepts any verdict, so report raw evidence, not conclusions alone.
++
++## Hard rules
++
++- Device: **Pixel 8 `38041FDJH001MA` only.** Every adb call is `adb -s 38041FDJH001MA ...`.
++  Never use the Pixel 9 (`55290DLAQ000MR`) or any other serial, not even read-only. `adb devices -l` is fine.
++- Never edit, create or delete source files, Gradle files or docs. The only files you write are screenshots and
++  check output under `docs/screens/<run>/` (the prompt gives `<run>`).
++- Never run git (not even `git status`) and never run `gh`.
++- Never fix anything. If something fails, report it and move on to the next check.
++- If the guard hook denies or asks about a command, report the command and the hook's reason. Do not rephrase,
++  split or wrap the command to get around it.
++- Run only the extra checks the prompt lists, in its order, with its commands. If a listed command is ambiguous or
++  cannot run as written, report COULD NOT VERIFY for that check and say why, rather than improvising a different one.
++- Never print secrets: no keystores, no `local.properties` or `gradle.properties` values, no env vars named
++  `*PASSWORD*` / `*KEY*` / `*SECRET*` / `*TOKEN*`.
++- Quote paths: the repo is `"/home/techtresthome/Local App Projects/Privamatic"` (spaces).
++
++## Pipeline
++
++Run from the repo root. Skip a step only if the prompt says so (for example "use the APK already built").
++
++1. **Build.** First `date`, then delete the old APK so Gradle must package a new one even when its inputs are unchanged:
++   `rm -f app/build/outputs/apk/debug/app-debug.apk`
++   `JAVA_HOME=/home/techtresthome/.local/share/jdk/temurin-21 ./gradlew :app:assembleDebug`
++   Then confirm the APK is fresh: `ls -l --time-style=full-iso app/build/outputs/apk/debug/app-debug.apk` and `date`.
++   The APK's mtime must be after the build started. If it isn't, the verdict for the whole run is FAIL (stale APK).
++2. **Install.** `adb -s 38041FDJH001MA install -r -t app/build/outputs/apk/debug/app-debug.apk`
++3. **Cold start.**
++   `adb -s 38041FDJH001MA shell am force-stop com.techtrest.privamatic.debug`
++   `adb -s 38041FDJH001MA logcat -c -b crash`
++   `adb -s 38041FDJH001MA shell am start -W -n com.techtrest.privamatic.debug/com.techtrest.privamatic.MainActivity`
++4. **Screenshots** (the ones the prompt asks for; at least one after launch):
++   `mkdir -p docs/screens/<run>` then
++   `adb -s 38041FDJH001MA exec-out screencap -p > docs/screens/<run>/<name>.png`
++   Open every screenshot with **Read** and describe what is actually visible: screen title, key rows and values,
++   dialogs, error text. Do not describe what you expected to see. If the image is blank or shows another app, say so.
++   To reach a screen, `adb -s 38041FDJH001MA shell uiautomator dump /sdcard/ui.xml` plus
++   `adb -s 38041FDJH001MA shell cat /sdcard/ui.xml` gives tap coordinates, and `input tap` is allowed on the Pixel 8.
++5. **Extra checks:** exactly those in the prompt.
++6. **Crash buffer:** `adb -s 38041FDJH001MA logcat -d -b crash` (expect empty), and
++   `adb -s 38041FDJH001MA shell pidof com.techtrest.privamatic.debug` (the app is still alive, if it should be).
++
++## Report format
++
++```
++## Build
++<BUILD SUCCESSFUL / FAILED + last relevant lines>
++APK: <ls -l line>   now: <date>   fresh: yes/no
++
++## Install / launch
++<install output>
++<am start -W output: Status, LaunchState, TotalTime>
++
++## Screenshots
++- docs/screens/<run>/<name>.png — <one line on what is visible>
++
++## Extra checks
++### <check id / name>
++$ <exact command>
++<trimmed output: keep the lines that prove the result, mark cuts with "...">
++Verdict: PASS / FAIL / COULD NOT VERIFY — <why>
++
++## Crash buffer
++<output or "empty">
++
++## Hook denials
++<command + reason, or "none">
++
++## Verdicts
++| Check | Verdict | Why |
++```
++
++A check passes only when its output shows the expected result. "Probably" is COULD NOT VERIFY.
+diff --git a/CLAUDE.md b/CLAUDE.md
+index 4257129..7199fbd 100644
+--- a/CLAUDE.md
++++ b/CLAUDE.md
+@@ -53,6 +53,17 @@
+   - Fix them, re-run the gate, merge locally with `git merge --no-ff`.
+ - Never push, never tag, never `git clean -f`, never `git reset --hard` on `master`. Oliver pushes.
+ 
++## External review
++- Applies to every feature-sized run, and always to risky code (list below). Test-only and copy-only runs skip it.
++- After your own diff review, write:
++  - `docs/reviews/<branch>.diff` (`git diff master...<branch>`);
++  - `docs/reviews/<branch>-prompt-<round>.md`: `docs/reviews/REVIEW_PROMPT.md` filled in with a one-line summary,
++    context from earlier rounds and 2–4 run-specific invariants.
++- Then STOP at "external review". Oliver runs it in Cursor with a non-Claude model and saves `docs/reviews/<branch>-findings-<round>.md`.
++- Every finding is a claim. Before fixing it, prove it with a failing test or a reproducible device check.
++  Or reject it, with reasons recorded in the findings file. A rejected High goes into the next round's prompt for judgement.
++- Stop review rounds when a round has no High findings; then merge.
++
+ ## GitHub
+ - `gh` is read-only.
+ - Never comment on, close or create issues, PRs or releases.
+diff --git a/CONVENTIONS.md b/CONVENTIONS.md
+index 21235ce..0af1465 100644
+--- a/CONVENTIONS.md
++++ b/CONVENTIONS.md
+@@ -221,10 +221,12 @@ OS brand detection strings (GrapheneOS, CalyxOS), format placeholders.
+ **Debug logging** — all `Log.*` calls wrapped in `if (BuildConfig.DEBUG)`.
+ Sensitive data (package names, device fingerprints) never in logs, even debug.
+ 
+-**Android Auto Backup exclusions** — exclude from cloud backup:
+-- `ad_id_prefs` (SharedPreferences)
+-- `maintenance_prefs` (DataStore)
+-Declared in both `data_extraction_rules.xml` and `backup_rules.xml`.
++**No app data in backup or device transfer** (Oliver, 2026-10-21; spec `docs/specs/backup-exclusions.md`):
++- `android:allowBackup="false"`. It is not enough on its own: on Android 12+ it doesn't stop D2D transfer.
++- `data_extraction_rules.xml` excludes all nine domains with `path="."` in both `<cloud-backup>` and `<device-transfer>`, and includes nothing.
++- `backup_rules.xml` (Android 11 and lower) excludes the same nine domains.
++- Each domain needs its own exclude: an exclude of `root` doesn't cover `file`, `database` or `sharedpref`.
++- A new store needs no rule change. `BackupRulesTest` keeps the files in line.
+ 
+ ## Build & Release Rules
+ 
+diff --git a/STATE.md b/STATE.md
+index 778b0c0..d160ae0 100644
+--- a/STATE.md
++++ b/STATE.md
+@@ -13,7 +13,9 @@ The Claude Code workflow files are merged into local `master` with `--no-ff`. Th
+ - the inventory.
+ 
+ CONVENTIONS.md is the single rulebook: `.cursorrules` now points to it, and the duplicate docs are deleted.
+-The guard hook is merged into local `master` but not yet live-tested (see Guard hook below). There is no verify subagent yet.
++The guard hook is merged into local `master` and passed its live smoke test (see Next).
++On `fix/backup-exclusions` (not merged), there are now a spec template, a `device-verify` subagent and an external-review step (CLAUDE.md).
++`device-verify` is registered only in sessions started after it was committed. Until then, a general-purpose agent reads its file.
+ `.claude/settings.local.json` is untracked since `c837e59`, so a `git pull` on the Framework laptop, or a switch to any
+ pre-`c837e59` branch, overwrites or deletes it. Back it up first. The guard hook now denies such switches.
+ 
+@@ -25,14 +27,18 @@ pre-`c837e59` branch, overwrites or deletes it. Back it up first. The guard hook
+ - [ ] **`QuickWinsDetector.extractAppName` parses UI copy** (`removePrefix("Using ")`). This breaks once the
+       `Using …` statuses are localised. Pass the app name as a field instead.
+ - [x] **Guard hook.** Done; see Runs and Guard hook below.
+-- [ ] **Guard hook live smoke test** (Oliver, next session): the steps are in the 2026-10-20 guard-hook run.
+-      It also covers "allow and deny rules match as intended in a live session", still open from the workflow-setup run.
+-- [ ] **Backup-rules fix.** Gate: run `bmgr` on the Pixel 8 before and after the change. Check that:
+-  - [ ] the `sharedpref` excludes `ad_id_prefs` and `score_history` lack `.xml` and may match nothing;
+-  - [ ] `backup_rules.xml` excludes `-shm` / `-wal` (it doesn't yet);
+-  - [ ] `data_extraction_rules.xml` (Android 12+, both `<cloud-backup>` and `<device-transfer>`) gets the same fix;
+-  - [ ] the score-history chart lives in Room (`privacy_history.db`), so its exclude must use `domain="database"`, not `sharedpref`.
+-        The `score_history` sharedpref holds only the daily baseline and delta.
++- [x] **Guard hook live smoke test** (2026-10-20, live session): all 11 checks matched as intended: 5 deny, 3 ask,
++      1 silent allow on the Pixel 9. `.claude/hook.log` had 8 lines afterwards, one per deny and ask.
++      This also closes "allow and deny rules match as intended in a live session" from the workflow-setup run.
++      Side effect: `adb devices` starts the adb daemon if it isn't running. That is harmless, but it means a
++      "first" adb call is never fully read-only on the host.
++- [x] **Backup-rules fix.** On branch `fix/backup-exclusions`, gate passed; waiting for external review (see Runs). The four suspicions:
++  - [x] The missing `.xml` was **not** a bug: on `master`, `ad_id_prefs.xml` and `score_history.xml` stayed out of backup (device, before-run).
++  - [x] `-shm` / `-wal`: moot. The whole database domain is now excluded, and Room uses TRUNCATE mode, so the files never exist.
++  - [x] Both `<cloud-backup>` and `<device-transfer>` are fixed, mirrored, and enforced by `BackupRulesTest`.
++  - [x] Room was already excluded with `domain="database"` on `master` (device, before-run).
++- [ ] **Merge `fix/backup-exclusions`** after external review round 1 has no High findings.
++- [ ] **Release note for the backup change** (Oliver agrees the text): trusted apps and settings no longer move to a new phone.
+ 
+ ## Guard hook
+ 
+@@ -76,6 +82,29 @@ None open.
+ 
+ ## Runs
+ 
++### 2026-10-21 — workflow pieces + backup exclusions (`fix/backup-exclusions`, not merged; stopped at external review)
++
++- [x] Workflow, one commit each: `docs/specs/TEMPLATE.md`, `.claude/agents/device-verify.md`, `docs/reviews/REVIEW_PROMPT.md` (verbatim),
++      and the CLAUDE.md "External review" section (119 lines).
++  - device-verify now deletes the old APK before `assembleDebug`. Otherwise an UP-TO-DATE build fails the freshness check (`111791a`).
++- [x] Spec `docs/specs/backup-exclusions.md`. Oliver decided on 2026-10-21: no app data in backup or D2D.
++      Findings, design, platform sources and results are recorded there.
++- [x] Before-run (master's app, Pixel 8, LocalTransport): 12 of 20 seeded files came back, identically in cloud mode and in D2D mode (`is_device_transfer=true`).
++  - Those 12: settings prefs, `profileInstalled`, root and `files` markers, and all device-protected storage.
++  - Room, DataStore, `ad_id_prefs` and `score_history` stayed out, so the `.xml` theory is disproven.
++  - Attempt 1 broke on "Backup is not allowed": `pm clear` leaves the app stopped. The fix was `pm unstop`.
++- [x] Fix: `allowBackup="false"`; all nine domains excluded with `"."` in both sections and in the legacy file. CONVENTIONS rule rewritten.
++- [x] `BackupRulesTest` fails 4/6 on master's rules, passes after. `testDebugUnitTest --rerun`: 17 suites, 152 tests, 0 failures.
++      `compileDebugKotlin` OK; `assembleRelease` + `lintVitalRelease` OK.
++- [x] After-run (branch build, fresh APK): no `ALLOW_BACKUP` flag.
++  - Cloud: "Backup is not allowed", 0 packages restored.
++  - D2D: the agent is bound but writes 0 files; the transport rejects the empty stream.
++  - No seeded file came back in either mode. Two app-written files appear: a widget broadcast restarted the app; their md5 differs from the seed.
++  - Details screen OK. Evidence is in `docs/screens/2026-10-21-backup-*`.
++- [ ] COULD NOT VERIFY: legacy rules (needs Android 11 or lower) and a real two-phone D2D. Covered by the test and the D2D-mode run.
++- [x] Own diff review: no blockers. Review files written: `docs/reviews/fix-backup-exclusions.diff` and `docs/reviews/fix-backup-exclusions-prompt-1.md`.
++- [ ] STOP: external review round 1 (Oliver).
++
+ ### 2026-10-20 — guard hook (`chore/guard-hook` → `master`)
+ 
+ - [x] Hook contract confirmed from the official docs; see Guard hook.
+@@ -88,31 +117,3 @@ None open.
+ - [x] STATE.md: the three oldest runs moved to `docs/state-archive/2026-10.md`.
+ - [ ] Not verified live: the hook in a real Claude Code session. Hooks load on a new session, and Oliver runs the smoke test (Next).
+       No device commands were run; the adb rules are tested only through `test-hook.sh`.
+-
+-### 2026-10-20 — Default Launcher row copy (`fix/launcher-row-copy` → `master`)
+-
+-- [x] Investigation: the exact reported text, "Using **Pixel Launcher** (unknown, 0 pts)", has not occurred since v1.5.0.
+-  - `f8221e1` classifies `com.google.android.apps.nexuslauncher` as invasive, so the row shows "Using Pixel Launcher" with −2.
+-  - Evidence: `git tag --contains f8221e1` → v1.5.0, v1.5.1.
+-  - The leak was still live on `master` for any launcher on neither list (`DefaultAppsChecker.kt:378`), so I fixed it.
+-- [x] Fix: the unknown branch now uses `fmt_launcher_not_rated` ("Using %s — not rated yet") via `context.getString`.
+-      The row's Info icon and missing chip already say "unknown" and "no deduction".
+-- [x] Gate: `compileDebugKotlin` OK; `testDebugUnitTest --rerun`: 16 suites, 146 tests, 0 failures; `assembleDebug` OK.
+-- [x] Device, Pixel 8: a throwaway resource-only HOME stub (`org.example.teststub.home`, label "Test Home", built in the scratchpad) was set as the HOME role holder.
+-  - Cold start → Details → Default Apps shows "Default Launcher / Using Test Home — not rated yet", with the Info icon and no chip.
+-  - Evidence: `docs/screens/2026-10-20-launcher-row-not-rated.png` and a `uiautomator` dump.
+-  - Afterwards the HOME role was set back to Pixel Launcher and the stub uninstalled; `resolve-activity` confirms.
+-  - Settings `FallbackHome` was tried first and doesn't work: at priority −1000, `resolveActivity` ignores it.
+-- [x] Diff reviewed against `master`: no blockers. The launcher Quick Win reads `currentStatus` only when `!isSecure`, and the unknown branch is secure.
+-- [ ] Not verified: the stock Pixel Launcher row with this build. That branch is unchanged.
+-
+-### 2026-10-20 — STATE and CONVENTIONS fixes (`chore/state-and-conventions` → `master`)
+-
+-- [x] STATE settings-file note corrected: a pull *and* a switch to any pre-`c837e59` branch overwrite or delete the untracked file.
+-      The guard-hook item gains a switch check.
+-- [x] CONVENTIONS.md Design Constraints gains two Compose rules from the deleted `docs/QUICK_REFERENCE.md`:
+-  - `Modifier` is the last parameter, with a default;
+-  - composables are stateless, with state hoisted.
+-
+-  Evidence: `git show d1fb5ce^:docs/QUICK_REFERENCE.md`, lines 15, 26 and 28.
+-- [x] Docs only, so there is no build gate. Diff reviewed against `master`: no blockers. Merged with `--no-ff`.
+diff --git a/app/src/main/AndroidManifest.xml b/app/src/main/AndroidManifest.xml
+index 14e5038..06fde56 100644
+--- a/app/src/main/AndroidManifest.xml
++++ b/app/src/main/AndroidManifest.xml
+@@ -10,7 +10,7 @@
+     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
+ 
+     <application
+-        android:allowBackup="true"
++        android:allowBackup="false"
+         android:dataExtractionRules="@xml/data_extraction_rules"
+         android:fullBackupContent="@xml/backup_rules"
+         android:icon="@mipmap/ic_launcher"
+diff --git a/app/src/main/res/xml/backup_rules.xml b/app/src/main/res/xml/backup_rules.xml
+index c811691..3360020 100644
+--- a/app/src/main/res/xml/backup_rules.xml
++++ b/app/src/main/res/xml/backup_rules.xml
+@@ -1,17 +1,19 @@
+ <?xml version="1.0" encoding="utf-8"?><!--
+-   Sample backup rules file; uncomment and customize as necessary.
+-   See https://developer.android.com/guide/topics/data/autobackup
+-   for details.
+-   Note: This file is ignored for devices older than API 31
+-   See https://developer.android.com/about/versions/12/backup-restore
++   Android 11 and lower (ignored on 12+, where data_extraction_rules.xml applies).
++   allowBackup="false" already stops backup there; these excludes are a second layer in case
++   a device or transport ignores it. No app data leaves the device
++   (docs/specs/backup-exclusions.md). Each domain is walked separately: excluding "root"
++   doesn't cover the others.
++   See https://developer.android.com/identity/data/autobackup
+ -->
+ <full-backup-content>
+-    <!-- Exclude privacy-sensitive preference stores from auto-backup (API < 31) -->
+-    <exclude domain="sharedpref" path="ad_id_prefs"/>
+-    <exclude domain="file" path="datastore/maintenance_prefs.preferences_pb"/>
+-    <exclude domain="file" path="datastore/sdk_scan_prefs.preferences_pb"/>
+-    <exclude domain="file" path="datastore/trusted_apps_prefs.preferences_pb"/>
+-    <exclude domain="file" path="datastore/quick_win_dismissals.preferences_pb"/>
+-    <exclude domain="sharedpref" path="score_history"/>
+-    <exclude domain="database" path="privacy_history.db"/>
+-</full-backup-content>
+\ No newline at end of file
++    <exclude domain="root" path="."/>
++    <exclude domain="file" path="."/>
++    <exclude domain="database" path="."/>
++    <exclude domain="sharedpref" path="."/>
++    <exclude domain="external" path="."/>
++    <exclude domain="device_root" path="."/>
++    <exclude domain="device_file" path="."/>
++    <exclude domain="device_database" path="."/>
++    <exclude domain="device_sharedpref" path="."/>
++</full-backup-content>
+diff --git a/app/src/main/res/xml/data_extraction_rules.xml b/app/src/main/res/xml/data_extraction_rules.xml
+index 9a7a81b..234efc4 100644
+--- a/app/src/main/res/xml/data_extraction_rules.xml
++++ b/app/src/main/res/xml/data_extraction_rules.xml
+@@ -1,30 +1,31 @@
+ <?xml version="1.0" encoding="utf-8"?><!--
+-   Sample data extraction rules file; uncomment and customize as necessary.
+-   See https://developer.android.com/about/versions/12/backup-restore#xml-changes
+-   for details.
++   Android 12+ (API 31+). No app data leaves the device: not to cloud backup, not by
++   device-to-device transfer (docs/specs/backup-exclusions.md). allowBackup="false" alone
++   doesn't stop device-to-device transfer for apps targeting 31+, so both sections exclude
++   every domain. Each domain is walked separately: excluding "root" doesn't cover the others.
++   See https://developer.android.com/identity/data/autobackup
+ -->
+ <data-extraction-rules>
+     <cloud-backup>
+-        <!-- Exclude privacy-sensitive preference stores from Google Cloud Backup -->
+-        <exclude domain="sharedpref" path="ad_id_prefs"/>
+-        <exclude domain="file" path="datastore/maintenance_prefs.preferences_pb"/>
+-        <exclude domain="file" path="datastore/sdk_scan_prefs.preferences_pb"/>
+-        <exclude domain="file" path="datastore/trusted_apps_prefs.preferences_pb"/>
+-        <exclude domain="file" path="datastore/quick_win_dismissals.preferences_pb"/>
+-        <exclude domain="sharedpref" path="score_history"/>
+-        <exclude domain="database" path="privacy_history.db"/>
+-        <exclude domain="database" path="privacy_history.db-shm"/>
+-        <exclude domain="database" path="privacy_history.db-wal"/>
++        <exclude domain="root" path="."/>
++        <exclude domain="file" path="."/>
++        <exclude domain="database" path="."/>
++        <exclude domain="sharedpref" path="."/>
++        <exclude domain="external" path="."/>
++        <exclude domain="device_root" path="."/>
++        <exclude domain="device_file" path="."/>
++        <exclude domain="device_database" path="."/>
++        <exclude domain="device_sharedpref" path="."/>
+     </cloud-backup>
+     <device-transfer>
+-        <exclude domain="sharedpref" path="ad_id_prefs"/>
+-        <exclude domain="file" path="datastore/maintenance_prefs.preferences_pb"/>
+-        <exclude domain="file" path="datastore/sdk_scan_prefs.preferences_pb"/>
+-        <exclude domain="file" path="datastore/trusted_apps_prefs.preferences_pb"/>
+-        <exclude domain="file" path="datastore/quick_win_dismissals.preferences_pb"/>
+-        <exclude domain="sharedpref" path="score_history"/>
+-        <exclude domain="database" path="privacy_history.db"/>
+-        <exclude domain="database" path="privacy_history.db-shm"/>
+-        <exclude domain="database" path="privacy_history.db-wal"/>
++        <exclude domain="root" path="."/>
++        <exclude domain="file" path="."/>
++        <exclude domain="database" path="."/>
++        <exclude domain="sharedpref" path="."/>
++        <exclude domain="external" path="."/>
++        <exclude domain="device_root" path="."/>
++        <exclude domain="device_file" path="."/>
++        <exclude domain="device_database" path="."/>
++        <exclude domain="device_sharedpref" path="."/>
+     </device-transfer>
+-</data-extraction-rules>
+\ No newline at end of file
++</data-extraction-rules>
+diff --git a/app/src/test/java/com/techtrest/privamatic/BackupRulesTest.kt b/app/src/test/java/com/techtrest/privamatic/BackupRulesTest.kt
+new file mode 100644
+index 0000000..e1176c0
+--- /dev/null
++++ b/app/src/test/java/com/techtrest/privamatic/BackupRulesTest.kt
+@@ -0,0 +1,96 @@
++package com.techtrest.privamatic
++
++import org.junit.Assert.assertEquals
++import org.junit.Assert.assertTrue
++import org.junit.Test
++import org.w3c.dom.Element
++import java.io.File
++import javax.xml.parsers.DocumentBuilderFactory
++
++/**
++ * No app data may leave the device through backup or device-to-device transfer
++ * (Oliver, 2026-10-21; docs/specs/backup-exclusions.md).
++ *
++ * The platform walks each domain as its own tree, and an exclude only prunes an exact
++ * path, so every domain needs its own `path="."` exclude. `root` does not cover the others.
++ * Unit tests run with the module directory as working directory.
++ */
++class BackupRulesTest {
++
++    private val allDomains = setOf(
++        "root", "file", "database", "sharedpref", "external",
++        "device_root", "device_file", "device_database", "device_sharedpref"
++    )
++    private val androidNs = "http://schemas.android.com/apk/res/android"
++
++    private fun parse(path: String): Element =
++        DocumentBuilderFactory.newInstance()
++            .apply { isNamespaceAware = true }
++            .newDocumentBuilder()
++            .parse(File(path))
++            .documentElement
++
++    private fun children(parent: Element, tag: String): List<Element> {
++        val nodes = parent.getElementsByTagName(tag)
++        return (0 until nodes.length).map { nodes.item(it) as Element }
++    }
++
++    private fun section(root: Element, tag: String): Element =
++        children(root, tag).single()
++
++    /** Domain → path for every `<exclude>`; fails on any `<include>`. */
++    private fun excludes(section: Element): Map<String, String> {
++        assertTrue("<${section.tagName}> must include nothing", children(section, "include").isEmpty())
++        return children(section, "exclude").associate { it.getAttribute("domain") to it.getAttribute("path") }
++    }
++
++    private fun assertExcludesEverything(section: Element) {
++        val excludes = excludes(section)
++        assertEquals("<${section.tagName}> exclude count", allDomains.size, children(section, "exclude").size)
++        assertEquals("<${section.tagName}> domains", allDomains, excludes.keys)
++        excludes.forEach { (domain, path) -> assertEquals("<${section.tagName}> $domain path", ".", path) }
++    }
++
++    private val extractionRules get() = parse("src/main/res/xml/data_extraction_rules.xml")
++    private val legacyRules get() = parse("src/main/res/xml/backup_rules.xml")
++
++    @Test
++    fun `cloud backup excludes every domain`() {
++        assertExcludesEverything(section(extractionRules, "cloud-backup"))
++    }
++
++    @Test
++    fun `device transfer excludes every domain`() {
++        assertExcludesEverything(section(extractionRules, "device-transfer"))
++    }
++
++    @Test
++    fun `device transfer mirrors cloud backup`() {
++        val rules = extractionRules
++        assertEquals(excludes(section(rules, "cloud-backup")), excludes(section(rules, "device-transfer")))
++    }
++
++    @Test
++    fun `no other transfer mode is configured`() {
++        // A <cross-platform-transfer> section would need its own excludes (Android 16 QPR2+).
++        val nodes = extractionRules.childNodes
++        val tags = (0 until nodes.length)
++            .map { nodes.item(it) }
++            .filterIsInstance<Element>()
++            .map { it.tagName }
++        assertEquals(listOf("cloud-backup", "device-transfer"), tags)
++    }
++
++    @Test
++    fun `legacy rules for Android 11 and lower exclude every domain`() {
++        assertExcludesEverything(legacyRules)
++    }
++
++    @Test
++    fun `manifest disables backup and points at both rule files`() {
++        val application = children(parse("src/main/AndroidManifest.xml"), "application").single()
++        assertEquals("false", application.getAttributeNS(androidNs, "allowBackup"))
++        assertEquals("@xml/data_extraction_rules", application.getAttributeNS(androidNs, "dataExtractionRules"))
++        assertEquals("@xml/backup_rules", application.getAttributeNS(androidNs, "fullBackupContent"))
++    }
++}
+diff --git a/docs/reviews/REVIEW_PROMPT.md b/docs/reviews/REVIEW_PROMPT.md
+new file mode 100644
+index 0000000..5f29084
+--- /dev/null
++++ b/docs/reviews/REVIEW_PROMPT.md
+@@ -0,0 +1,36 @@
++Review docs/reviews/<branch>.diff at the Privamatic repo root (offline Android
++privacy auditing app, Kotlin/Compose, <base>..<branch>: <one line on what the
++run did>). You can't run git, Gradle or tests in this workspace. Read only the
++files this diff touches, and only the functions around the changed lines —
++don't explore the rest of the repo. Skip strings.xml, fastlane metadata, tests
++and screenshots unless they are the point of the run. If you need more than
++~10 files, stop and say which and why.
++
++Don't fix anything. List findings ranked by severity (High / Medium / Low)
++with file:line, a concrete failure scenario, and your confidence.
++
++Context: <what earlier review rounds found / what was fixed / what was
++rejected and why — or "first review">.
++
++Standing invariants — check that each holds on every path this diff touches:
++1. Offline: no INTERNET permission, no network calls, no new dependency that
++   can reach the network.
++2. User data never leaves the device: score history (Room), the trusted list
++   and settings are excluded from cloud backup and device transfer, in both
++   data_extraction_rules.xml (Android 12+) and the legacy backup rules.
++3. Room: every schema change bumps the version and ships a migration; no
++   destructive fallback; existing score history survives an upgrade.
++4. Scoring: the PrivacyCheck enum is the single source of truth for
++   deductions; trust math goes through PrivacyCheck.cappedDeductionFor();
++   no score logic elsewhere.
++5. Detection: a disabled app still returns ApplicationInfo — check
++   appInfo.enabled before treating a package as active.
++6. All user-facing text comes from strings.xml.
++7. Release builds stay unsigned (signingConfig = null) for F-Droid.
++
++Run-specific invariants:
++8. <invariant>
++9. <invariant>
++
++<Optional: Also judge this rejected finding: "<claim>". Rejection reasoning:
++<reasoning>. Find a path where it fails, or confirm it.>
+diff --git a/docs/screens/2026-10-21-backup-after/cloud-1-seeded.txt b/docs/screens/2026-10-21-backup-after/cloud-1-seeded.txt
+new file mode 100644
+index 0000000..de3a141
+--- /dev/null
++++ b/docs/screens/2026-10-21-backup-after/cloud-1-seeded.txt
+@@ -0,0 +1,20 @@
++bd4e61a169613b2e611a19d488976f48  CE:databases/privacy_history.db
++d41d8cd98f00b204e9800998ecf8427e  CE:databases/privacy_history.db-journal
++da65c0a0a1e30f9b758617d536d51c52  CE:files/datastore/maintenance_prefs.preferences_pb
++d41d8cd98f00b204e9800998ecf8427e  CE:files/datastore/quick_win_dismissals.preferences_pb
++d41d8cd98f00b204e9800998ecf8427e  CE:files/datastore/sdk_scan_prefs.preferences_pb
++d41d8cd98f00b204e9800998ecf8427e  CE:files/datastore/trusted_apps_prefs.preferences_pb
++7b94863f3091b449e6ab04d44cb372a0  CE:files/marker_file.txt
++d27e8dd00282abdc3312032e9ae74866  CE:files/profileInstalled
++7b94863f3091b449e6ab04d44cb372a0  CE:marker_root.txt
++74a007d502c9e0fd6d6500f97e3f1ecf  CE:shared_prefs/ad_id_prefs.xml
++abd1dde3a957c9303121e4af90d04c71  CE:shared_prefs/details_view_prefs.xml
++f5bf2e145f09c1e21956795868b9eb81  CE:shared_prefs/onboarding_prefs.xml
++b2e415f0dbb6347ba3697ccc218d34c9  CE:shared_prefs/privacy_tip_history.xml
++e2ffb5d7fe4948022e7424eab1359d5f  CE:shared_prefs/score_history.xml
++e86dee13caa60a549fcd14cda09682b8  CE:shared_prefs/whats_new_prefs.xml
++6bc0424756c5a693da0ff5edfb979d90  CE:shared_prefs/widget_preferences.xml
++7b94863f3091b449e6ab04d44cb372a0  DE:databases/marker_de.db
++7b94863f3091b449e6ab04d44cb372a0  DE:files/marker_de_file.txt
++7b94863f3091b449e6ab04d44cb372a0  DE:marker_de_root.txt
++7e6c7e6f9a6d704849bb03face0f6a69  DE:shared_prefs/marker_de_pref.xml
+diff --git a/docs/screens/2026-10-21-backup-after/cloud-2-cleared.txt b/docs/screens/2026-10-21-backup-after/cloud-2-cleared.txt
+new file mode 100644
+index 0000000..e69de29
+diff --git a/docs/screens/2026-10-21-backup-after/cloud-3-restored.txt b/docs/screens/2026-10-21-backup-after/cloud-3-restored.txt
+new file mode 100644
+index 0000000..01625ab
+--- /dev/null
++++ b/docs/screens/2026-10-21-backup-after/cloud-3-restored.txt
+@@ -0,0 +1,2 @@
++f5eceeac3dbe8a54c793a7f0035090e1  CE:files/profileInstalled
++10ebe0d1ea185326034b1d67aea80933  CE:shared_prefs/score_history.xml
+diff --git a/docs/screens/2026-10-21-backup-after/d2d-1-seeded.txt b/docs/screens/2026-10-21-backup-after/d2d-1-seeded.txt
+new file mode 100644
+index 0000000..de3a141
+--- /dev/null
++++ b/docs/screens/2026-10-21-backup-after/d2d-1-seeded.txt
+@@ -0,0 +1,20 @@
++bd4e61a169613b2e611a19d488976f48  CE:databases/privacy_history.db
++d41d8cd98f00b204e9800998ecf8427e  CE:databases/privacy_history.db-journal
++da65c0a0a1e30f9b758617d536d51c52  CE:files/datastore/maintenance_prefs.preferences_pb
++d41d8cd98f00b204e9800998ecf8427e  CE:files/datastore/quick_win_dismissals.preferences_pb
++d41d8cd98f00b204e9800998ecf8427e  CE:files/datastore/sdk_scan_prefs.preferences_pb
++d41d8cd98f00b204e9800998ecf8427e  CE:files/datastore/trusted_apps_prefs.preferences_pb
++7b94863f3091b449e6ab04d44cb372a0  CE:files/marker_file.txt
++d27e8dd00282abdc3312032e9ae74866  CE:files/profileInstalled
++7b94863f3091b449e6ab04d44cb372a0  CE:marker_root.txt
++74a007d502c9e0fd6d6500f97e3f1ecf  CE:shared_prefs/ad_id_prefs.xml
++abd1dde3a957c9303121e4af90d04c71  CE:shared_prefs/details_view_prefs.xml
++f5bf2e145f09c1e21956795868b9eb81  CE:shared_prefs/onboarding_prefs.xml
++b2e415f0dbb6347ba3697ccc218d34c9  CE:shared_prefs/privacy_tip_history.xml
++e2ffb5d7fe4948022e7424eab1359d5f  CE:shared_prefs/score_history.xml
++e86dee13caa60a549fcd14cda09682b8  CE:shared_prefs/whats_new_prefs.xml
++6bc0424756c5a693da0ff5edfb979d90  CE:shared_prefs/widget_preferences.xml
++7b94863f3091b449e6ab04d44cb372a0  DE:databases/marker_de.db
++7b94863f3091b449e6ab04d44cb372a0  DE:files/marker_de_file.txt
++7b94863f3091b449e6ab04d44cb372a0  DE:marker_de_root.txt
++7e6c7e6f9a6d704849bb03face0f6a69  DE:shared_prefs/marker_de_pref.xml
+diff --git a/docs/screens/2026-10-21-backup-after/d2d-2-cleared.txt b/docs/screens/2026-10-21-backup-after/d2d-2-cleared.txt
+new file mode 100644
+index 0000000..e69de29
+diff --git a/docs/screens/2026-10-21-backup-after/d2d-3-restored.txt b/docs/screens/2026-10-21-backup-after/d2d-3-restored.txt
+new file mode 100644
+index 0000000..b7ce92d
+--- /dev/null
++++ b/docs/screens/2026-10-21-backup-after/d2d-3-restored.txt
+@@ -0,0 +1,2 @@
++f5eceeac3dbe8a54c793a7f0035090e1  CE:files/profileInstalled
++80be1394a24f3c0c7761cc203ef4d8da  CE:shared_prefs/score_history.xml
+diff --git a/docs/screens/2026-10-21-backup-after/dashboard-real-data.png b/docs/screens/2026-10-21-backup-after/dashboard-real-data.png
+new file mode 100644
+index 0000000..7107d80
+Binary files /dev/null and b/docs/screens/2026-10-21-backup-after/dashboard-real-data.png differ
+diff --git a/docs/screens/2026-10-21-backup-after/details.png b/docs/screens/2026-10-21-backup-after/details.png
+new file mode 100644
+index 0000000..e2340ec
+Binary files /dev/null and b/docs/screens/2026-10-21-backup-after/details.png differ
+diff --git a/docs/screens/2026-10-21-backup-after/final-real-data.txt b/docs/screens/2026-10-21-backup-after/final-real-data.txt
+new file mode 100644
+index 0000000..fb71e94
+--- /dev/null
++++ b/docs/screens/2026-10-21-backup-after/final-real-data.txt
+@@ -0,0 +1,11 @@
++bd4e61a169613b2e611a19d488976f48  CE:databases/privacy_history.db
++d41d8cd98f00b204e9800998ecf8427e  CE:databases/privacy_history.db-journal
++da65c0a0a1e30f9b758617d536d51c52  CE:files/datastore/maintenance_prefs.preferences_pb
++d27e8dd00282abdc3312032e9ae74866  CE:files/profileInstalled
++74a007d502c9e0fd6d6500f97e3f1ecf  CE:shared_prefs/ad_id_prefs.xml
++abd1dde3a957c9303121e4af90d04c71  CE:shared_prefs/details_view_prefs.xml
++f5bf2e145f09c1e21956795868b9eb81  CE:shared_prefs/onboarding_prefs.xml
++b2e415f0dbb6347ba3697ccc218d34c9  CE:shared_prefs/privacy_tip_history.xml
++e2ffb5d7fe4948022e7424eab1359d5f  CE:shared_prefs/score_history.xml
++e86dee13caa60a549fcd14cda09682b8  CE:shared_prefs/whats_new_prefs.xml
++6bc0424756c5a693da0ff5edfb979d90  CE:shared_prefs/widget_preferences.xml
+diff --git a/docs/screens/2026-10-21-backup-after/launch.png b/docs/screens/2026-10-21-backup-after/launch.png
+new file mode 100644
+index 0000000..7830700
+Binary files /dev/null and b/docs/screens/2026-10-21-backup-after/launch.png differ
+diff --git a/docs/screens/2026-10-21-backup-before-attempt1/cloud-1-seeded.txt b/docs/screens/2026-10-21-backup-before-attempt1/cloud-1-seeded.txt
+new file mode 100644
+index 0000000..de3a141
+--- /dev/null
++++ b/docs/screens/2026-10-21-backup-before-attempt1/cloud-1-seeded.txt
+@@ -0,0 +1,20 @@
++bd4e61a169613b2e611a19d488976f48  CE:databases/privacy_history.db
++d41d8cd98f00b204e9800998ecf8427e  CE:databases/privacy_history.db-journal
++da65c0a0a1e30f9b758617d536d51c52  CE:files/datastore/maintenance_prefs.preferences_pb
++d41d8cd98f00b204e9800998ecf8427e  CE:files/datastore/quick_win_dismissals.preferences_pb
++d41d8cd98f00b204e9800998ecf8427e  CE:files/datastore/sdk_scan_prefs.preferences_pb
++d41d8cd98f00b204e9800998ecf8427e  CE:files/datastore/trusted_apps_prefs.preferences_pb
++7b94863f3091b449e6ab04d44cb372a0  CE:files/marker_file.txt
++d27e8dd00282abdc3312032e9ae74866  CE:files/profileInstalled
++7b94863f3091b449e6ab04d44cb372a0  CE:marker_root.txt
++74a007d502c9e0fd6d6500f97e3f1ecf  CE:shared_prefs/ad_id_prefs.xml
++abd1dde3a957c9303121e4af90d04c71  CE:shared_prefs/details_view_prefs.xml
++f5bf2e145f09c1e21956795868b9eb81  CE:shared_prefs/onboarding_prefs.xml
++b2e415f0dbb6347ba3697ccc218d34c9  CE:shared_prefs/privacy_tip_history.xml
++e2ffb5d7fe4948022e7424eab1359d5f  CE:shared_prefs/score_history.xml
++e86dee13caa60a549fcd14cda09682b8  CE:shared_prefs/whats_new_prefs.xml
++6bc0424756c5a693da0ff5edfb979d90  CE:shared_prefs/widget_preferences.xml
++7b94863f3091b449e6ab04d44cb372a0  DE:databases/marker_de.db
++7b94863f3091b449e6ab04d44cb372a0  DE:files/marker_de_file.txt
++7b94863f3091b449e6ab04d44cb372a0  DE:marker_de_root.txt
++7e6c7e6f9a6d704849bb03face0f6a69  DE:shared_prefs/marker_de_pref.xml
+diff --git a/docs/screens/2026-10-21-backup-before-attempt1/cloud-2-cleared.txt b/docs/screens/2026-10-21-backup-before-attempt1/cloud-2-cleared.txt
+new file mode 100644
+index 0000000..e69de29
+diff --git a/docs/screens/2026-10-21-backup-before-attempt1/cloud-3-restored.txt b/docs/screens/2026-10-21-backup-before-attempt1/cloud-3-restored.txt
+new file mode 100644
+index 0000000..e69de29
+diff --git a/docs/screens/2026-10-21-backup-before-attempt1/d2d-1-seeded.txt b/docs/screens/2026-10-21-backup-before-attempt1/d2d-1-seeded.txt
+new file mode 100644
+index 0000000..de3a141
+--- /dev/null
++++ b/docs/screens/2026-10-21-backup-before-attempt1/d2d-1-seeded.txt
+@@ -0,0 +1,20 @@
++bd4e61a169613b2e611a19d488976f48  CE:databases/privacy_history.db
++d41d8cd98f00b204e9800998ecf8427e  CE:databases/privacy_history.db-journal
++da65c0a0a1e30f9b758617d536d51c52  CE:files/datastore/maintenance_prefs.preferences_pb
++d41d8cd98f00b204e9800998ecf8427e  CE:files/datastore/quick_win_dismissals.preferences_pb
++d41d8cd98f00b204e9800998ecf8427e  CE:files/datastore/sdk_scan_prefs.preferences_pb
++d41d8cd98f00b204e9800998ecf8427e  CE:files/datastore/trusted_apps_prefs.preferences_pb
++7b94863f3091b449e6ab04d44cb372a0  CE:files/marker_file.txt
++d27e8dd00282abdc3312032e9ae74866  CE:files/profileInstalled
++7b94863f3091b449e6ab04d44cb372a0  CE:marker_root.txt
++74a007d502c9e0fd6d6500f97e3f1ecf  CE:shared_prefs/ad_id_prefs.xml
++abd1dde3a957c9303121e4af90d04c71  CE:shared_prefs/details_view_prefs.xml
++f5bf2e145f09c1e21956795868b9eb81  CE:shared_prefs/onboarding_prefs.xml
++b2e415f0dbb6347ba3697ccc218d34c9  CE:shared_prefs/privacy_tip_history.xml
++e2ffb5d7fe4948022e7424eab1359d5f  CE:shared_prefs/score_history.xml
++e86dee13caa60a549fcd14cda09682b8  CE:shared_prefs/whats_new_prefs.xml
++6bc0424756c5a693da0ff5edfb979d90  CE:shared_prefs/widget_preferences.xml
++7b94863f3091b449e6ab04d44cb372a0  DE:databases/marker_de.db
++7b94863f3091b449e6ab04d44cb372a0  DE:files/marker_de_file.txt
++7b94863f3091b449e6ab04d44cb372a0  DE:marker_de_root.txt
++7e6c7e6f9a6d704849bb03face0f6a69  DE:shared_prefs/marker_de_pref.xml
+diff --git a/docs/screens/2026-10-21-backup-before-attempt1/d2d-2-cleared.txt b/docs/screens/2026-10-21-backup-before-attempt1/d2d-2-cleared.txt
+new file mode 100644
+index 0000000..e69de29
+diff --git a/docs/screens/2026-10-21-backup-before-attempt1/d2d-3-restored.txt b/docs/screens/2026-10-21-backup-before-attempt1/d2d-3-restored.txt
+new file mode 100644
+index 0000000..e69de29
+diff --git a/docs/screens/2026-10-21-backup-before-attempt1/final-real-data.txt b/docs/screens/2026-10-21-backup-before-attempt1/final-real-data.txt
+new file mode 100644
+index 0000000..fb71e94
+--- /dev/null
++++ b/docs/screens/2026-10-21-backup-before-attempt1/final-real-data.txt
+@@ -0,0 +1,11 @@
++bd4e61a169613b2e611a19d488976f48  CE:databases/privacy_history.db
++d41d8cd98f00b204e9800998ecf8427e  CE:databases/privacy_history.db-journal
++da65c0a0a1e30f9b758617d536d51c52  CE:files/datastore/maintenance_prefs.preferences_pb
++d27e8dd00282abdc3312032e9ae74866  CE:files/profileInstalled
++74a007d502c9e0fd6d6500f97e3f1ecf  CE:shared_prefs/ad_id_prefs.xml
++abd1dde3a957c9303121e4af90d04c71  CE:shared_prefs/details_view_prefs.xml
++f5bf2e145f09c1e21956795868b9eb81  CE:shared_prefs/onboarding_prefs.xml
++b2e415f0dbb6347ba3697ccc218d34c9  CE:shared_prefs/privacy_tip_history.xml
++e2ffb5d7fe4948022e7424eab1359d5f  CE:shared_prefs/score_history.xml
++e86dee13caa60a549fcd14cda09682b8  CE:shared_prefs/whats_new_prefs.xml
++6bc0424756c5a693da0ff5edfb979d90  CE:shared_prefs/widget_preferences.xml
+diff --git a/docs/screens/2026-10-21-backup-before-attempt1/launch.png b/docs/screens/2026-10-21-backup-before-attempt1/launch.png
+new file mode 100644
+index 0000000..a79303c
+Binary files /dev/null and b/docs/screens/2026-10-21-backup-before-attempt1/launch.png differ
+diff --git a/docs/screens/2026-10-21-backup-before/cloud-1-seeded.txt b/docs/screens/2026-10-21-backup-before/cloud-1-seeded.txt
+new file mode 100644
+index 0000000..de3a141
+--- /dev/null
++++ b/docs/screens/2026-10-21-backup-before/cloud-1-seeded.txt
+@@ -0,0 +1,20 @@
++bd4e61a169613b2e611a19d488976f48  CE:databases/privacy_history.db
++d41d8cd98f00b204e9800998ecf8427e  CE:databases/privacy_history.db-journal
++da65c0a0a1e30f9b758617d536d51c52  CE:files/datastore/maintenance_prefs.preferences_pb
++d41d8cd98f00b204e9800998ecf8427e  CE:files/datastore/quick_win_dismissals.preferences_pb
++d41d8cd98f00b204e9800998ecf8427e  CE:files/datastore/sdk_scan_prefs.preferences_pb
++d41d8cd98f00b204e9800998ecf8427e  CE:files/datastore/trusted_apps_prefs.preferences_pb
++7b94863f3091b449e6ab04d44cb372a0  CE:files/marker_file.txt
++d27e8dd00282abdc3312032e9ae74866  CE:files/profileInstalled
++7b94863f3091b449e6ab04d44cb372a0  CE:marker_root.txt
++74a007d502c9e0fd6d6500f97e3f1ecf  CE:shared_prefs/ad_id_prefs.xml
++abd1dde3a957c9303121e4af90d04c71  CE:shared_prefs/details_view_prefs.xml
++f5bf2e145f09c1e21956795868b9eb81  CE:shared_prefs/onboarding_prefs.xml
++b2e415f0dbb6347ba3697ccc218d34c9  CE:shared_prefs/privacy_tip_history.xml
++e2ffb5d7fe4948022e7424eab1359d5f  CE:shared_prefs/score_history.xml
++e86dee13caa60a549fcd14cda09682b8  CE:shared_prefs/whats_new_prefs.xml
++6bc0424756c5a693da0ff5edfb979d90  CE:shared_prefs/widget_preferences.xml
++7b94863f3091b449e6ab04d44cb372a0  DE:databases/marker_de.db
++7b94863f3091b449e6ab04d44cb372a0  DE:files/marker_de_file.txt
++7b94863f3091b449e6ab04d44cb372a0  DE:marker_de_root.txt
++7e6c7e6f9a6d704849bb03face0f6a69  DE:shared_prefs/marker_de_pref.xml
+diff --git a/docs/screens/2026-10-21-backup-before/cloud-2-cleared.txt b/docs/screens/2026-10-21-backup-before/cloud-2-cleared.txt
+new file mode 100644
+index 0000000..e69de29
+diff --git a/docs/screens/2026-10-21-backup-before/cloud-3-restored.txt b/docs/screens/2026-10-21-backup-before/cloud-3-restored.txt
+new file mode 100644
+index 0000000..f4065c1
+--- /dev/null
++++ b/docs/screens/2026-10-21-backup-before/cloud-3-restored.txt
+@@ -0,0 +1,12 @@
++7b94863f3091b449e6ab04d44cb372a0  CE:files/marker_file.txt
++d27e8dd00282abdc3312032e9ae74866  CE:files/profileInstalled
++7b94863f3091b449e6ab04d44cb372a0  CE:marker_root.txt
++abd1dde3a957c9303121e4af90d04c71  CE:shared_prefs/details_view_prefs.xml
++f5bf2e145f09c1e21956795868b9eb81  CE:shared_prefs/onboarding_prefs.xml
++b2e415f0dbb6347ba3697ccc218d34c9  CE:shared_prefs/privacy_tip_history.xml
++e86dee13caa60a549fcd14cda09682b8  CE:shared_prefs/whats_new_prefs.xml
++6bc0424756c5a693da0ff5edfb979d90  CE:shared_prefs/widget_preferences.xml
++7b94863f3091b449e6ab04d44cb372a0  DE:databases/marker_de.db
++7b94863f3091b449e6ab04d44cb372a0  DE:files/marker_de_file.txt
++7b94863f3091b449e6ab04d44cb372a0  DE:marker_de_root.txt
++7e6c7e6f9a6d704849bb03face0f6a69  DE:shared_prefs/marker_de_pref.xml
+diff --git a/docs/screens/2026-10-21-backup-before/d2d-1-seeded.txt b/docs/screens/2026-10-21-backup-before/d2d-1-seeded.txt
+new file mode 100644
+index 0000000..de3a141
+--- /dev/null
++++ b/docs/screens/2026-10-21-backup-before/d2d-1-seeded.txt
+@@ -0,0 +1,20 @@
++bd4e61a169613b2e611a19d488976f48  CE:databases/privacy_history.db
++d41d8cd98f00b204e9800998ecf8427e  CE:databases/privacy_history.db-journal
++da65c0a0a1e30f9b758617d536d51c52  CE:files/datastore/maintenance_prefs.preferences_pb
++d41d8cd98f00b204e9800998ecf8427e  CE:files/datastore/quick_win_dismissals.preferences_pb
++d41d8cd98f00b204e9800998ecf8427e  CE:files/datastore/sdk_scan_prefs.preferences_pb
++d41d8cd98f00b204e9800998ecf8427e  CE:files/datastore/trusted_apps_prefs.preferences_pb
++7b94863f3091b449e6ab04d44cb372a0  CE:files/marker_file.txt
++d27e8dd00282abdc3312032e9ae74866  CE:files/profileInstalled
++7b94863f3091b449e6ab04d44cb372a0  CE:marker_root.txt
++74a007d502c9e0fd6d6500f97e3f1ecf  CE:shared_prefs/ad_id_prefs.xml
++abd1dde3a957c9303121e4af90d04c71  CE:shared_prefs/details_view_prefs.xml
++f5bf2e145f09c1e21956795868b9eb81  CE:shared_prefs/onboarding_prefs.xml
++b2e415f0dbb6347ba3697ccc218d34c9  CE:shared_prefs/privacy_tip_history.xml
++e2ffb5d7fe4948022e7424eab1359d5f  CE:shared_prefs/score_history.xml
++e86dee13caa60a549fcd14cda09682b8  CE:shared_prefs/whats_new_prefs.xml
++6bc0424756c5a693da0ff5edfb979d90  CE:shared_prefs/widget_preferences.xml
++7b94863f3091b449e6ab04d44cb372a0  DE:databases/marker_de.db
++7b94863f3091b449e6ab04d44cb372a0  DE:files/marker_de_file.txt
++7b94863f3091b449e6ab04d44cb372a0  DE:marker_de_root.txt
++7e6c7e6f9a6d704849bb03face0f6a69  DE:shared_prefs/marker_de_pref.xml
+diff --git a/docs/screens/2026-10-21-backup-before/d2d-2-cleared.txt b/docs/screens/2026-10-21-backup-before/d2d-2-cleared.txt
+new file mode 100644
+index 0000000..e69de29
+diff --git a/docs/screens/2026-10-21-backup-before/d2d-3-restored.txt b/docs/screens/2026-10-21-backup-before/d2d-3-restored.txt
+new file mode 100644
+index 0000000..f4065c1
+--- /dev/null
++++ b/docs/screens/2026-10-21-backup-before/d2d-3-restored.txt
+@@ -0,0 +1,12 @@
++7b94863f3091b449e6ab04d44cb372a0  CE:files/marker_file.txt
++d27e8dd00282abdc3312032e9ae74866  CE:files/profileInstalled
++7b94863f3091b449e6ab04d44cb372a0  CE:marker_root.txt
++abd1dde3a957c9303121e4af90d04c71  CE:shared_prefs/details_view_prefs.xml
++f5bf2e145f09c1e21956795868b9eb81  CE:shared_prefs/onboarding_prefs.xml
++b2e415f0dbb6347ba3697ccc218d34c9  CE:shared_prefs/privacy_tip_history.xml
++e86dee13caa60a549fcd14cda09682b8  CE:shared_prefs/whats_new_prefs.xml
++6bc0424756c5a693da0ff5edfb979d90  CE:shared_prefs/widget_preferences.xml
++7b94863f3091b449e6ab04d44cb372a0  DE:databases/marker_de.db
++7b94863f3091b449e6ab04d44cb372a0  DE:files/marker_de_file.txt
++7b94863f3091b449e6ab04d44cb372a0  DE:marker_de_root.txt
++7e6c7e6f9a6d704849bb03face0f6a69  DE:shared_prefs/marker_de_pref.xml
+diff --git a/docs/screens/2026-10-21-backup-before/final-real-data.txt b/docs/screens/2026-10-21-backup-before/final-real-data.txt
+new file mode 100644
+index 0000000..fb71e94
+--- /dev/null
++++ b/docs/screens/2026-10-21-backup-before/final-real-data.txt
+@@ -0,0 +1,11 @@
++bd4e61a169613b2e611a19d488976f48  CE:databases/privacy_history.db
++d41d8cd98f00b204e9800998ecf8427e  CE:databases/privacy_history.db-journal
++da65c0a0a1e30f9b758617d536d51c52  CE:files/datastore/maintenance_prefs.preferences_pb
++d27e8dd00282abdc3312032e9ae74866  CE:files/profileInstalled
++74a007d502c9e0fd6d6500f97e3f1ecf  CE:shared_prefs/ad_id_prefs.xml
++abd1dde3a957c9303121e4af90d04c71  CE:shared_prefs/details_view_prefs.xml
++f5bf2e145f09c1e21956795868b9eb81  CE:shared_prefs/onboarding_prefs.xml
++b2e415f0dbb6347ba3697ccc218d34c9  CE:shared_prefs/privacy_tip_history.xml
++e2ffb5d7fe4948022e7424eab1359d5f  CE:shared_prefs/score_history.xml
++e86dee13caa60a549fcd14cda09682b8  CE:shared_prefs/whats_new_prefs.xml
++6bc0424756c5a693da0ff5edfb979d90  CE:shared_prefs/widget_preferences.xml
+diff --git a/docs/screens/2026-10-21-backup-before/launch.png b/docs/screens/2026-10-21-backup-before/launch.png
+new file mode 100644
+index 0000000..d86e2a0
+Binary files /dev/null and b/docs/screens/2026-10-21-backup-before/launch.png differ
+diff --git a/docs/specs/TEMPLATE.md b/docs/specs/TEMPLATE.md
+new file mode 100644
+index 0000000..30cda94
+--- /dev/null
++++ b/docs/specs/TEMPLATE.md
+@@ -0,0 +1,45 @@
++# <Feature> — spec
++
++Run type: implementation run / read-only design run / release run. Branch: `<prefix>/<name>` (from `master`).
++
++## Goal
++
++<One or two sentences: what the user gets, or what bug stops happening.>
++
++## Scope
++
++**In:**
++- <change>
++
++**Out:**
++- <thing that looks related but is not part of this run>
++
++## Oliver's calls
++
++Build the default and report it under **Found**. Once Oliver decides, record the decision and the date here.
++
++| Question | Default |
++|---|---|
++| <question> | <default> |
++
++## Invariants
++
++The standing invariants are in `docs/reviews/REVIEW_PROMPT.md`; do not repeat them here. List only those specific to this run.
++They become items 8+ of the external review prompt.
++
++1. <invariant>
++
++## Milestones
++
++Each gate must pass on a running build (Pixel 8, via the `device-verify` subagent where a device is involved).
++
++| # | Milestone | Gate (evidence that proves it) |
++|---|---|---|
++| 1 | <milestone> | <command / screenshot / test, and the expected result> |
++
++## STOP points
++
++| When | What Oliver does |
++|---|---|
++| After the diff review, before merge | Runs the external review (see CLAUDE.md, External review) and saves the findings file. |
++| <when> | <what> |
+diff --git a/docs/specs/backup-exclusions.md b/docs/specs/backup-exclusions.md
+new file mode 100644
+index 0000000..3d591a2
+--- /dev/null
++++ b/docs/specs/backup-exclusions.md
+@@ -0,0 +1,137 @@
++# Backup exclusions — spec
++
++Run type: implementation run. Branch: `fix/backup-exclusions` (from `master`, 2026-10-21).
++
++## Goal
++
++No Privamatic app data leaves the device through Android backup: neither cloud backup (Google, Seedvault, any transport)
++nor device-to-device (D2D) transfer, on every Android version from minSdk 26 to targetSdk 35 and beyond.
++
++## Scope
++
++**In:**
++- `AndroidManifest.xml`: `android:allowBackup`.
++- `res/xml/data_extraction_rules.xml` (Android 12+) and `res/xml/backup_rules.xml` (Android 11 and lower).
++- A JVM test that parses both rule files and checks they exclude every domain, and that `<device-transfer>` mirrors `<cloud-backup>`.
++- CONVENTIONS.md "Android Auto Backup exclusions" rule, updated to the decision.
++
++**Out:**
++- Any in-app export or import of the trusted list or settings (a possible future replacement for backup; see Found).
++- A custom `BackupAgent`.
++- `<cross-platform-transfer platform="ios">` (Android 16 QPR2+): it needs an iOS app's `bundleId` and `teamId`, and Privamatic has none.
++
++## Oliver's calls
++
++| Question | Default |
++|---|---|
++| What exactly is excluded from backup and D2D? | ~~What CONVENTIONS.md intends: Ad ID data and score history, done correctly in both rules files.~~ **Decided by Oliver (2026-10-21): exclude everything.** Score history, trusted list, settings, Ad ID data, caches, all of it. Ideally the app is not backed up at all. |
++
++## Findings before changing code (2026-10-21)
++
++**Manifest** (`app/src/main/AndroidManifest.xml:13-15`): `allowBackup="true"`, `dataExtractionRules="@xml/data_extraction_rules"`,
++`fullBackupContent="@xml/backup_rules"`. minSdk 26, targetSdk 35 (`app/build.gradle.kts:14-15`). No `backupAgent`.
++
++**On-disk stores**: the code names them, and the Pixel 8 listing confirms them (`run-as … find . -type f`, debug v1.5.1):
++
++| Store | API | On-disk file | Excluded on `master`? |
++|---|---|---|---|
++| Score history chart | Room | `databases/privacy_history.db` (+ `-journal`, TRUNCATE mode) | yes (database) |
++| Daily baseline / delta | SharedPreferences | `shared_prefs/score_history.xml` | `sharedpref path="score_history"` (no `.xml`) |
++| Ad ID confirmation | SharedPreferences | `shared_prefs/ad_id_prefs.xml` | `sharedpref path="ad_id_prefs"` (no `.xml`) |
++| Maintenance state | DataStore | `files/datastore/maintenance_prefs.preferences_pb` | yes |
++| SDK scan cache | DataStore | `files/datastore/sdk_scan_prefs.preferences_pb` | yes |
++| Trusted list | DataStore | `files/datastore/trusted_apps_prefs.preferences_pb` | yes |
++| Quick-win dismissals | DataStore | `files/datastore/quick_win_dismissals.preferences_pb` | yes |
++| Onboarding done | SharedPreferences | `shared_prefs/onboarding_prefs.xml` | **no** |
++| What's new seen | SharedPreferences | `shared_prefs/whats_new_prefs.xml` | **no** |
++| Details view choice | SharedPreferences | `shared_prefs/details_view_prefs.xml` | **no** |
++| Widget opacity | SharedPreferences | `shared_prefs/widget_preferences.xml` | **no** |
++| Tips shown | SharedPreferences | `shared_prefs/privacy_tip_history.xml` | **no** |
++| Baseline profile marker | AndroidX | `files/profileInstalled` | **no** |
++| Room lock, Skia cache | — | `cache/…`, `user_de/…/cache/…` | auto-excluded (cache) |
++
++**CONVENTIONS.md** (Security & Privacy, "Android Auto Backup exclusions") lists only `ad_id_prefs` and `maintenance_prefs`.
++It is behind the rule files, which since `b9e7adb` also exclude the SDK cache, the trusted list, quick-win dismissals and score history.
++
++**Platform behaviour.** Docs were fetched 2026-10-21; the AOSP source is a hypothesis until a device shows it.
++- developer.android.com, Android 12 behaviour changes: for apps targeting 31+, the `fullBackupContent` rules do not affect D2D.
++  The same goes for `allowBackup="false"`, which "on devices from some device manufacturers … doesn't disable D2D transfers".
++  D2D needs `<device-transfer>` in `dataExtractionRules`. Once `dataExtractionRules` is set, `fullBackupContent` is ignored on 12+,
++  but it is "still required for devices running Android 11 or lower".
++- Auto Backup guide: a mode with no section (for example, `<device-transfer>` missing) "is fully enabled for all content
++  except for `no-backup` and `cache` directories". Paths take no wildcards; `"."` is the domain directory. There are nine domains:
++  `root file database sharedpref external device_root device_file device_database device_sharedpref`.
++- AOSP `FullBackup.parseRules` (main): a `sharedpref` path without `.xml` also gets the `.xml` variant added, for exclude as well as
++  include. A `database` path also gets `-journal` and `-wal`. **So the suspected missing-`.xml` bug may not exist.** The before-run decides.
++- AOSP `BackupAgent.onFullBackup`: each domain is walked as its own tree; `root` skips the `files`, `databases` and `shared_prefs` subtrees.
++  An exclude prunes a tree only on an exact canonical-path match. **So `exclude root "."` alone would not cover the `files`,
++  `databases` and `shared_prefs` domains: each domain needs its own `"."` exclude.**
++- The Pixel 8 offers `com.android.localtransport/.LocalTransport`. The LocalTransport parameter `is_device_transfer=true`
++  (`Settings.Secure.BACKUP_LOCAL_TRANSPORT_PARAMETERS`, AOSP `LocalTransportParameters`) makes it report the D2D transport flag.
++  That simulates a D2D transfer on one device, with no data leaving it.
++
++**Before-run on `master`'s build** (device-verify, Pixel 8, LocalTransport; evidence in `docs/screens/2026-10-21-backup-before/`):
++- 20 files seeded: the real app data plus markers in root, `files`, and the four device-protected domains. `backupnow` → package `Success`.
++  `pm clear` → 0 files. `bmgr restore 1` → **12 files came back** with identical md5.
++- Back on restore: `onboarding_prefs`, `whats_new_prefs`, `details_view_prefs`, `widget_preferences`, `privacy_tip_history`,
++  `files/profileInstalled`, `files/marker_file.txt`, `marker_root.txt`, and all four device-protected markers.
++- Not carried: `privacy_history.db` (+`-journal`), all four DataStore files (trusted list included), `score_history.xml`, `ad_id_prefs.xml`.
++- D2D mode (`is_device_transfer=true`): an identical result.
++- **So the suspected missing-`.xml` bug does not exist.** The excludes without `.xml` work, as the AOSP parser predicted.
++  Measured against Oliver's decision, the bug is the 12 files above: settings, plus anything outside the listed stores, and all device-protected storage.
++- Attempt 1 broke: `backupnow` said "Backup is not allowed" because `pm clear` leaves the package stopped (`dumpsys`: `stopped=true`).
++  The fix was `pm unstop` after seeding. Evidence: `docs/screens/2026-10-21-backup-before-attempt1/`.
++
++## Design
++
++1. `android:allowBackup="false"`. This disables cloud backup on all versions, and D2D on Android 11 and lower.
++2. `data_extraction_rules.xml`: `<cloud-backup>` and `<device-transfer>` each exclude all nine domains with `path="."`, and nothing is included.
++   This covers D2D on 12+, where `allowBackup` is ignored for apps targeting 31+.
++   It also covers any 12+ transport that ignores `allowBackup`.
++3. `backup_rules.xml`: the same nine excludes. On Android 11 and lower, `allowBackup="false"` already blocks everything;
++   the legacy rules are a second layer in case an OEM or transport ignores it.
++
++## Invariants (run-specific; review items 8+)
++
++8. With this change, no file the app writes reaches a backup or D2D transport: no domain is left out in either section,
++   and the legacy file covers the same domains.
++9. `<device-transfer>` excludes exactly the same domains as `<cloud-backup>`; a unit test enforces it.
++10. Nothing else changes: no code, no store names, no Room schema. Existing on-device data is untouched by the upgrade.
++
++## Milestones
++
++| # | Milestone | Gate |
++|---|---|---|
++| 1 | Bug shown on `master`'s build | device-verify, Pixel 8, LocalTransport: seed → `backupnow` → `pm clear` → `restore`. Files that should be excluded come back. Repeat in D2D mode (`is_device_transfer=true`). |
++| 2 | Fix | Manifest + both rule files per Design; `compileDebugKotlin` OK. |
++| 3 | Rules test | `BackupRulesTest` (JVM, parses both XML files): every domain excluded with `"."`, `<device-transfer>` == `<cloud-backup>`, legacy == cloud. `testDebugUnitTest --rerun` green. |
++| 4 | Fix proven | device-verify on the branch build: cloud mode, `bmgr backupnow` reports the package not eligible or backs up nothing, and after `pm clear` + `restore` no seeded file comes back. D2D mode: nothing seeded comes back. Launch and Details screen unaffected (screenshot). |
++| 5 | Legacy rules (API ≤ 30) | COULD NOT VERIFY on a device: the Pixel 8 is Android 17 and ignores `fullBackupContent`. Covered by the milestone 3 test. |
++| 6 | Real D2D (second phone) | COULD NOT VERIFY: needs two devices. Covered by the milestone 4 D2D-mode run and the milestone 3 test. |
++
++## Results (2026-10-21)
++
++- [x] 1: see "Before-run" above. 12 of 20 seeded files came back in both cloud and D2D mode.
++- [x] 2: `compileDebugKotlin` OK, `assembleRelease` OK, and `lintVitalRelease` raised nothing on the rule files.
++- [x] 3: `BackupRulesTest` failed 4 of 6 on `master`'s rules, before the fix: cloud, device-transfer, legacy, manifest.
++      After the fix: all of `testDebugUnitTest --rerun` passes, 17 suites, 152 tests, 0 failures.
++- [x] 4: after-run on the branch build. device-verify, Pixel 8, fresh APK 19:32:38. Evidence in `docs/screens/2026-10-21-backup-after/`.
++  - Package flags `[ DEBUGGABLE HAS_CODE ALLOW_CLEAR_USER_DATA ]`: no `ALLOW_BACKUP`.
++  - Cloud: `bmgr backupnow` → "Backup is not allowed", even though seeding printed `stopped=false`; 0 `file_backup_helper` lines.
++    `bmgr restore 1` → `restoreStarting: 0 packages`.
++  - D2D: the backup agent is bound (D2D ignores `allowBackup`) but writes **0 files**. The transport then rejects the empty stream
++    ("Transport rejected package…", PFTBT −1002). The restore covers only `@pm@`.
++  - Both modes: **none of the 20 seeded files came back** (`grep -Fxf` seeded vs restored: no match).
++  - The restored lists hold 2 files that the app wrote itself: `profileInstalled` and `score_history.xml`, both with md5 different from the seed.
++    A `PrivacyWidgetProvider` broadcast restarted the app after `pm clear` (logcat `Start proc … for broadcast`).
++    They are not backup data.
++  - Dashboard and Details render normally with real data (`dashboard-real-data.png`, `details.png`); the crash buffer is empty.
++- [ ] 5 and 6: COULD NOT VERIFY, as planned. The legacy rules on Android 11 and lower, and a real two-phone D2D transfer.
++      Both are covered by `BackupRulesTest`; D2D is also covered by the LocalTransport D2D-mode run.
++
++## STOP points
++
++| When | What Oliver does |
++|---|---|
++| After the diff review, before merge | Runs the external review round 1 in Cursor and saves `docs/reviews/fix-backup-exclusions-findings-1.md`. |
++| Before release | Agrees the F-Droid changelog line (trusted apps and settings no longer move to a new phone). |
+diff --git a/docs/state-archive/2026-10.md b/docs/state-archive/2026-10.md
+index 6d78a40..b1dc903 100644
+--- a/docs/state-archive/2026-10.md
++++ b/docs/state-archive/2026-10.md
+@@ -2,6 +2,34 @@
+ 
+ Newest first. Moved unedited from `STATE.md`.
+ 
++### 2026-10-20 — Default Launcher row copy (`fix/launcher-row-copy` → `master`)
++
++- [x] Investigation: the exact reported text, "Using **Pixel Launcher** (unknown, 0 pts)", has not occurred since v1.5.0.
++  - `f8221e1` classifies `com.google.android.apps.nexuslauncher` as invasive, so the row shows "Using Pixel Launcher" with −2.
++  - Evidence: `git tag --contains f8221e1` → v1.5.0, v1.5.1.
++  - The leak was still live on `master` for any launcher on neither list (`DefaultAppsChecker.kt:378`), so I fixed it.
++- [x] Fix: the unknown branch now uses `fmt_launcher_not_rated` ("Using %s — not rated yet") via `context.getString`.
++      The row's Info icon and missing chip already say "unknown" and "no deduction".
++- [x] Gate: `compileDebugKotlin` OK; `testDebugUnitTest --rerun`: 16 suites, 146 tests, 0 failures; `assembleDebug` OK.
++- [x] Device, Pixel 8: a throwaway resource-only HOME stub (`org.example.teststub.home`, label "Test Home", built in the scratchpad) was set as the HOME role holder.
++  - Cold start → Details → Default Apps shows "Default Launcher / Using Test Home — not rated yet", with the Info icon and no chip.
++  - Evidence: `docs/screens/2026-10-20-launcher-row-not-rated.png` and a `uiautomator` dump.
++  - Afterwards the HOME role was set back to Pixel Launcher and the stub uninstalled; `resolve-activity` confirms.
++  - Settings `FallbackHome` was tried first and doesn't work: at priority −1000, `resolveActivity` ignores it.
++- [x] Diff reviewed against `master`: no blockers. The launcher Quick Win reads `currentStatus` only when `!isSecure`, and the unknown branch is secure.
++- [ ] Not verified: the stock Pixel Launcher row with this build. That branch is unchanged.
++
++### 2026-10-20 — STATE and CONVENTIONS fixes (`chore/state-and-conventions` → `master`)
++
++- [x] STATE settings-file note corrected: a pull *and* a switch to any pre-`c837e59` branch overwrite or delete the untracked file.
++      The guard-hook item gains a switch check.
++- [x] CONVENTIONS.md Design Constraints gains two Compose rules from the deleted `docs/QUICK_REFERENCE.md`:
++  - `Modifier` is the last parameter, with a default;
++  - composables are stateless, with state hoisted.
++
++  Evidence: `git show d1fb5ce^:docs/QUICK_REFERENCE.md`, lines 15, 26 and 28.
++- [x] Docs only, so there is no build gate. Diff reviewed against `master`: no blockers. Merged with `--no-ff`.
++
+ ### 2026-10-20 — workflow setup, round 2: rulebook cleanup and merge (`chore/workflow-setup` → `master`)
+ 
+ - [x] `.cursorrules` replaced with a 3-line pointer to CONVENTIONS.md: read it before any edit, never push.
