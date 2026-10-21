@@ -27,7 +27,8 @@ The main session checks your evidence before it accepts any verdict, so report r
 
 Run from the repo root. Skip a step only if the prompt says so (for example "use the APK already built").
 
-1. **Build.**
+1. **Build.** First `date`, then delete the old APK so Gradle must package a new one even when its inputs are unchanged:
+   `rm -f app/build/outputs/apk/debug/app-debug.apk`
    `JAVA_HOME=/home/techtresthome/.local/share/jdk/temurin-21 ./gradlew :app:assembleDebug`
    Then confirm the APK is fresh: `ls -l --time-style=full-iso app/build/outputs/apk/debug/app-debug.apk` and `date`.
    The APK's mtime must be after the build started. If it isn't, the verdict for the whole run is FAIL (stale APK).
