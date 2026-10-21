@@ -13,7 +13,9 @@ The Claude Code workflow files are merged into local `master` with `--no-ff`. Th
 - the inventory.
 
 CONVENTIONS.md is the single rulebook: `.cursorrules` now points to it, and the duplicate docs are deleted.
-The guard hook is merged into local `master` but not yet live-tested (see Guard hook below). There is no verify subagent yet.
+The guard hook is merged into local `master` and passed its live smoke test (see Next).
+`master` now also has a spec template, a `device-verify` subagent and an external-review step (CLAUDE.md), all merged from `fix/backup-exclusions`.
+`device-verify` is registered only in sessions started after it was committed. Until then, a general-purpose agent reads its file.
 `.claude/settings.local.json` is untracked since `c837e59`, so a `git pull` on the Framework laptop, or a switch to any
 pre-`c837e59` branch, overwrites or deletes it. Back it up first. The guard hook now denies such switches.
 
@@ -25,14 +27,18 @@ pre-`c837e59` branch, overwrites or deletes it. Back it up first. The guard hook
 - [ ] **`QuickWinsDetector.extractAppName` parses UI copy** (`removePrefix("Using ")`). This breaks once the
       `Using …` statuses are localised. Pass the app name as a field instead.
 - [x] **Guard hook.** Done; see Runs and Guard hook below.
-- [ ] **Guard hook live smoke test** (Oliver, next session): the steps are in the 2026-10-20 guard-hook run.
-      It also covers "allow and deny rules match as intended in a live session", still open from the workflow-setup run.
-- [ ] **Backup-rules fix.** Gate: run `bmgr` on the Pixel 8 before and after the change. Check that:
-  - [ ] the `sharedpref` excludes `ad_id_prefs` and `score_history` lack `.xml` and may match nothing;
-  - [ ] `backup_rules.xml` excludes `-shm` / `-wal` (it doesn't yet);
-  - [ ] `data_extraction_rules.xml` (Android 12+, both `<cloud-backup>` and `<device-transfer>`) gets the same fix;
-  - [ ] the score-history chart lives in Room (`privacy_history.db`), so its exclude must use `domain="database"`, not `sharedpref`.
-        The `score_history` sharedpref holds only the daily baseline and delta.
+- [x] **Guard hook live smoke test** (2026-10-20, live session): all 11 checks matched as intended: 5 deny, 3 ask,
+      1 silent allow on the Pixel 9. `.claude/hook.log` had 8 lines afterwards, one per deny and ask.
+      This also closes "allow and deny rules match as intended in a live session" from the workflow-setup run.
+      Side effect: `adb devices` starts the adb daemon if it isn't running. That is harmless, but it means a
+      "first" adb call is never fully read-only on the host.
+- [x] **Backup-rules fix.** Merged into local `master` with `--no-ff` after external review round 1 (no findings); see Runs. The four suspicions:
+  - [x] The missing `.xml` was **not** a bug: on `master`, `ad_id_prefs.xml` and `score_history.xml` stayed out of backup (device, before-run).
+  - [x] `-shm` / `-wal`: moot. The whole database domain is now excluded, and Room uses TRUNCATE mode, so the files never exist.
+  - [x] Both `<cloud-backup>` and `<device-transfer>` are fixed, mirrored, and enforced by `BackupRulesTest`.
+  - [x] Room was already excluded with `domain="database"` on `master` (device, before-run).
+- [ ] **Legacy-rules and real-D2D check** (optional): run the same bmgr cycle on an API 30 emulator, and do one phone-to-phone transfer.
+- [ ] **Release note for the backup change** (Oliver agrees the text): trusted apps and settings no longer move to a new phone.
 
 ## Guard hook
 
@@ -76,6 +82,31 @@ None open.
 
 ## Runs
 
+### 2026-10-21 — workflow pieces + backup exclusions (`fix/backup-exclusions` → `master`)
+
+- [x] Workflow, one commit each: `docs/specs/TEMPLATE.md`, `.claude/agents/device-verify.md`, `docs/reviews/REVIEW_PROMPT.md` (verbatim),
+      and the CLAUDE.md "External review" section (119 lines).
+  - device-verify now deletes the old APK before `assembleDebug`. Otherwise an UP-TO-DATE build fails the freshness check (`111791a`).
+- [x] Spec `docs/specs/backup-exclusions.md`. Oliver decided on 2026-10-21: no app data in backup or D2D.
+      Findings, design, platform sources and results are recorded there.
+- [x] Before-run (master's app, Pixel 8, LocalTransport): 12 of 20 seeded files came back, identically in cloud mode and in D2D mode (`is_device_transfer=true`).
+  - Those 12: settings prefs, `profileInstalled`, root and `files` markers, and all device-protected storage.
+  - Room, DataStore, `ad_id_prefs` and `score_history` stayed out, so the `.xml` theory is disproven.
+  - Attempt 1 broke on "Backup is not allowed": `pm clear` leaves the app stopped. The fix was `pm unstop`.
+- [x] Fix: `allowBackup="false"`; all nine domains excluded with `"."` in both sections and in the legacy file. CONVENTIONS rule rewritten.
+- [x] `BackupRulesTest` fails 4/6 on master's rules, passes after. `testDebugUnitTest --rerun`: 17 suites, 152 tests, 0 failures.
+      `compileDebugKotlin` OK; `assembleRelease` + `lintVitalRelease` OK.
+- [x] After-run (branch build, fresh APK): no `ALLOW_BACKUP` flag.
+  - Cloud: "Backup is not allowed", 0 packages restored.
+  - D2D: the agent is bound but writes 0 files; the transport rejects the empty stream.
+  - No seeded file came back in either mode. Two app-written files appear: a widget broadcast restarted the app; their md5 differs from the seed.
+  - Details screen OK. Evidence is in `docs/screens/2026-10-21-backup-*`.
+- [ ] COULD NOT VERIFY: legacy rules (needs Android 11 or lower) and a real two-phone D2D. Covered by the test and the D2D-mode run.
+- [x] Own diff review: no blockers. Review files written: `docs/reviews/fix-backup-exclusions.diff` and `docs/reviews/fix-backup-exclusions-prompt-1.md`.
+- [x] External review round 1 (Cursor, non-Claude): no findings, with file:line evidence for all 10 invariants (spot-checked).
+      Weakest point: runtime coverage on API ≤ 30 and on a real two-phone D2D (see Next). Processing notes are in `docs/reviews/fix-backup-exclusions-findings-1.md`.
+- [x] Pre-merge gate re-run: `compileDebugKotlin` OK; `testDebugUnitTest --rerun` 17 suites, 152 tests, 0 failures. Merged with `--no-ff`; not pushed.
+
 ### 2026-10-20 — guard hook (`chore/guard-hook` → `master`)
 
 - [x] Hook contract confirmed from the official docs; see Guard hook.
@@ -88,31 +119,3 @@ None open.
 - [x] STATE.md: the three oldest runs moved to `docs/state-archive/2026-10.md`.
 - [ ] Not verified live: the hook in a real Claude Code session. Hooks load on a new session, and Oliver runs the smoke test (Next).
       No device commands were run; the adb rules are tested only through `test-hook.sh`.
-
-### 2026-10-20 — Default Launcher row copy (`fix/launcher-row-copy` → `master`)
-
-- [x] Investigation: the exact reported text, "Using **Pixel Launcher** (unknown, 0 pts)", has not occurred since v1.5.0.
-  - `f8221e1` classifies `com.google.android.apps.nexuslauncher` as invasive, so the row shows "Using Pixel Launcher" with −2.
-  - Evidence: `git tag --contains f8221e1` → v1.5.0, v1.5.1.
-  - The leak was still live on `master` for any launcher on neither list (`DefaultAppsChecker.kt:378`), so I fixed it.
-- [x] Fix: the unknown branch now uses `fmt_launcher_not_rated` ("Using %s — not rated yet") via `context.getString`.
-      The row's Info icon and missing chip already say "unknown" and "no deduction".
-- [x] Gate: `compileDebugKotlin` OK; `testDebugUnitTest --rerun`: 16 suites, 146 tests, 0 failures; `assembleDebug` OK.
-- [x] Device, Pixel 8: a throwaway resource-only HOME stub (`org.example.teststub.home`, label "Test Home", built in the scratchpad) was set as the HOME role holder.
-  - Cold start → Details → Default Apps shows "Default Launcher / Using Test Home — not rated yet", with the Info icon and no chip.
-  - Evidence: `docs/screens/2026-10-20-launcher-row-not-rated.png` and a `uiautomator` dump.
-  - Afterwards the HOME role was set back to Pixel Launcher and the stub uninstalled; `resolve-activity` confirms.
-  - Settings `FallbackHome` was tried first and doesn't work: at priority −1000, `resolveActivity` ignores it.
-- [x] Diff reviewed against `master`: no blockers. The launcher Quick Win reads `currentStatus` only when `!isSecure`, and the unknown branch is secure.
-- [ ] Not verified: the stock Pixel Launcher row with this build. That branch is unchanged.
-
-### 2026-10-20 — STATE and CONVENTIONS fixes (`chore/state-and-conventions` → `master`)
-
-- [x] STATE settings-file note corrected: a pull *and* a switch to any pre-`c837e59` branch overwrite or delete the untracked file.
-      The guard-hook item gains a switch check.
-- [x] CONVENTIONS.md Design Constraints gains two Compose rules from the deleted `docs/QUICK_REFERENCE.md`:
-  - `Modifier` is the last parameter, with a default;
-  - composables are stateless, with state hoisted.
-
-  Evidence: `git show d1fb5ce^:docs/QUICK_REFERENCE.md`, lines 15, 26 and 28.
-- [x] Docs only, so there is no build gate. Diff reviewed against `master`: no blockers. Merged with `--no-ff`.
