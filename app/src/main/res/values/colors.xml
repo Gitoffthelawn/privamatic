@@ -14,6 +14,10 @@
     <color name="widget_primary_text">#FFFDD0</color>      <!-- Cream from Color.kt -->
     <color name="widget_secondary_text">#FFFDD0</color>    <!-- Cream from Color.kt -->
     <color name="widget_divider">#FFFDD0</color>           <!-- Cream from Color.kt (icon tint) -->
-    <color name="widget_privacy_increase">#0B4619</color>  <!-- British Racing Green / primary -->
-    <color name="widget_privacy_decrease">#BA1A1A</color>  <!-- MD3 error red -->
+
+    <!-- No-background style (widget_privacy_no_background), all API levels: light text with a
+         dark shadow, like launcher labels. Score and change tints are set in code (WidgetStyle). -->
+    <color name="widget_no_background_text">#FFFFFF</color>
+    <color name="widget_text_shadow">#CC000000</color>
+    <color name="widget_icon_outline">#B3000000</color>
 </resources>

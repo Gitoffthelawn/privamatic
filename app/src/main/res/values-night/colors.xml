@@ -3,13 +3,10 @@
     <!-- Widget colors – dark mode static fallback (API 26–30).
          Uses app dark theme colours: DarkBackground (#1C1B1F) with Cream text
          (#FFFDD0), matching the app's dark ColorScheme (onBackground = Cream).
-         API 31+ dark mode is overridden by values-night-v31/colors.xml using
-         Material You dynamic tokens. -->
+         API 31+ uses layout-night-v31/widget_privacy.xml with Material You tokens. -->
 
     <color name="widget_background">#1C1B1F</color>        <!-- DarkBackground from Color.kt -->
     <color name="widget_primary_text">#FFFDD0</color>      <!-- Cream from Color.kt -->
     <color name="widget_secondary_text">#FFFDD0</color>    <!-- Cream from Color.kt -->
     <color name="widget_divider">#FFFDD0</color>           <!-- Cream from Color.kt (icon tint) -->
-    <color name="widget_privacy_increase">#4CAF50</color>  <!-- Lighter green for dark mode -->
-    <color name="widget_privacy_decrease">#F44336</color>  <!-- Lighter red for dark mode -->
 </resources>

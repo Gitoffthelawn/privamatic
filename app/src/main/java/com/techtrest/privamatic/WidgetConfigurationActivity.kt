@@ -56,7 +56,8 @@ class WidgetConfigurationActivity : ComponentActivity() {
             return
         }
 
-        val currentOpacity = WidgetPreferences.getOpacity(this, appWidgetId)
+        // Show what the widget draws: a stored value below the card minimum shows as the minimum.
+        val currentOpacity = WidgetStyle.effectiveOpacity(WidgetPreferences.getOpacity(this, appWidgetId))
 
         setContent {
             PrivacyWidgetTheme {
@@ -124,7 +125,11 @@ private fun WidgetConfigurationScreen(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = stringResource(R.string.fmt_widget_opacity, opacity.roundToInt()),
+            text = if (opacity == WidgetStyle.NO_BACKGROUND) {
+                stringResource(R.string.label_widget_no_background)
+            } else {
+                stringResource(R.string.fmt_widget_opacity, opacity.roundToInt())
+            },
             style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onBackground
         )
@@ -133,8 +138,8 @@ private fun WidgetConfigurationScreen(
 
         Slider(
             value = opacity,
-            onValueChange = { opacity = it },
-            valueRange = 0f..100f,
+            onValueChange = { opacity = WidgetStyle.snapSliderValue(it) },
+            valueRange = WidgetStyle.NO_BACKGROUND..WidgetStyle.MAX_OPACITY,
             steps = 0,
             modifier = Modifier.fillMaxWidth()
         )

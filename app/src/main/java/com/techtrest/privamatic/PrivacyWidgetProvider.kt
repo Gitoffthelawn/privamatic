@@ -110,6 +110,7 @@ class PrivacyWidgetProvider : AppWidgetProvider() {
                         deviceName = deviceName,
                         osName = osName,
                         scoreText = score.toString(),
+                        rating = rating,
                         ratingText = ratingText,
                         scoreDelta = scoreDelta,
                         showDelta = showPrivacyChange
@@ -127,6 +128,7 @@ class PrivacyWidgetProvider : AppWidgetProvider() {
                         deviceName = deviceName,
                         osName = osName,
                         scoreText = "--",
+                        rating = null,
                         ratingText = "—",
                         scoreDelta = null,
                         showDelta = false
@@ -149,66 +151,70 @@ class PrivacyWidgetProvider : AppWidgetProvider() {
         deviceName: String,
         osName: String,
         scoreText: String,
+        rating: PrivacyScoreCalculator.ScoreRating?,
         ratingText: String,
         scoreDelta: Int?,
         showDelta: Boolean
     ) {
-        val views = RemoteViews(context.packageName, R.layout.widget_privacy)
+        // Stored values below the card minimum draw as the minimum; 0 is the no-background style.
+        val opacity = WidgetStyle.effectiveOpacity(WidgetPreferences.getOpacity(context, appWidgetId))
+        val noBackground = opacity == WidgetStyle.NO_BACKGROUND
+        val views = RemoteViews(
+            context.packageName,
+            if (noBackground) R.layout.widget_privacy_no_background else R.layout.widget_privacy
+        )
 
         views.setTextViewText(R.id.widget_device_name, deviceName)
         views.setTextViewText(R.id.widget_os_name, osName)
         views.setTextViewText(R.id.widget_score_value, scoreText)
         views.setTextViewText(R.id.widget_score_rating, ratingText)
 
-        // Handle privacy change indicator.
-        // Uses two separate TextViews (up/down) with XML-defined colors so that
-        // theme changes (light↔dark) always resolve the correct color from
-        // resource qualifiers, avoiding stale programmatic setTextColor values.
+        val isIncrease = scoreDelta != null && scoreDelta > 0
         if (showDelta && scoreDelta != null) {
-            val isIncrease = scoreDelta > 0
-            val changeText = if (isIncrease) {
-                context.getString(R.string.fmt_widget_delta_up, abs(scoreDelta))
-            } else {
-                context.getString(R.string.fmt_widget_delta_down, abs(scoreDelta))
-            }
-
-            if (isIncrease) {
-                views.setTextViewText(R.id.widget_privacy_change_up, changeText)
-                views.setViewVisibility(R.id.widget_privacy_change_up, View.VISIBLE)
-                views.setViewVisibility(R.id.widget_privacy_change_down, View.GONE)
-            } else {
-                views.setTextViewText(R.id.widget_privacy_change_down, changeText)
-                views.setViewVisibility(R.id.widget_privacy_change_down, View.VISIBLE)
-                views.setViewVisibility(R.id.widget_privacy_change_up, View.GONE)
-            }
+            val changeText = context.resources.getQuantityString(
+                if (isIncrease) R.plurals.plural_widget_delta_up else R.plurals.plural_widget_delta_down,
+                abs(scoreDelta),
+                abs(scoreDelta)
+            )
+            views.setTextViewText(R.id.widget_score_delta, changeText)
+            views.setViewVisibility(R.id.widget_score_delta, View.VISIBLE)
         } else {
-            views.setViewVisibility(R.id.widget_privacy_change_up, View.GONE)
-            views.setViewVisibility(R.id.widget_privacy_change_down, View.GONE)
+            views.setViewVisibility(R.id.widget_score_delta, View.GONE)
         }
+        val scoreColors = rating?.let { WidgetStyle.scoreColors(it) }
+        val deltaColors = WidgetStyle.deltaColors(isIncrease)
 
-        // Apply per-widget opacity to background only (text/icons stay fully opaque)
-        val opacity = WidgetPreferences.getOpacity(context, appWidgetId)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            views.setFloat(R.id.widget_background, "setAlpha", opacity / 100f)
-        } else {
-            views.setInt(R.id.widget_background, "setImageAlpha", ((opacity / 100f) * 255).toInt())
-        }
-
-        // On Android 11 and below (API < 31), android:theme on non-root RemoteViews
-        // views is not properly supported and can cause RemoteViews inflation failure
-        // on some builds (e.g. LineageOS on older hardware), showing "Problem loading
-        // widget". The android:theme attribute has been removed from the base layout,
-        // and here we explicitly apply static brand colours (Cream text) so the widget
-        // is always readable regardless of the device's theme engine or colour resolution.
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
-            val cream = Cream.toArgb()
-            views.setTextColor(R.id.widget_device_name, cream)
-            views.setTextColor(R.id.widget_os_name, cream)
-            views.setTextColor(R.id.widget_score_value, cream)
-            views.setTextColor(R.id.widget_score_rating, cream)
-            // Change indicators: use light colours visible on the dark BRG/dark background
-            views.setTextColor(R.id.widget_privacy_change_up, WIDGET_POSITIVE_COLOR)
-            views.setTextColor(R.id.widget_privacy_change_down, WIDGET_NEGATIVE_COLOR)
+        when {
+            // No card: the layout's own white text and shadow; tints use the light-on-dark values.
+            noBackground -> {
+                scoreColors?.let { views.setTextColor(R.id.widget_score_value, it.second) }
+                views.setTextColor(R.id.widget_score_delta, deltaColors.second)
+            }
+            // API 31+: opacity on the background layer only. Colours come as light/dark pairs so
+            // the launcher picks the right one when the theme changes, without a new update.
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+                views.setFloat(R.id.widget_background, "setAlpha", opacity / 100f)
+                scoreColors?.let {
+                    views.setColorInt(R.id.widget_score_value, "setTextColor", it.first, it.second)
+                }
+                views.setColorInt(R.id.widget_score_delta, "setTextColor", deltaColors.first, deltaColors.second)
+            }
+            // On Android 11 and below (API < 31), android:theme on non-root RemoteViews
+            // views is not properly supported and can cause RemoteViews inflation failure
+            // on some builds (e.g. LineageOS on older hardware), showing "Problem loading
+            // widget". The android:theme attribute has been removed from the base layout,
+            // and here we explicitly apply static brand colours (Cream text) so the widget
+            // is always readable regardless of the device's theme engine or colour resolution.
+            // The card is dark in both themes, so the tints use the light-on-dark values.
+            else -> {
+                views.setInt(R.id.widget_background, "setImageAlpha", ((opacity / 100f) * 255).toInt())
+                val cream = Cream.toArgb()
+                views.setTextColor(R.id.widget_device_name, cream)
+                views.setTextColor(R.id.widget_os_name, cream)
+                views.setTextColor(R.id.widget_score_value, scoreColors?.second ?: cream)
+                views.setTextColor(R.id.widget_score_rating, cream)
+                views.setTextColor(R.id.widget_score_delta, deltaColors.second)
+            }
         }
 
         val launchIntent = Intent(context, MainActivity::class.java).apply {
@@ -245,10 +251,6 @@ class PrivacyWidgetProvider : AppWidgetProvider() {
 
         /** 48 hours in milliseconds - privacy change expiry time. */
         private const val CHANGE_EXPIRY_MS = 172_800_000L
-
-        // Static colors for pre-Android 12 widgets where RemoteViews cannot resolve theme colors
-        private val WIDGET_POSITIVE_COLOR = 0xFFA5D6A7.toInt()
-        private val WIDGET_NEGATIVE_COLOR = 0xFFEF9A9A.toInt()
 
         /**
          * Registers an inexact 6-hour repeating alarm.

@@ -56,3 +56,6 @@ devcheck_decompiled/
 .aider.chat.history.md
 .aider.input.history
 .aider.tags.cache.v4/
+
+# Full device screenshots stay local; only cropped key images are committed
+docs/screens/*/raw/

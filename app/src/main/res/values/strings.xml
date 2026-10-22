@@ -927,7 +927,8 @@
     <string name="label_whats_new_dismiss">Dismiss what\'s new</string>
 
     <string name="label_widget_config_title">Widget appearance</string>
-    <string name="label_widget_opacity_min">0%</string>
+    <string name="label_widget_opacity_min">None</string>
+    <string name="label_widget_no_background">No background</string>
     <string name="label_widget_opacity_max">100%</string>
     <string name="label_widget_cancel">Cancel</string>
     <string name="label_widget_save">Save</string>
@@ -939,8 +940,6 @@
     <string name="fmt_about_version">Version %s</string>
     <string name="fmt_score_delta_up">↑%d pts</string>
     <string name="fmt_score_delta_down">↓%d pts</string>
-    <string name="fmt_widget_delta_up">↑%d</string>
-    <string name="fmt_widget_delta_down">↓%d</string>
     <string name="fmt_cd_collapse">Collapse %s</string>
     <string name="fmt_cd_expand">Expand %s</string>
     <string name="fmt_review_period">Review every %d days</string>
@@ -967,6 +966,14 @@
     <!-- ============================================================ -->
     <!-- PLURALS -->
     <!-- ============================================================ -->
+    <plurals name="plural_widget_delta_up">
+        <item quantity="one">↑%d pt</item>
+        <item quantity="other">↑%d pts</item>
+    </plurals>
+    <plurals name="plural_widget_delta_down">
+        <item quantity="one">↓%d pt</item>
+        <item quantity="other">↓%d pts</item>
+    </plurals>
     <plurals name="plural_days_remaining">
         <item quantity="one">1 day remaining</item>
         <item quantity="other">%d days remaining</item>
