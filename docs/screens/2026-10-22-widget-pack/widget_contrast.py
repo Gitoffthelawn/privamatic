@@ -1,6 +1,7 @@
 """WCAG contrast of every widget on one home-screen shot (several widgets, top to bottom).
 
 Usage: python3 -I widget_contrast.py <png> <ui.xml> <label,label,...> <wp> <theme> [<mask.png>]
+       python3 -I widget_contrast.py --spacing <png> <ui.xml> <label,label,...>
 Labels name the widgets from top to bottom: an opacity in percent ("76") or "0" for the
 no-background style. Method as docs/screens/2026-10-21-widget-readability/contrast.py:
 per element box, the glyph mask is every pixel far from the box's median colour, the text colour
@@ -126,7 +127,42 @@ def bare_rows(img, w, ref):
     return rows
 
 
+def ink_columns(img, box):
+    """x range of the drawn pixels (glyphs or icon) inside an element box, in screen pixels."""
+    x1, y1, x2, y2 = box
+    crop = img[y1:y2, x1:x2]
+    med = np.median(crop.reshape(-1, 3), axis=0)
+    dist = np.linalg.norm(crop - med, axis=2)
+    cols = np.where((dist > max(12.0, 0.25 * dist.max())).any(axis=0))[0]
+    return (x1 + cols.min(), x1 + cols.max()) if len(cols) else None
+
+
+def spacing(png, ui, labels, density=2.625):
+    """Per card widget: inner margin at the start (to the device block's first ink) and at the end
+    (from the score group's last ink), the shield's offset from the card's centre line, and the
+    gaps around the shield, all from the drawn pixels."""
+    img = np.asarray(Image.open(png).convert("RGB"), dtype=float)
+    ws = widgets(Path(ui).read_text(errors="replace"))
+    print("| Widget | Start margin | End margin | End − start | Shield centre − card centre | Device block → shield | Shield → score group |")
+    print("|---|---|---|---|---|---|---|")
+    for label, w in zip(labels, ws):
+        rx1, _, rx2, _ = w["widget_root"]
+        ink = {rid: ink_columns(img, w[rid]) for rid in ELEMENTS if rid in w}
+        ink = {k: v for k, v in ink.items() if v}
+        start = min(ink[r][0] for r in ("widget_device_name", "widget_os_name") if r in ink)
+        left_end = max(ink[r][1] for r in ("widget_device_name", "widget_os_name") if r in ink)
+        group = [ink[r] for r in ("widget_score_value", "widget_score_delta", "widget_score_rating") if r in ink]
+        g0, g1 = min(a for a, _ in group), max(b for _, b in group)
+        sh0, sh1 = ink["widget_divider"]
+        dp = lambda px: f"{px / density:.1f} dp"
+        print(f"| {label} | {dp(start - rx1)} | {dp(rx2 - 1 - g1)} | {dp((rx2 - 1 - g1) - (start - rx1))} | "
+              f"{dp((sh0 + sh1) / 2 - (rx1 + rx2 - 1) / 2)} | {dp(sh0 - left_end)} | {dp(g0 - sh1)} |")
+
+
 def main():
+    if sys.argv[1] == "--spacing":
+        spacing(sys.argv[2], sys.argv[3], sys.argv[4].split(","))
+        return
     png, ui, labels = Path(sys.argv[1]), Path(sys.argv[2]), sys.argv[3].split(",")
     wp, th = sys.argv[4], sys.argv[5]
     img = np.asarray(Image.open(png).convert("RGB"), dtype=float)

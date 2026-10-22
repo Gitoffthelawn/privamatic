@@ -40,10 +40,8 @@ pre-`c837e59` branch, overwrites or deletes it. Back it up first. The guard hook
 - [ ] **Legacy-rules and real-D2D check** (optional): run the same bmgr cycle on an API 30 emulator, and do one phone-to-phone transfer.
 - [ ] **Release note for the backup change** (Oliver agrees the text): trusted apps and settings no longer move to a new phone.
 - [x] **Widget readability: design run.** Paper `docs/decisions/widget-readability.md`; see Runs.
-- [ ] **Widget readability + widget pack: implementation run** (`feat/widget-pack`, option B, Oliver 2026-10-22). Device gate passed;
-      waiting for external review round 1 (see Runs).
-- [ ] **No-background widget on light wallpapers is hard to read** (White: 1.4–1.6:1 even with the shadow). Follow-up: dark text when
-      the wallpaper reports `HINT_SUPPORTS_DARK_TEXT`, as Pixel Launcher does. Needs Oliver's go.
+- [ ] **Widget readability + widget pack: implementation run** (`feat/widget-pack`). **Paused 2026-10-22** on the font-scale-2.0
+      layout question (Open questions). Then: regenerate the review diff and prompt, and stop at external review (see Runs).
 - [ ] **Widget opacity on Android 8–11 probably does nothing** (`setImageAlpha` on a background-only `ImageView`). Hypothesis; needs an API 30 emulator.
 - [ ] **device-verify ran its sweep from a scratchpad script**, which hides each adb call from the guard hook. The commands matched the prompt, Pixel 8 only.
       Consider a line in the agent file: "run commands inline, never from a script file".
@@ -86,20 +84,26 @@ It is the real guard. The allow and deny lists are a convenience.
 
 ## Open questions for Oliver
 
-- Widget pack: the defaults under "Oliver's calls" in `docs/specs/widget-pack.md` (no-background tints, slider snapping).
+- **Widget layout at font scale 2.0** (blocks the widget pack). Oliver wants the shield centred in the card (2026-10-22). Round D on the
+  Pixel 8 (4×1 widget, 980 px wide):
+  - Normal size: shield centre 0.2 dp from the card centre; start and end inner margins 24.4 / 24.4 dp; nothing cut.
+  - Font 2.0: each half is about 135 dp. Shown: "53 ↑6 …", "47 ↓6 …", "Needs Att…", "Stock And…" (end margin 44 / 29 dp, because the
+    group fills its half). Nothing clipped vertically, no overlap. TalkBack still reads the full text.
+  - Options: (1) keep the centred shield and accept "…" at 2.0 (recommended); (2) shield 16dp before the score group (round C layout:
+    at 2.0 the score group fits, the device name takes the "…", e.g. "Pix…" with Needs Attention); (3) centred shield, score row and
+    rating shrink to fit their half: the group then starts right after the shield at every size, and the change colour needs another
+    technique (one more device round).
 
 ## Runs
 
-### 2026-10-22 — widget readability + widget pack (`feat/widget-pack`, at external review)
+### 2026-10-22 — widget readability + widget pack (`feat/widget-pack`, paused)
 
 - [x] Spec `docs/specs/widget-pack.md` (option B; minimum measured, not guessed).
 - [x] Model (paper's tone model, all text 4.5:1, icon 3:1, photo/White/Black): the binding colours are the dark-theme tints
       (`#93D5AA`/`#A3CDDB`/`#FFB4AB`: 4.43 at 75 %, 4.58 at 76 %), then light teal/red (4.53 at 75 %). Model minimum: **76 %**.
-- [x] Code: `WidgetStyle` (clamp on read, slider snap, tints), provider picks the card or no-background layout,
-      `setColorInt` day/night pairs for score and change, stronger tokens, plurals "↑1 pt"/"↓6 pts" at 20sp bold, two-column layout
-      with an auto-sizing change, `resizeMode` + vertical. `values-night-v31/colors.xml` deleted: all six entries unused
-      (the v31 layouts referenced `system_*` tokens directly; the two change colours are now set in code).
-- [x] `compileDebugKotlin` OK; `testDebugUnitTest --rerun`: 19 suites, 172 tests, 0 failures (`WidgetStyleTest`: 12 new).
+- [x] Code: `WidgetStyle` (clamp on read, tints), card or no-background layout, `setColorInt` day/night pairs for score and change,
+      stronger tokens, plurals "↑1 pt"/"↓6 pts" at 20sp bold, `resizeMode` + vertical. `values-night-v31/colors.xml` deleted
+      (all six entries unused).
 - [x] Device, Pixel 8, round A (device-verify, fresh APK, a measurement build with the minimum temporarily at 70, never committed):
       widgets 17–21 at 70/75/76/100/0 on photo/White/Black × light/dark.
   - 75 % fails: the dark Fair score `#A3CDDB` on White reaches 4.43. At 76 % everything passes; the weakest is that score at 4.57 (model 4.58).
@@ -113,8 +117,24 @@ It is the real guard. The allow and deny lists are a convenience.
       Light theme, font 1.0, Private DNS unset. The debug app's widget and score-history prefs were rewritten from their pre-run copies.
       The lock-screen wallpaper was never changed.
 - [x] Evidence: spec Measurements, `docs/screens/2026-10-22-widget-pack/` (measurements.md, 3 cropped images, 224 KB; raw shots stay local).
-- [x] `compileDebugKotlin` OK; `testDebugUnitTest --rerun`: 19 suites, 172 tests, 0 failures (final source).
-- [ ] Not verified on a device: API 26–30 (legacy card; no API 30 emulator) and green as a *score* tint (it was measured as the ↑ colour).
+- [x] Oliver's decisions 2026-10-22 (in the spec): no background must pass on light wallpapers via the wallpaper hint; a "Show background"
+      switch + 76–100 % slider; agreed changelog; layout with the score group at the end, then the shield centred in the card.
+- [x] Platform facts (SDK `api-versions.xml`, `javap`): the dark-text hint is public from API 31 (= 1); `ACTION_WALLPAPER_CHANGED`
+      can't reach a manifest receiver, so a new wallpaper shows at the next widget update. Below API 31: light text with shadow.
+- [x] Code: dark-text no-background layout (`#1C1B1F`, light glow, light-theme tints) chosen from `HINT_SUPPORTS_DARK_TEXT`;
+      `WidgetStyle.Settings` / `settingsFor` / `storedOpacity` behind the switch + slider; centred-shield layout (applied after round C).
+- [x] `compileDebugKotlin` OK; `testDebugUnitTest --rerun`: 19 suites, 177 tests, 0 failures (final source).
+- [x] Device round C (dark text, settings): **White now passes** (dark text 17.1, teal score 9.4, shield ≥ 8.9); Black 21. The photo stays weak
+      (no hint; white text 1.7 on a pale patch, 2.3–2.8 against the shadow). The glow changes nothing on White (17.13 either way), never
+      measured worse: kept. The text colour follows a new wallpaper only after the next update (seen on White and Black).
+      Switch off/on, slider 76–100, both Save paths and the 40 → 76 % clamp all pass. Round C ran with the interim layout.
+- [x] Device round D (centred layout): measurements in Open questions. Font scale 2.0 cuts text (open question).
+- [x] Pixel 8 at the end (2026-10-22, read-only check): font scale 1.0, light theme, Private DNS unset, home wallpaper the mountain photo,
+      test widgets removed. Oliver's own widget 22 (page 1) kept, its setting rewritten as 100 % and refreshed. The stale ids 14 and 15
+      disappeared during round C on their own. Round C's agent once joined two read-only `cat` calls with `;`.
+- [ ] Open: the font-2.0 decision; then regenerate `docs/reviews/feat-widget-pack.diff` and the round-1 prompt (add the invariant
+      "no-background text comes from the system wallpaper hint, never from widget-local pixels"), and stop at external review.
+- [ ] Not verified on a device: API 26–30 (no API 30 emulator) and green as a *score* tint (it was measured as the ↑ colour).
 
 ### 2026-10-21 — widget readability design run (`docs/widget-readability` → `master`)
 

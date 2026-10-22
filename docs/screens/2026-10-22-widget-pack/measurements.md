@@ -190,3 +190,34 @@ Widgets stored at 40 / 75 / 76 (all drawn at 76 %), 100 and 0. `python3 -I widge
 | black | dark | 76 % | change (20sp bold) | #93D5AA | #101421 | 10.79 | 10.79 | 4.5 | yes |
 | black | dark | 100 % | score (24sp bold) | #A3CDDB | #151B2C | 10.05 | 10.05 | 4.5 | yes |
 | black | dark | 100 % | change (20sp bold) | #93D5AA | #151B2C | 10.07 | 10.07 | 4.5 | yes |
+
+## Round C (2026-10-22): no background with the wallpaper hint
+
+Widgets top to bottom stored at 40 / 76 / 100 / 0. Glyph masks from `raw/c-black.png`. Light theme unless stated.
+
+| Wallpaper | Theme | Style | Element | Text/icon | Ring (median) | With glow/shadow, median | worst 5 % | Wallpaper (median) | Wallpaper, median | Wallpaper, worst 5 % | Min |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| photo | light | none | device name (18sp bold) | #FFFFFF | #A5998D | 2.78 | 1.89 | #D4C4B5 | 1.70 | 1.62 | 4.5 |
+| photo | light | none | OS name (14sp) | #FFFFFF | #ADA094 | 2.55 | 1.86 | #D4C4B5 | 1.70 | 1.62 | 4.5 |
+| photo | light | none | score (24sp bold) | #A3CDDB | #B3A698 | 1.40 | 1.04 | #D4C4B5 | 1.02 | 1.00 | 4.5 |
+| photo | light | none | rating (14sp) | #FFFFFF | #B8AA9B | 2.27 | 1.72 | #D4C4B5 | 1.70 | 1.62 | 4.5 |
+| photo | light | none | shield icon | #FFFFFF | #484644 | 9.40 | 2.07 | #D4C4B5 | 1.70 | 1.62 | 3.0 |
+| white | light | none | device name (18sp bold) | #1C1B1F | #FFFFFF | 17.13 | 17.13 | #FFFFFF | 17.13 | 17.13 | 4.5 |
+| white | light | none | OS name (14sp) | #1C1B1F | #FFFFFF | 17.13 | 17.13 | #FFFFFF | 17.13 | 17.13 | 4.5 |
+| white | light | none | score (24sp bold) | #224C58 | #FFFFFF | 9.36 | 9.36 | #FFFFFF | 9.36 | 9.36 | 4.5 |
+| white | light | none | rating (14sp) | #1C1B1F | #FFFFFF | 17.13 | 17.13 | #FFFFFF | 17.13 | 17.13 | 4.5 |
+| white | light | none | shield icon | #1C1B1F | #F8F8F8 | 16.06 | 8.93 | #FFFFFF | 17.13 | 17.13 | 3.0 |
+| black | light | none | device name (18sp bold) | #FFFFFF | #000000 | 21.00 | 21.00 | #000000 | 21.00 | 21.00 | 4.5 |
+| black | light | none | OS name (14sp) | #FFFFFF | #000000 | 21.00 | 21.00 | #000000 | 21.00 | 21.00 | 4.5 |
+| black | light | none | score (24sp bold) | #A3CDDB | #000000 | 12.31 | 12.31 | #000000 | 12.31 | 12.31 | 4.5 |
+| black | light | none | rating (14sp) | #FFFFFF | #000000 | 21.00 | 21.00 | #000000 | 21.00 | 21.00 | 4.5 |
+| black | light | none | shield icon | #FFFFFF | #080808 | 20.09 | 8.59 | #000000 | 21.00 | 21.00 | 3.0 |
+| white | dark | none | device name (18sp bold) | #1C1B1F | #FFFFFF | 17.13 | 17.13 | #FFFFFF | 17.13 | 17.13 | 4.5 |
+| white | dark | none | OS name (14sp) | #1C1B1F | #FFFFFF | 17.13 | 17.13 | #FFFFFF | 17.13 | 17.13 | 4.5 |
+| white | dark | none | score (24sp bold) | #224C58 | #FFFFFF | 9.36 | 9.36 | #FFFFFF | 9.36 | 9.36 | 4.5 |
+| white | dark | none | rating (14sp) | #1C1B1F | #FFFFFF | 17.13 | 17.13 | #FFFFFF | 17.13 | 17.13 | 4.5 |
+| white | dark | none | shield icon | #1C1B1F | #F8F8F8 | 16.06 | 8.93 | #FFFFFF | 17.13 | 17.13 | 3.0 |
+
+Stale state (Black wallpaper, before the widget update, dark text still showing): name 1.38 / OS 1.21 / score 1.47 / rating 1.18 against the glow ring, 1.23 / 1.23 / 2.24 / 1.23 against the wallpaper.
+
+Key images: `no-background-hint-sheet.png` (row 1: photo, White before update, White after; row 2: Black before update, Black after, White dark theme), `settings-switch-slider.png` (switch off / on, stored 40 shows 76 %, saving with the switch off).
