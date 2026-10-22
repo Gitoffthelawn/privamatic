@@ -52,25 +52,63 @@ class WidgetStyleTest {
         assertEquals(100f, WidgetStyle.effectiveOpacity(Float.NaN))
     }
 
-    // --- slider snap ---------------------------------------------------------------------
+    // --- settings screen: "Show background" switch + slider (minimum..100) ---------------
 
     @Test
-    fun snapSliderValue_lowerHalfIsNoBackground_upperHalfIsMinimum() {
-        assertEquals(0f, WidgetStyle.snapSliderValue(0f))
-        assertEquals(0f, WidgetStyle.snapSliderValue(MIN_CARD_OPACITY / 2 - 0.01f))
-        assertEquals(MIN_CARD_OPACITY, WidgetStyle.snapSliderValue(MIN_CARD_OPACITY / 2))
-        assertEquals(MIN_CARD_OPACITY, WidgetStyle.snapSliderValue(MIN_CARD_OPACITY - 0.01f))
-        assertEquals(MIN_CARD_OPACITY, WidgetStyle.snapSliderValue(MIN_CARD_OPACITY))
-        assertEquals(90f, WidgetStyle.snapSliderValue(90f))
-        assertEquals(100f, WidgetStyle.snapSliderValue(100f))
+    fun settingsFor_noBackground_switchOffSliderAt100() {
+        listOf(0f, 0.3f).forEach {
+            assertEquals("stored $it", WidgetStyle.Settings(false, 100f), WidgetStyle.settingsFor(it))
+        }
     }
 
     @Test
-    fun snapSliderValue_resultIsAlwaysDrawnAsIs() {
-        (0..100).forEach {
-            val snapped = WidgetStyle.snapSliderValue(it.toFloat())
-            assertEquals("slider $it", snapped, WidgetStyle.effectiveOpacity(snapped))
+    fun settingsFor_belowMinimum_switchOnSliderAtMinimum() {
+        listOf(1f, 40f, 75f).forEach {
+            assertEquals("stored $it", WidgetStyle.Settings(true, MIN_CARD_OPACITY), WidgetStyle.settingsFor(it))
         }
+    }
+
+    @Test
+    fun settingsFor_cardValues_shownAsStored() {
+        assertEquals(WidgetStyle.Settings(true, 88.5f), WidgetStyle.settingsFor(88.5f))
+        assertEquals(WidgetStyle.Settings(true, 100f), WidgetStyle.settingsFor(100f))
+    }
+
+    @Test
+    fun storedOpacity_switchOff_stores0WhateverTheSlider() {
+        listOf(MIN_CARD_OPACITY, 90f, 100f).forEach {
+            assertEquals(0f, WidgetStyle.storedOpacity(WidgetStyle.Settings(false, it)))
+        }
+    }
+
+    @Test
+    fun storedOpacity_switchOn_storesTheSliderWithinRange() {
+        assertEquals(MIN_CARD_OPACITY, WidgetStyle.storedOpacity(WidgetStyle.Settings(true, MIN_CARD_OPACITY)))
+        assertEquals(90f, WidgetStyle.storedOpacity(WidgetStyle.Settings(true, 90f)))
+        assertEquals(MIN_CARD_OPACITY, WidgetStyle.storedOpacity(WidgetStyle.Settings(true, 10f)))
+        assertEquals(100f, WidgetStyle.storedOpacity(WidgetStyle.Settings(true, 120f)))
+    }
+
+    /** Opening the screen and saving unchanged must draw the same widget as before. */
+    @Test
+    fun openAndSave_drawsTheSameWidget() {
+        listOf(-1f, 0f, 0.3f, 0.5f, 1f, 40f, 75.9f, 76f, 88.5f, 100f, 150f, Float.NaN).forEach {
+            val saved = WidgetStyle.storedOpacity(WidgetStyle.settingsFor(it))
+            assertEquals("stored $it", WidgetStyle.effectiveOpacity(it), WidgetStyle.effectiveOpacity(saved))
+        }
+    }
+
+    // --- no-background text colour from the wallpaper hint --------------------------------
+
+    @Test
+    fun darkText_onlyWithTheHintFromApi31() {
+        val dark = WidgetStyle.HINT_SUPPORTS_DARK_TEXT
+        assertTrue(WidgetStyle.noBackgroundUsesDarkText(31, dark))
+        assertTrue(WidgetStyle.noBackgroundUsesDarkText(37, dark or 2)) // with HINT_SUPPORTS_DARK_THEME
+        assertFalse(WidgetStyle.noBackgroundUsesDarkText(37, 2))
+        assertFalse(WidgetStyle.noBackgroundUsesDarkText(37, 0))
+        assertFalse(WidgetStyle.noBackgroundUsesDarkText(37, null))
+        assertFalse(WidgetStyle.noBackgroundUsesDarkText(30, dark))
     }
 
     // --- colours -------------------------------------------------------------------------
@@ -156,10 +194,12 @@ class WidgetStyleTest {
 
     /** The provider sends no alpha call in this style; a stray one would fail the whole widget. */
     @Test
-    fun noBackgroundLayout_hasNoBackgroundView() {
-        val ids = layoutIds("src/main/res/layout/widget_privacy_no_background.xml")
-        sharedIds.forEach { assertTrue("no-background layout lacks $it", it in ids) }
-        assertFalse(ids.contains("widget_background"))
+    fun noBackgroundLayouts_haveNoBackgroundView() {
+        listOf("widget_privacy_no_background", "widget_privacy_no_background_dark_text").forEach { name ->
+            val ids = layoutIds("src/main/res/layout/$name.xml")
+            sharedIds.forEach { assertTrue("$name lacks $it", it in ids) }
+            assertFalse("$name has widget_background", ids.contains("widget_background"))
+        }
     }
 
     // --- helpers -------------------------------------------------------------------------

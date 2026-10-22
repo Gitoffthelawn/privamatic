@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- No-background style on a wallpaper whose colour hints ask for dark text (API 31+,
+     WallpaperColors.HINT_SUPPORTS_DARK_TEXT), as Pixel Launcher does for its labels: dark text
+     with a light shadow. No widget_background view, so no alpha call goes to this layout. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <!-- Device block at the start, the shield centred in the card, the score group at the end.
+         Equal weights and equal 24dp paddings keep the shield on the card's centre line. Score and
+         change share one row inside the score group, so they never overlap at large font scales. -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="24dp"
+        android:paddingEnd="24dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/widget_device_name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Pixel 9"
+                android:textColor="@color/widget_no_background_dark_text"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:shadowColor="@color/widget_text_shadow_light"
+                android:shadowDx="0"
+                android:shadowDy="0"
+                android:shadowRadius="6" />
+
+            <TextView
+                android:id="@+id/widget_os_name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="GrapheneOS"
+                android:textColor="@color/widget_no_background_dark_text"
+                android:textSize="14sp"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:shadowColor="@color/widget_text_shadow_light"
+                android:shadowDx="0"
+                android:shadowDy="0"
+                android:shadowRadius="6" />
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/widget_divider"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="8dp"
+            android:src="@drawable/ic_widget_shield_no_background_dark_text"
+            android:contentDescription="@null" />
+
+        <!-- End column: pushes the score group to the end edge. -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="end"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/widget_score_value"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="85"
+                        android:textColor="@color/widget_no_background_dark_text"
+                        android:textSize="24sp"
+                        android:textStyle="bold"
+                        android:maxLines="1"
+                        android:ellipsize="end"
+                        android:shadowColor="@color/widget_text_shadow_light"
+                        android:shadowDx="0"
+                        android:shadowDy="0"
+                        android:shadowRadius="6" />
+
+                    <!-- Colour set in code: green for a rise, red for a drop. -->
+                    <TextView
+                        android:id="@+id/widget_score_delta"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/widget_no_background_dark_text"
+                        android:textSize="20sp"
+                        android:textStyle="bold"
+                        android:maxLines="1"
+                        android:ellipsize="end"
+                        android:layout_marginStart="4dp"
+                        android:shadowColor="@color/widget_text_shadow_light"
+                        android:shadowDx="0"
+                        android:shadowDy="0"
+                        android:shadowRadius="6"
+                        android:visibility="gone" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/widget_score_rating"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/score_rating_excellent_name"
+                    android:textColor="@color/widget_no_background_dark_text"
+                    android:textSize="14sp"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:shadowColor="@color/widget_text_shadow_light"
+                    android:shadowDx="0"
+                    android:shadowDy="0"
+                    android:shadowRadius="6" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+
+</FrameLayout>

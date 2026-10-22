@@ -20,4 +20,9 @@
     <color name="widget_no_background_text">#FFFFFF</color>
     <color name="widget_text_shadow">#CC000000</color>
     <color name="widget_icon_outline">#B3000000</color>
+    <!-- Dark-text variant (widget_privacy_no_background_dark_text): when the wallpaper's colour
+         hints ask for dark text, as Pixel Launcher reads them. -->
+    <color name="widget_no_background_dark_text">#1C1B1F</color>
+    <color name="widget_text_shadow_light">#CCFFFFFF</color>
+    <color name="widget_icon_outline_light">#B3FFFFFF</color>
 </resources>

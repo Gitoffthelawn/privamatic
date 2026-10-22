@@ -41,12 +41,29 @@ object WidgetStyle {
         else -> stored
     }
 
-    /** Slider positions between 0 and the minimum snap to the nearer of the two. */
-    fun snapSliderValue(value: Float): Float = when {
-        value < MIN_CARD_OPACITY / 2 -> NO_BACKGROUND
-        value < MIN_CARD_OPACITY -> MIN_CARD_OPACITY
-        else -> value.coerceAtMost(MAX_OPACITY)
+    /** What the settings screen shows: the "Show background" switch and the slider (MIN..MAX). */
+    data class Settings(val showBackground: Boolean, val opacity: Float)
+
+    /** Settings for a stored value; with no background the slider waits at 100 %. */
+    fun settingsFor(stored: Float): Settings {
+        val effective = effectiveOpacity(stored)
+        return if (effective == NO_BACKGROUND) Settings(false, MAX_OPACITY) else Settings(true, effective)
     }
+
+    /** The value the settings screen stores: 0 with the switch off, otherwise the slider value. */
+    fun storedOpacity(settings: Settings): Float =
+        if (settings.showBackground) settings.opacity.coerceIn(MIN_CARD_OPACITY, MAX_OPACITY) else NO_BACKGROUND
+
+    /**
+     * Dark text in the no-background style, as Pixel Launcher does for its labels, when the home
+     * wallpaper's colour hints ask for it. The hint is public from API 31; below that the style
+     * keeps light text with a shadow. [colorHints] is null when the wallpaper colours are unknown.
+     */
+    fun noBackgroundUsesDarkText(sdkInt: Int, colorHints: Int?): Boolean =
+        sdkInt >= 31 && colorHints != null && colorHints and HINT_SUPPORTS_DARK_TEXT != 0
+
+    /** WallpaperColors.HINT_SUPPORTS_DARK_TEXT (API 31), copied so the rule is testable on the JVM. */
+    const val HINT_SUPPORTS_DARK_TEXT = 1 shl 0
 
     /** Score tint as (light, dark), matching the app's ScoreCard hues. */
     fun scoreColors(rating: ScoreRating): Pair<Int, Int> = when (rating) {

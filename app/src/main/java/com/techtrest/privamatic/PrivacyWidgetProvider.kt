@@ -2,6 +2,7 @@ package com.techtrest.privamatic
 
 import android.app.AlarmManager
 import android.app.PendingIntent
+import android.app.WallpaperManager
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
@@ -97,6 +98,7 @@ class PrivacyWidgetProvider : AppWidgetProvider() {
                 val scoreHistoryRepository = ScoreHistoryRepository(context)
                 val scoreHistory = scoreHistoryRepository.recordScore(score)
                 val scoreDelta = scoreHistory.scoreDelta
+                val darkText = noBackgroundUsesDarkText(context)
                 val showPrivacyChange = scoreDelta != null &&
                         scoreDelta != 0 &&
                         scoreHistory.deltaFirstAppearedTimestamp != 0L &&
@@ -113,7 +115,8 @@ class PrivacyWidgetProvider : AppWidgetProvider() {
                         rating = rating,
                         ratingText = ratingText,
                         scoreDelta = scoreDelta,
-                        showDelta = showPrivacyChange
+                        showDelta = showPrivacyChange,
+                        darkText = darkText
                     )
                 }
             } catch (e: Exception) {
@@ -131,7 +134,8 @@ class PrivacyWidgetProvider : AppWidgetProvider() {
                         rating = null,
                         ratingText = "—",
                         scoreDelta = null,
-                        showDelta = false
+                        showDelta = false,
+                        darkText = noBackgroundUsesDarkText(context)
                     )
                 }
             } finally {
@@ -154,15 +158,18 @@ class PrivacyWidgetProvider : AppWidgetProvider() {
         rating: PrivacyScoreCalculator.ScoreRating?,
         ratingText: String,
         scoreDelta: Int?,
-        showDelta: Boolean
+        showDelta: Boolean,
+        darkText: Boolean
     ) {
         // Stored values below the card minimum draw as the minimum; 0 is the no-background style.
         val opacity = WidgetStyle.effectiveOpacity(WidgetPreferences.getOpacity(context, appWidgetId))
         val noBackground = opacity == WidgetStyle.NO_BACKGROUND
-        val views = RemoteViews(
-            context.packageName,
-            if (noBackground) R.layout.widget_privacy_no_background else R.layout.widget_privacy
-        )
+        val layout = when {
+            !noBackground -> R.layout.widget_privacy
+            darkText -> R.layout.widget_privacy_no_background_dark_text
+            else -> R.layout.widget_privacy_no_background
+        }
+        val views = RemoteViews(context.packageName, layout)
 
         views.setTextViewText(R.id.widget_device_name, deviceName)
         views.setTextViewText(R.id.widget_os_name, osName)
@@ -185,10 +192,13 @@ class PrivacyWidgetProvider : AppWidgetProvider() {
         val deltaColors = WidgetStyle.deltaColors(isIncrease)
 
         when {
-            // No card: the layout's own white text and shadow; tints use the light-on-dark values.
+            // No card: the layout's own text and shadow. Dark text on a light wallpaper takes the
+            // light-theme tints, light text the light-on-dark ones.
             noBackground -> {
-                scoreColors?.let { views.setTextColor(R.id.widget_score_value, it.second) }
-                views.setTextColor(R.id.widget_score_delta, deltaColors.second)
+                scoreColors?.let {
+                    views.setTextColor(R.id.widget_score_value, if (darkText) it.first else it.second)
+                }
+                views.setTextColor(R.id.widget_score_delta, if (darkText) deltaColors.first else deltaColors.second)
             }
             // API 31+: opacity on the background layer only. Colours come as light/dark pairs so
             // the launcher picks the right one when the theme changes, without a new update.
@@ -339,6 +349,25 @@ class PrivacyWidgetProvider : AppWidgetProvider() {
                 }
             }
             return false
+        }
+
+        /**
+         * Whether the no-background style uses dark text, read from the home wallpaper's colour
+         * hints like Pixel Launcher's labels. No broadcast reaches a manifest receiver when the
+         * wallpaper changes (ACTION_WALLPAPER_CHANGED is not exempt from the implicit-broadcast
+         * limits), so a new wallpaper shows from the next widget update.
+         */
+        private fun noBackgroundUsesDarkText(context: Context): Boolean {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return false
+            val hints = try {
+                WallpaperManager.getInstance(context)
+                    .getWallpaperColors(WallpaperManager.FLAG_SYSTEM)
+                    ?.colorHints
+            } catch (e: Exception) {
+                if (BuildConfig.DEBUG) Log.w(TAG, "Wallpaper colours unavailable", e)
+                null
+            }
+            return WidgetStyle.noBackgroundUsesDarkText(Build.VERSION.SDK_INT, hints)
         }
 
         private fun PrivacyScoreCalculator.ScoreRating.toShortLabel(context: Context): String = context.getString(this.displayName)
