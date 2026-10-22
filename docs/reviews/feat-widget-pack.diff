@@ -1,0 +1,2122 @@
+diff --git a/.gitignore b/.gitignore
+index 9e2463b..339f91d 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -56,3 +56,6 @@ devcheck_decompiled/
+ .aider.chat.history.md
+ .aider.input.history
+ .aider.tags.cache.v4/
++
++# Full device screenshots stay local; only cropped key images are committed
++docs/screens/*/raw/
+diff --git a/STATE.md b/STATE.md
+index a3d1dba..01c56be 100644
+--- a/STATE.md
++++ b/STATE.md
+@@ -40,8 +40,10 @@ pre-`c837e59` branch, overwrites or deletes it. Back it up first. The guard hook
+ - [ ] **Legacy-rules and real-D2D check** (optional): run the same bmgr cycle on an API 30 emulator, and do one phone-to-phone transfer.
+ - [ ] **Release note for the backup change** (Oliver agrees the text): trusted apps and settings no longer move to a new phone.
+ - [x] **Widget readability: design run.** Paper `docs/decisions/widget-readability.md`; see Runs.
+-- [ ] **Widget readability + widget pack: implementation run** (waits on Oliver's option pick). It covers the floor or the no-card style,
+-      the icon tint, the score tint, "↓N pts" and font scale 2.0. Gate: repeat the sweep with `contrast.py`. External review applies.
++- [ ] **Widget readability + widget pack: implementation run** (`feat/widget-pack`, option B, Oliver 2026-10-22). Device gate passed;
++      waiting for external review round 1 (see Runs).
++- [ ] **No-background widget on light wallpapers is hard to read** (White: 1.4–1.6:1 even with the shadow). Follow-up: dark text when
++      the wallpaper reports `HINT_SUPPORTS_DARK_TEXT`, as Pixel Launcher does. Needs Oliver's go.
+ - [ ] **Widget opacity on Android 8–11 probably does nothing** (`setImageAlpha` on a background-only `ImageView`). Hypothesis; needs an API 30 emulator.
+ - [ ] **device-verify ran its sweep from a scratchpad script**, which hides each adb call from the guard hook. The commands matched the prompt, Pixel 8 only.
+       Consider a line in the agent file: "run commands inline, never from a script file".
+@@ -84,10 +86,36 @@ It is the real guard. The allow and deny lists are a convenience.
+ 
+ ## Open questions for Oliver
+ 
+-- Widget readability: option A, B or C (recommended B), and the defaults table at the end of `docs/decisions/widget-readability.md`.
++- Widget pack: the defaults under "Oliver's calls" in `docs/specs/widget-pack.md` (no-background tints, slider snapping).
+ 
+ ## Runs
+ 
++### 2026-10-22 — widget readability + widget pack (`feat/widget-pack`, at external review)
++
++- [x] Spec `docs/specs/widget-pack.md` (option B; minimum measured, not guessed).
++- [x] Model (paper's tone model, all text 4.5:1, icon 3:1, photo/White/Black): the binding colours are the dark-theme tints
++      (`#93D5AA`/`#A3CDDB`/`#FFB4AB`: 4.43 at 75 %, 4.58 at 76 %), then light teal/red (4.53 at 75 %). Model minimum: **76 %**.
++- [x] Code: `WidgetStyle` (clamp on read, slider snap, tints), provider picks the card or no-background layout,
++      `setColorInt` day/night pairs for score and change, stronger tokens, plurals "↑1 pt"/"↓6 pts" at 20sp bold, two-column layout
++      with an auto-sizing change, `resizeMode` + vertical. `values-night-v31/colors.xml` deleted: all six entries unused
++      (the v31 layouts referenced `system_*` tokens directly; the two change colours are now set in code).
++- [x] `compileDebugKotlin` OK; `testDebugUnitTest --rerun`: 19 suites, 172 tests, 0 failures (`WidgetStyleTest`: 12 new).
++- [x] Device, Pixel 8, round A (device-verify, fresh APK, a measurement build with the minimum temporarily at 70, never committed):
++      widgets 17–21 at 70/75/76/100/0 on photo/White/Black × light/dark.
++  - 75 % fails: the dark Fair score `#A3CDDB` on White reaches 4.43. At 76 % everything passes; the weakest is that score at 4.57 (model 4.58).
++    The shield is now ≥ 4.57 everywhere. The launcher switched every colour on theme and wallpaper changes with no widget update.
++  - No background: Black 21:1; photo 3.0–4.0 against the shadow ring; **White 1.4–1.6 (fails)**.
++- [x] Device, round B (final build): stored 40/75/76 all draw the identical 76 % card, and the settings screen shows "Opacity: 76%".
++      47 Needs Attention in red with "↓6 pts", 53 Fair in teal with "↑6 pts" in green, in both themes (Private DNS `off`, then unset).
++      Font scale 2.0: score and change 21 px apart, nothing clipped. Crash buffer empty.
++- [x] Restored: test widgets removed (old invisible ids 14 and 15 left alone) and wallpaper back to the photo
++      (page 1 pixel-identical; page 2 differs only in a 59×16 px spot at the page indicator).
++      Light theme, font 1.0, Private DNS unset. The debug app's widget and score-history prefs were rewritten from their pre-run copies.
++      The lock-screen wallpaper was never changed.
++- [x] Evidence: spec Measurements, `docs/screens/2026-10-22-widget-pack/` (measurements.md, 3 cropped images, 224 KB; raw shots stay local).
++- [x] `compileDebugKotlin` OK; `testDebugUnitTest --rerun`: 19 suites, 172 tests, 0 failures (final source).
++- [ ] Not verified on a device: API 26–30 (legacy card; no API 30 emulator) and green as a *score* tint (it was measured as the ↑ colour).
++
+ ### 2026-10-21 — widget readability design run (`docs/widget-readability` → `master`)
+ 
+ - [x] Code: on API 31+ the text and icon use fixed Material You tones picked for the card at 100 %. The slider changes only the card's alpha.
+@@ -101,33 +129,3 @@ It is the real guard. The allow and deny lists are a convenience.
+ - [x] Restored: night mode "no". The wallpaper is Floating Himalayas again: crop hint identical, wallpaper area pixel-identical to the baseline (`c1`/`c7`).
+       The test widget was removed. Two older invisible instances (ids 14, 15) were left alone. The debug app's stale `widget_opacity_12` key was overwritten.
+ - [ ] Not verified: the ↑ (green) delta (the score only fell), and the Android 8–11 path (no API 30 emulator).
+-
+-### 2026-10-21 — default-app row copy (`fix/default-app-copy` → `master`)
+-
+-- [x] Investigation (code): on `master` the unknown branch of browser, SMS and email (`DefaultAppsChecker.kt:99/169/304`)
+-      showed "Using X (unknown, 0 pts)". It fires for any default app on neither list; the launcher was fixed already.
+-      On the Pixel 8 today none of them leaks: Chrome, Fossify Messages and Gmail are all rated (`cmd role get-role-holders`, `resolve-activity`).
+-- [x] Fix: the four rows (browser, SMS, email, launcher) take all their text from `strings.xml`: `fmt_default_app_using`,
+-      `fmt_default_app_not_rated` (replaces `fmt_launcher_not_rated`), `status_no_default_*`, `status_default_*_unknown`,
+-      `fmt_technical_package` and `fmt_technical_error`. The English text is unchanged except for the leak.
+-- [x] `PrivacyIssue.appName` carries the name; QuickWinsDetector reads it, and `extractAppName` is gone. Pure pass-through:
+-      every quick-win branch is `!isSecure`, where `appName` is the same name the old code parsed back out of "Using …".
+-- [x] Scoring unchanged: `DefaultAppsCheckerScoringTest` pins (isSecure, isUnknown, points) for every branch of the five default-app checks.
+-      It passed on the unchanged code first (baseline), then after the change. New tests cover the not-rated copy, `appName`,
+-      and a quick win whose status text is translated.
+-- [x] `compileDebugKotlin` OK; `testDebugUnitTest --rerun`: 18 suites, 160 tests, 0 failures.
+-- [x] Device, Pixel 8 (stand-in verify agent, fresh APK). Throwaway placeholders were built in the scratchpad, signed with a
+-      throwaway openssl key (the guard hook blocks the JDK key tool), and set as defaults: Test Browser and Test Messages through roles.
+-      The EMAIL role refused Test Mail, so Gmail was disabled for user 0 while the screenshots were taken.
+-  - Details → Default Apps: "Using Test Browser / Test Messages / Test Mail — not rated yet", each with the Info icon and no chip.
+-    The rated comparison "Using Pixel Launcher" shows the −2 chip. The `uiautomator` text has no "pts" or "(unknown".
+-    "Package: org.example.teststub.browser" shows when the row is expanded. Crash buffer empty.
+-  - Evidence: `docs/screens/2026-10-21-default-app-copy/` (one screen covers all four rows).
+-  - Restored: Chrome, Fossify Messages, Pixel Launcher and Gmail (`mailto:`) as before; placeholders uninstalled; `pm list packages org.example.teststub` is empty.
+-- [ ] Not verified on a device: the "No default … set" and "Unable to determine …" branches (covered by the unit test only).
+-- [x] Own diff review against `master`: no blockers. External review is not required: the QuickWinsDetector change only passes the name through.
+-
+-### 2026-10-21 — CLAUDE.md tweaks (`chore/claude-md-tweaks` → `master`)
+-
+-- [x] Found ends with a "Roadmap:" line. Review file names replace `/` with `-`. Backup-test gotcha: run `pm unstop` after `pm clear`. CLAUDE.md is 124 lines.
+-- [x] Docs only, so there is no build gate. Diff reviewed against `master`: no blockers. Merged with `--no-ff`.
+diff --git a/app/src/main/java/com/techtrest/privamatic/PrivacyWidgetProvider.kt b/app/src/main/java/com/techtrest/privamatic/PrivacyWidgetProvider.kt
+index 3059c95..dacd151 100644
+--- a/app/src/main/java/com/techtrest/privamatic/PrivacyWidgetProvider.kt
++++ b/app/src/main/java/com/techtrest/privamatic/PrivacyWidgetProvider.kt
+@@ -110,6 +110,7 @@ class PrivacyWidgetProvider : AppWidgetProvider() {
+                         deviceName = deviceName,
+                         osName = osName,
+                         scoreText = score.toString(),
++                        rating = rating,
+                         ratingText = ratingText,
+                         scoreDelta = scoreDelta,
+                         showDelta = showPrivacyChange
+@@ -127,6 +128,7 @@ class PrivacyWidgetProvider : AppWidgetProvider() {
+                         deviceName = deviceName,
+                         osName = osName,
+                         scoreText = "--",
++                        rating = null,
+                         ratingText = "—",
+                         scoreDelta = null,
+                         showDelta = false
+@@ -149,66 +151,70 @@ class PrivacyWidgetProvider : AppWidgetProvider() {
+         deviceName: String,
+         osName: String,
+         scoreText: String,
++        rating: PrivacyScoreCalculator.ScoreRating?,
+         ratingText: String,
+         scoreDelta: Int?,
+         showDelta: Boolean
+     ) {
+-        val views = RemoteViews(context.packageName, R.layout.widget_privacy)
++        // Stored values below the card minimum draw as the minimum; 0 is the no-background style.
++        val opacity = WidgetStyle.effectiveOpacity(WidgetPreferences.getOpacity(context, appWidgetId))
++        val noBackground = opacity == WidgetStyle.NO_BACKGROUND
++        val views = RemoteViews(
++            context.packageName,
++            if (noBackground) R.layout.widget_privacy_no_background else R.layout.widget_privacy
++        )
+ 
+         views.setTextViewText(R.id.widget_device_name, deviceName)
+         views.setTextViewText(R.id.widget_os_name, osName)
+         views.setTextViewText(R.id.widget_score_value, scoreText)
+         views.setTextViewText(R.id.widget_score_rating, ratingText)
+ 
+-        // Handle privacy change indicator.
+-        // Uses two separate TextViews (up/down) with XML-defined colors so that
+-        // theme changes (light↔dark) always resolve the correct color from
+-        // resource qualifiers, avoiding stale programmatic setTextColor values.
++        val isIncrease = scoreDelta != null && scoreDelta > 0
+         if (showDelta && scoreDelta != null) {
+-            val isIncrease = scoreDelta > 0
+-            val changeText = if (isIncrease) {
+-                context.getString(R.string.fmt_widget_delta_up, abs(scoreDelta))
+-            } else {
+-                context.getString(R.string.fmt_widget_delta_down, abs(scoreDelta))
+-            }
+-
+-            if (isIncrease) {
+-                views.setTextViewText(R.id.widget_privacy_change_up, changeText)
+-                views.setViewVisibility(R.id.widget_privacy_change_up, View.VISIBLE)
+-                views.setViewVisibility(R.id.widget_privacy_change_down, View.GONE)
+-            } else {
+-                views.setTextViewText(R.id.widget_privacy_change_down, changeText)
+-                views.setViewVisibility(R.id.widget_privacy_change_down, View.VISIBLE)
+-                views.setViewVisibility(R.id.widget_privacy_change_up, View.GONE)
+-            }
+-        } else {
+-            views.setViewVisibility(R.id.widget_privacy_change_up, View.GONE)
+-            views.setViewVisibility(R.id.widget_privacy_change_down, View.GONE)
+-        }
+-
+-        // Apply per-widget opacity to background only (text/icons stay fully opaque)
+-        val opacity = WidgetPreferences.getOpacity(context, appWidgetId)
+-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+-            views.setFloat(R.id.widget_background, "setAlpha", opacity / 100f)
++            val changeText = context.resources.getQuantityString(
++                if (isIncrease) R.plurals.plural_widget_delta_up else R.plurals.plural_widget_delta_down,
++                abs(scoreDelta),
++                abs(scoreDelta)
++            )
++            views.setTextViewText(R.id.widget_score_delta, changeText)
++            views.setViewVisibility(R.id.widget_score_delta, View.VISIBLE)
+         } else {
+-            views.setInt(R.id.widget_background, "setImageAlpha", ((opacity / 100f) * 255).toInt())
++            views.setViewVisibility(R.id.widget_score_delta, View.GONE)
+         }
+-
+-        // On Android 11 and below (API < 31), android:theme on non-root RemoteViews
+-        // views is not properly supported and can cause RemoteViews inflation failure
+-        // on some builds (e.g. LineageOS on older hardware), showing "Problem loading
+-        // widget". The android:theme attribute has been removed from the base layout,
+-        // and here we explicitly apply static brand colours (Cream text) so the widget
+-        // is always readable regardless of the device's theme engine or colour resolution.
+-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+-            val cream = Cream.toArgb()
+-            views.setTextColor(R.id.widget_device_name, cream)
+-            views.setTextColor(R.id.widget_os_name, cream)
+-            views.setTextColor(R.id.widget_score_value, cream)
+-            views.setTextColor(R.id.widget_score_rating, cream)
+-            // Change indicators: use light colours visible on the dark BRG/dark background
+-            views.setTextColor(R.id.widget_privacy_change_up, WIDGET_POSITIVE_COLOR)
+-            views.setTextColor(R.id.widget_privacy_change_down, WIDGET_NEGATIVE_COLOR)
++        val scoreColors = rating?.let { WidgetStyle.scoreColors(it) }
++        val deltaColors = WidgetStyle.deltaColors(isIncrease)
++
++        when {
++            // No card: the layout's own white text and shadow; tints use the light-on-dark values.
++            noBackground -> {
++                scoreColors?.let { views.setTextColor(R.id.widget_score_value, it.second) }
++                views.setTextColor(R.id.widget_score_delta, deltaColors.second)
++            }
++            // API 31+: opacity on the background layer only. Colours come as light/dark pairs so
++            // the launcher picks the right one when the theme changes, without a new update.
++            Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
++                views.setFloat(R.id.widget_background, "setAlpha", opacity / 100f)
++                scoreColors?.let {
++                    views.setColorInt(R.id.widget_score_value, "setTextColor", it.first, it.second)
++                }
++                views.setColorInt(R.id.widget_score_delta, "setTextColor", deltaColors.first, deltaColors.second)
++            }
++            // On Android 11 and below (API < 31), android:theme on non-root RemoteViews
++            // views is not properly supported and can cause RemoteViews inflation failure
++            // on some builds (e.g. LineageOS on older hardware), showing "Problem loading
++            // widget". The android:theme attribute has been removed from the base layout,
++            // and here we explicitly apply static brand colours (Cream text) so the widget
++            // is always readable regardless of the device's theme engine or colour resolution.
++            // The card is dark in both themes, so the tints use the light-on-dark values.
++            else -> {
++                views.setInt(R.id.widget_background, "setImageAlpha", ((opacity / 100f) * 255).toInt())
++                val cream = Cream.toArgb()
++                views.setTextColor(R.id.widget_device_name, cream)
++                views.setTextColor(R.id.widget_os_name, cream)
++                views.setTextColor(R.id.widget_score_value, scoreColors?.second ?: cream)
++                views.setTextColor(R.id.widget_score_rating, cream)
++                views.setTextColor(R.id.widget_score_delta, deltaColors.second)
++            }
+         }
+ 
+         val launchIntent = Intent(context, MainActivity::class.java).apply {
+@@ -246,10 +252,6 @@ class PrivacyWidgetProvider : AppWidgetProvider() {
+         /** 48 hours in milliseconds - privacy change expiry time. */
+         private const val CHANGE_EXPIRY_MS = 172_800_000L
+ 
+-        // Static colors for pre-Android 12 widgets where RemoteViews cannot resolve theme colors
+-        private val WIDGET_POSITIVE_COLOR = 0xFFA5D6A7.toInt()
+-        private val WIDGET_NEGATIVE_COLOR = 0xFFEF9A9A.toInt()
+-
+         /**
+          * Registers an inexact 6-hour repeating alarm.
+          * Safe to call multiple times — subsequent calls just update the existing alarm.
+diff --git a/app/src/main/java/com/techtrest/privamatic/WidgetConfigurationActivity.kt b/app/src/main/java/com/techtrest/privamatic/WidgetConfigurationActivity.kt
+index 31f4289..dd72763 100644
+--- a/app/src/main/java/com/techtrest/privamatic/WidgetConfigurationActivity.kt
++++ b/app/src/main/java/com/techtrest/privamatic/WidgetConfigurationActivity.kt
+@@ -56,7 +56,8 @@ class WidgetConfigurationActivity : ComponentActivity() {
+             return
+         }
+ 
+-        val currentOpacity = WidgetPreferences.getOpacity(this, appWidgetId)
++        // Show what the widget draws: a stored value below the card minimum shows as the minimum.
++        val currentOpacity = WidgetStyle.effectiveOpacity(WidgetPreferences.getOpacity(this, appWidgetId))
+ 
+         setContent {
+             PrivacyWidgetTheme {
+@@ -124,7 +125,11 @@ private fun WidgetConfigurationScreen(
+         horizontalAlignment = Alignment.CenterHorizontally
+     ) {
+         Text(
+-            text = stringResource(R.string.fmt_widget_opacity, opacity.roundToInt()),
++            text = if (opacity == WidgetStyle.NO_BACKGROUND) {
++                stringResource(R.string.label_widget_no_background)
++            } else {
++                stringResource(R.string.fmt_widget_opacity, opacity.roundToInt())
++            },
+             style = MaterialTheme.typography.titleLarge,
+             color = MaterialTheme.colorScheme.onBackground
+         )
+@@ -133,8 +138,8 @@ private fun WidgetConfigurationScreen(
+ 
+         Slider(
+             value = opacity,
+-            onValueChange = { opacity = it },
+-            valueRange = 0f..100f,
++            onValueChange = { opacity = WidgetStyle.snapSliderValue(it) },
++            valueRange = WidgetStyle.NO_BACKGROUND..WidgetStyle.MAX_OPACITY,
+             steps = 0,
+             modifier = Modifier.fillMaxWidth()
+         )
+diff --git a/app/src/main/java/com/techtrest/privamatic/WidgetStyle.kt b/app/src/main/java/com/techtrest/privamatic/WidgetStyle.kt
+new file mode 100644
+index 0000000..be21432
+--- /dev/null
++++ b/app/src/main/java/com/techtrest/privamatic/WidgetStyle.kt
+@@ -0,0 +1,61 @@
++package com.techtrest.privamatic
++
++import com.techtrest.privamatic.data.scanner.PrivacyScoreCalculator.ScoreRating
++
++/**
++ * How the widget draws a stored opacity, and its fixed colours.
++ * Measurements behind every value: docs/specs/widget-pack.md.
++ */
++object WidgetStyle {
++
++    /**
++     * Lowest card opacity at which all widget text reaches 4.5:1 and the shield 3:1 on any
++     * wallpaper, in both themes. Below it the card blends through the text's own tone.
++     */
++    const val MIN_CARD_OPACITY = 76f
++
++    const val MAX_OPACITY = 100f
++
++    /** 0 = no background (text on the wallpaper); otherwise [MIN_CARD_OPACITY]..[MAX_OPACITY]. */
++    const val NO_BACKGROUND = 0f
++
++    // Score and change tints. Light values sit on the light card, dark values on the dark card,
++    // the legacy (API 26–30) card and the wallpaper in the no-background style.
++    const val GREEN_LIGHT = 0xFF004225.toInt()
++    const val GREEN_DARK = 0xFF93D5AA.toInt()
++    /** The app's Fair teal (#3B6470) darkened so it passes on the light card at the minimum. */
++    const val TEAL_LIGHT = 0xFF224C58.toInt()
++    const val TEAL_DARK = 0xFFA3CDDB.toInt()
++    const val RED_LIGHT = 0xFF93000A.toInt()
++    const val RED_DARK = 0xFFFFB4AB.toInt()
++
++    /**
++     * The opacity the widget draws with. Stored data is never rewritten: a value that rounds
++     * to 0 % is no background, anything else below the minimum draws as the minimum.
++     */
++    fun effectiveOpacity(stored: Float): Float = when {
++        stored.isNaN() -> MAX_OPACITY
++        stored < 0.5f -> NO_BACKGROUND
++        stored < MIN_CARD_OPACITY -> MIN_CARD_OPACITY
++        stored > MAX_OPACITY -> MAX_OPACITY
++        else -> stored
++    }
++
++    /** Slider positions between 0 and the minimum snap to the nearer of the two. */
++    fun snapSliderValue(value: Float): Float = when {
++        value < MIN_CARD_OPACITY / 2 -> NO_BACKGROUND
++        value < MIN_CARD_OPACITY -> MIN_CARD_OPACITY
++        else -> value.coerceAtMost(MAX_OPACITY)
++    }
++
++    /** Score tint as (light, dark), matching the app's ScoreCard hues. */
++    fun scoreColors(rating: ScoreRating): Pair<Int, Int> = when (rating) {
++        ScoreRating.EXCELLENT, ScoreRating.GOOD -> GREEN_LIGHT to GREEN_DARK
++        ScoreRating.FAIR -> TEAL_LIGHT to TEAL_DARK
++        ScoreRating.POOR, ScoreRating.CRITICAL -> RED_LIGHT to RED_DARK
++    }
++
++    /** Change indicator tint as (light, dark): green for a rise, red for a drop. */
++    fun deltaColors(isIncrease: Boolean): Pair<Int, Int> =
++        if (isIncrease) GREEN_LIGHT to GREEN_DARK else RED_LIGHT to RED_DARK
++}
+diff --git a/app/src/main/java/com/techtrest/privamatic/ui/components/ScoreCard.kt b/app/src/main/java/com/techtrest/privamatic/ui/components/ScoreCard.kt
+index 57fddc8..b2f7102 100644
+--- a/app/src/main/java/com/techtrest/privamatic/ui/components/ScoreCard.kt
++++ b/app/src/main/java/com/techtrest/privamatic/ui/components/ScoreCard.kt
+@@ -116,7 +116,7 @@ private fun getScoreColor(score: Int): Color {
+     return when {
+         score >= 85 -> MaterialTheme.accentOnSurface // Excellent
+         score >= 70 -> MaterialTheme.accentOnSurface // Good
+-        score >= 50 -> MaterialTheme.colorScheme.tertiary // Fair (orange-ish)
++        score >= 50 -> MaterialTheme.colorScheme.tertiary // Fair (teal)
+         score >= 30 -> MaterialTheme.colorScheme.error // Poor
+         else -> MaterialTheme.colorScheme.error // Critical
+     }
+diff --git a/app/src/main/res/drawable-night-v31/widget_background.xml b/app/src/main/res/drawable-night-v31/widget_background.xml
+index b9110ab..c7d9bf5 100644
+--- a/app/src/main/res/drawable-night-v31/widget_background.xml
++++ b/app/src/main/res/drawable-night-v31/widget_background.xml
+@@ -1,6 +1,6 @@
+ <?xml version="1.0" encoding="utf-8"?>
+ <shape xmlns:android="http://schemas.android.com/apk/res/android"
+     android:shape="rectangle">
+-    <solid android:color="@android:color/system_accent2_800" />
++    <solid android:color="@android:color/system_accent2_900" />
+     <corners android:radius="@android:dimen/system_app_widget_background_radius" />
+ </shape>
+diff --git a/app/src/main/res/drawable/ic_widget_shield_no_background.xml b/app/src/main/res/drawable/ic_widget_shield_no_background.xml
+new file mode 100644
+index 0000000..40d7f76
+--- /dev/null
++++ b/app/src/main/res/drawable/ic_widget_shield_no_background.xml
+@@ -0,0 +1,14 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- ic_widget_shield for the no-background style: white with a dark outline, so the shape
++     stays visible on light wallpapers (an ImageView can't carry a text shadow). -->
++<vector xmlns:android="http://schemas.android.com/apk/res/android"
++    android:width="24dp"
++    android:height="24dp"
++    android:viewportWidth="24"
++    android:viewportHeight="24">
++    <path
++        android:fillColor="@color/widget_no_background_text"
++        android:strokeColor="@color/widget_icon_outline"
++        android:strokeWidth="1"
++        android:pathData="M12,1L3,5v6c0,5.55 3.84,10.74 9,12 5.16,-1.26 9,-6.45 9,-12V5l-9,-4zm0,10.99h7c-0.53,4.12 -3.28,7.79 -7,8.94V12H5V6.3l7,-3.11v8.8z" />
++</vector>
+diff --git a/app/src/main/res/layout-night-v31/widget_privacy.xml b/app/src/main/res/layout-night-v31/widget_privacy.xml
+index 08cdcbb..c81cf3b 100644
+--- a/app/src/main/res/layout-night-v31/widget_privacy.xml
++++ b/app/src/main/res/layout-night-v31/widget_privacy.xml
+@@ -1,9 +1,11 @@
+ <?xml version="1.0" encoding="utf-8"?>
+-<!-- API 31+ dark mode layout: uses Material You system color tokens for dark theme.
+-     system_accent2_800 – elevated dark background with wallpaper tint
+-     system_accent1_100 – bright primary text (device name, score)
+-     system_accent1_200 – light secondary text (OS name, rating)
+-     system_neutral1_500 – shield icon tint -->
++<!-- API 31+ dark card: Material You system tokens, strong enough that every text passes
++     4.5:1 and the shield 3:1 from the minimum card opacity up, on any wallpaper
++     (docs/specs/widget-pack.md).
++     system_accent2_900  – card (drawable-night-v31/widget_background), tone 10
++     system_accent1_50   – device name, score fallback (tone 95)
++     system_accent1_100  – OS name, rating (tone 90)
++     system_neutral1_200 – shield icon tint (tone 80) -->
+ <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+     android:id="@+id/widget_root"
+     android:layout_width="match_parent"
+@@ -19,141 +21,108 @@
+         android:contentDescription="@null"
+         android:importantForAccessibility="no" />
+ 
+-    <RelativeLayout
++    <!-- Two columns around the shield. Score and change share one row, and the change
++         auto-sizes into the space left, so the two never overlap at large font scales. -->
++    <LinearLayout
+         android:layout_width="match_parent"
+         android:layout_height="match_parent"
+-        android:paddingStart="16dp"
++        android:gravity="center_vertical"
++        android:orientation="horizontal"
++        android:paddingStart="24dp"
+         android:paddingEnd="16dp"
+         android:paddingTop="8dp"
+         android:paddingBottom="8dp">
+ 
+-        <!-- Shield icon at horizontal center; declared first so other views can anchor to it. -->
++        <LinearLayout
++            android:layout_width="0dp"
++            android:layout_height="wrap_content"
++            android:layout_weight="1"
++            android:orientation="vertical">
++
++            <TextView
++                android:id="@+id/widget_device_name"
++                android:layout_width="wrap_content"
++                android:layout_height="wrap_content"
++                android:text="Pixel 9"
++                android:textColor="@android:color/system_accent1_50"
++                android:textSize="18sp"
++                android:textStyle="bold"
++                android:maxLines="1"
++                android:ellipsize="end" />
++
++            <TextView
++                android:id="@+id/widget_os_name"
++                android:layout_width="wrap_content"
++                android:layout_height="wrap_content"
++                android:text="GrapheneOS"
++                android:textColor="@android:color/system_accent1_100"
++                android:textSize="14sp"
++                android:maxLines="1"
++                android:ellipsize="end" />
++        </LinearLayout>
++
+         <ImageView
+             android:id="@+id/widget_divider"
+             android:layout_width="40dp"
+             android:layout_height="40dp"
+-            android:layout_centerInParent="true"
++            android:layout_marginStart="12dp"
++            android:layout_marginEnd="12dp"
+             android:src="@drawable/ic_widget_shield"
+-            android:tint="@android:color/system_neutral1_500"
++            android:tint="@android:color/system_neutral1_200"
+             android:contentDescription="@null" />
+ 
+-        <!-- Zero-height anchor at the exact vertical center of the widget.
+-             Both text columns position relative to this point so the combined
+-             two-line block is geometrically centered, not just one row. -->
+-        <TextView
+-            android:id="@+id/widget_center_anchor"
++        <LinearLayout
+             android:layout_width="0dp"
+-            android:layout_height="0dp"
+-            android:layout_centerInParent="true"
+-            android:text="" />
+-
+-        <!-- OS name: sits just below the center anchor (bottom row, left column).
+-             This is also the baseline reference for "Good" on the right. -->
+-        <TextView
+-            android:id="@+id/widget_os_name"
+-            android:layout_width="wrap_content"
+             android:layout_height="wrap_content"
+-            android:layout_alignParentStart="true"
+-            android:layout_toStartOf="@id/widget_divider"
+-            android:layout_below="@id/widget_center_anchor"
+-            android:layout_marginStart="24dp"
+-            android:layout_marginTop="1dp"
+-            android:paddingEnd="12dp"
+-            android:text="GrapheneOS"
+-            android:textColor="@android:color/system_accent1_200"
+-            android:textSize="14sp"
+-            android:maxLines="1"
+-            android:ellipsize="end" />
++            android:layout_weight="1"
++            android:orientation="vertical">
+ 
+-        <!-- Device name: sits just above the center anchor (top row, left column). -->
+-        <TextView
+-            android:id="@+id/widget_device_name"
+-            android:layout_width="wrap_content"
+-            android:layout_height="wrap_content"
+-            android:layout_alignParentStart="true"
+-            android:layout_toStartOf="@id/widget_divider"
+-            android:layout_above="@id/widget_center_anchor"
+-            android:layout_marginStart="24dp"
+-            android:layout_marginBottom="1dp"
+-            android:paddingEnd="12dp"
+-            android:text="Pixel 9"
+-            android:textColor="@android:color/system_accent1_100"
+-            android:textSize="18sp"
+-            android:textStyle="bold"
+-            android:maxLines="1"
+-            android:ellipsize="end" />
++            <LinearLayout
++                android:layout_width="match_parent"
++                android:layout_height="wrap_content"
++                android:gravity="center_vertical"
++                android:orientation="horizontal">
+ 
+-        <!-- Rating: layout_alignBaseline gives the exact same text baseline as OS name.
+-             toEndOf + alignParentEnd spans the full right half so gravity=center works. -->
+-        <TextView
+-            android:id="@+id/widget_score_rating"
+-            android:layout_width="wrap_content"
+-            android:layout_height="wrap_content"
+-            android:layout_toEndOf="@id/widget_divider"
+-            android:layout_alignParentEnd="true"
+-            android:layout_alignBaseline="@id/widget_os_name"
+-            android:gravity="center"
+-            android:text="@string/score_rating_excellent_name"
+-            android:textColor="@android:color/system_accent1_200"
+-            android:textSize="14sp"
+-            android:maxLines="1" />
++                <TextView
++                    android:id="@+id/widget_score_value"
++                    android:layout_width="wrap_content"
++                    android:layout_height="wrap_content"
++                    android:text="85"
++                    android:textColor="@android:color/system_accent1_50"
++                    android:textSize="24sp"
++                    android:textStyle="bold"
++                    android:maxLines="1"
++                    android:ellipsize="end" />
+ 
+-        <!-- Score container: centers the score value in the right column (top row). -->
+-        <LinearLayout
+-            android:id="@+id/widget_score_container"
+-            android:layout_width="0dp"
+-            android:layout_height="wrap_content"
+-            android:layout_toEndOf="@id/widget_divider"
+-            android:layout_alignParentEnd="true"
+-            android:layout_above="@id/widget_score_rating"
+-            android:layout_marginBottom="2dp"
+-            android:gravity="center"
+-            android:orientation="horizontal">
++                <!-- Colour set in code: green for a rise, red for a drop. -->
++                <TextView
++                    android:id="@+id/widget_score_delta"
++                    android:layout_width="0dp"
++                    android:layout_height="match_parent"
++                    android:layout_weight="1"
++                    android:layout_marginStart="8dp"
++                    android:gravity="center_vertical|start"
++                    android:textColor="@android:color/system_accent1_50"
++                    android:textSize="20sp"
++                    android:textStyle="bold"
++                    android:maxLines="1"
++                    android:autoSizeTextType="uniform"
++                    android:autoSizeMinTextSize="10sp"
++                    android:autoSizeMaxTextSize="20sp"
++                    android:autoSizeStepGranularity="1sp"
++                    android:visibility="gone" />
++            </LinearLayout>
+ 
+-            <!-- Score value -->
+             <TextView
+-                android:id="@+id/widget_score_value"
++                android:id="@+id/widget_score_rating"
+                 android:layout_width="wrap_content"
+                 android:layout_height="wrap_content"
+-                android:text="85"
++                android:text="@string/score_rating_excellent_name"
+                 android:textColor="@android:color/system_accent1_100"
+-                android:textSize="24sp"
+-                android:textStyle="bold"
+-                android:maxLines="1" />
++                android:textSize="14sp"
++                android:maxLines="1"
++                android:ellipsize="end" />
+         </LinearLayout>
+-
+-        <!-- Score change increase indicator: XML color resolves via resource qualifiers
+-             so theme changes (light/dark) always show the correct color without a
+-             programmatic setTextColor call that could become stale. -->
+-        <TextView
+-            android:id="@+id/widget_privacy_change_up"
+-            android:layout_width="wrap_content"
+-            android:layout_height="0dp"
+-            android:layout_alignTop="@id/widget_score_container"
+-            android:layout_alignBottom="@id/widget_score_rating"
+-            android:layout_alignParentEnd="true"
+-            android:layout_marginEnd="24dp"
+-            android:gravity="center_vertical"
+-            android:text="↑5"
+-            android:textColor="@color/widget_privacy_increase"
+-            android:textSize="18sp"
+-            android:visibility="gone" />
+-
+-        <!-- Score change decrease indicator -->
+-        <TextView
+-            android:id="@+id/widget_privacy_change_down"
+-            android:layout_width="wrap_content"
+-            android:layout_height="0dp"
+-            android:layout_alignTop="@id/widget_score_container"
+-            android:layout_alignBottom="@id/widget_score_rating"
+-            android:layout_alignParentEnd="true"
+-            android:layout_marginEnd="24dp"
+-            android:gravity="center_vertical"
+-            android:text="↓5"
+-            android:textColor="@color/widget_privacy_decrease"
+-            android:textSize="18sp"
+-            android:visibility="gone" />
+-
+-    </RelativeLayout>
++    </LinearLayout>
+ 
+ </FrameLayout>
+diff --git a/app/src/main/res/layout-v31/widget_privacy.xml b/app/src/main/res/layout-v31/widget_privacy.xml
+index 642109d..e5af8ab 100644
+--- a/app/src/main/res/layout-v31/widget_privacy.xml
++++ b/app/src/main/res/layout-v31/widget_privacy.xml
+@@ -1,9 +1,11 @@
+ <?xml version="1.0" encoding="utf-8"?>
+-<!-- API 31+ layout: uses Material You system color tokens (verified from DevCheck APK).
+-     system_accent2_50  – wallpaper-derived surface tint, light background
+-     system_accent1_600 – primary text (device name, score)
+-     system_accent1_800 – secondary text (OS name, rating)
+-     system_neutral1_300 – shield icon tint -->
++<!-- API 31+ light card: Material You system tokens, strong enough that every text passes
++     4.5:1 and the shield 3:1 from the minimum card opacity up, on any wallpaper
++     (docs/specs/widget-pack.md).
++     system_accent2_50   – card (drawable-v31/widget_background), tone 95
++     system_accent1_900  – device name, score fallback (tone 10)
++     system_accent1_800  – OS name, rating (tone 20)
++     system_neutral1_700 – shield icon tint (tone 30) -->
+ <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+     android:id="@+id/widget_root"
+     android:layout_width="match_parent"
+@@ -19,141 +21,108 @@
+         android:contentDescription="@null"
+         android:importantForAccessibility="no" />
+ 
+-    <RelativeLayout
++    <!-- Two columns around the shield. Score and change share one row, and the change
++         auto-sizes into the space left, so the two never overlap at large font scales. -->
++    <LinearLayout
+         android:layout_width="match_parent"
+         android:layout_height="match_parent"
+-        android:paddingStart="16dp"
++        android:gravity="center_vertical"
++        android:orientation="horizontal"
++        android:paddingStart="24dp"
+         android:paddingEnd="16dp"
+         android:paddingTop="8dp"
+         android:paddingBottom="8dp">
+ 
+-        <!-- Shield icon at horizontal center; declared first so other views can anchor to it. -->
++        <LinearLayout
++            android:layout_width="0dp"
++            android:layout_height="wrap_content"
++            android:layout_weight="1"
++            android:orientation="vertical">
++
++            <TextView
++                android:id="@+id/widget_device_name"
++                android:layout_width="wrap_content"
++                android:layout_height="wrap_content"
++                android:text="Pixel 9"
++                android:textColor="@android:color/system_accent1_900"
++                android:textSize="18sp"
++                android:textStyle="bold"
++                android:maxLines="1"
++                android:ellipsize="end" />
++
++            <TextView
++                android:id="@+id/widget_os_name"
++                android:layout_width="wrap_content"
++                android:layout_height="wrap_content"
++                android:text="GrapheneOS"
++                android:textColor="@android:color/system_accent1_800"
++                android:textSize="14sp"
++                android:maxLines="1"
++                android:ellipsize="end" />
++        </LinearLayout>
++
+         <ImageView
+             android:id="@+id/widget_divider"
+             android:layout_width="40dp"
+             android:layout_height="40dp"
+-            android:layout_centerInParent="true"
++            android:layout_marginStart="12dp"
++            android:layout_marginEnd="12dp"
+             android:src="@drawable/ic_widget_shield"
+-            android:tint="@android:color/system_neutral1_300"
++            android:tint="@android:color/system_neutral1_700"
+             android:contentDescription="@null" />
+ 
+-        <!-- Zero-height anchor at the exact vertical center of the widget.
+-             Both text columns position relative to this point so the combined
+-             two-line block is geometrically centered, not just one row. -->
+-        <TextView
+-            android:id="@+id/widget_center_anchor"
++        <LinearLayout
+             android:layout_width="0dp"
+-            android:layout_height="0dp"
+-            android:layout_centerInParent="true"
+-            android:text="" />
+-
+-        <!-- OS name: sits just below the center anchor (bottom row, left column).
+-             This is also the baseline reference for "Good" on the right. -->
+-        <TextView
+-            android:id="@+id/widget_os_name"
+-            android:layout_width="wrap_content"
+             android:layout_height="wrap_content"
+-            android:layout_alignParentStart="true"
+-            android:layout_toStartOf="@id/widget_divider"
+-            android:layout_below="@id/widget_center_anchor"
+-            android:layout_marginStart="24dp"
+-            android:layout_marginTop="1dp"
+-            android:paddingEnd="12dp"
+-            android:text="GrapheneOS"
+-            android:textColor="@android:color/system_accent1_800"
+-            android:textSize="14sp"
+-            android:maxLines="1"
+-            android:ellipsize="end" />
++            android:layout_weight="1"
++            android:orientation="vertical">
+ 
+-        <!-- Device name: sits just above the center anchor (top row, left column). -->
+-        <TextView
+-            android:id="@+id/widget_device_name"
+-            android:layout_width="wrap_content"
+-            android:layout_height="wrap_content"
+-            android:layout_alignParentStart="true"
+-            android:layout_toStartOf="@id/widget_divider"
+-            android:layout_above="@id/widget_center_anchor"
+-            android:layout_marginStart="24dp"
+-            android:layout_marginBottom="1dp"
+-            android:paddingEnd="12dp"
+-            android:text="Pixel 9"
+-            android:textColor="@android:color/system_accent1_600"
+-            android:textSize="18sp"
+-            android:textStyle="bold"
+-            android:maxLines="1"
+-            android:ellipsize="end" />
++            <LinearLayout
++                android:layout_width="match_parent"
++                android:layout_height="wrap_content"
++                android:gravity="center_vertical"
++                android:orientation="horizontal">
+ 
+-        <!-- Rating: layout_alignBaseline gives the exact same text baseline as OS name.
+-             toEndOf + alignParentEnd spans the full right half so gravity=center works. -->
+-        <TextView
+-            android:id="@+id/widget_score_rating"
+-            android:layout_width="wrap_content"
+-            android:layout_height="wrap_content"
+-            android:layout_toEndOf="@id/widget_divider"
+-            android:layout_alignParentEnd="true"
+-            android:layout_alignBaseline="@id/widget_os_name"
+-            android:gravity="center"
+-            android:text="@string/score_rating_excellent_name"
+-            android:textColor="@android:color/system_accent1_800"
+-            android:textSize="14sp"
+-            android:maxLines="1" />
++                <TextView
++                    android:id="@+id/widget_score_value"
++                    android:layout_width="wrap_content"
++                    android:layout_height="wrap_content"
++                    android:text="85"
++                    android:textColor="@android:color/system_accent1_900"
++                    android:textSize="24sp"
++                    android:textStyle="bold"
++                    android:maxLines="1"
++                    android:ellipsize="end" />
+ 
+-        <!-- Score container: centers the score value in the right column (top row). -->
+-        <LinearLayout
+-            android:id="@+id/widget_score_container"
+-            android:layout_width="0dp"
+-            android:layout_height="wrap_content"
+-            android:layout_toEndOf="@id/widget_divider"
+-            android:layout_alignParentEnd="true"
+-            android:layout_above="@id/widget_score_rating"
+-            android:layout_marginBottom="2dp"
+-            android:gravity="center"
+-            android:orientation="horizontal">
++                <!-- Colour set in code: green for a rise, red for a drop. -->
++                <TextView
++                    android:id="@+id/widget_score_delta"
++                    android:layout_width="0dp"
++                    android:layout_height="match_parent"
++                    android:layout_weight="1"
++                    android:layout_marginStart="8dp"
++                    android:gravity="center_vertical|start"
++                    android:textColor="@android:color/system_accent1_900"
++                    android:textSize="20sp"
++                    android:textStyle="bold"
++                    android:maxLines="1"
++                    android:autoSizeTextType="uniform"
++                    android:autoSizeMinTextSize="10sp"
++                    android:autoSizeMaxTextSize="20sp"
++                    android:autoSizeStepGranularity="1sp"
++                    android:visibility="gone" />
++            </LinearLayout>
+ 
+-            <!-- Score value -->
+             <TextView
+-                android:id="@+id/widget_score_value"
++                android:id="@+id/widget_score_rating"
+                 android:layout_width="wrap_content"
+                 android:layout_height="wrap_content"
+-                android:text="85"
+-                android:textColor="@android:color/system_accent1_600"
+-                android:textSize="24sp"
+-                android:textStyle="bold"
+-                android:maxLines="1" />
++                android:text="@string/score_rating_excellent_name"
++                android:textColor="@android:color/system_accent1_800"
++                android:textSize="14sp"
++                android:maxLines="1"
++                android:ellipsize="end" />
+         </LinearLayout>
+-
+-        <!-- Score change increase indicator: XML color resolves via resource qualifiers
+-             so theme changes (light/dark) always show the correct color without a
+-             programmatic setTextColor call that could become stale. -->
+-        <TextView
+-            android:id="@+id/widget_privacy_change_up"
+-            android:layout_width="wrap_content"
+-            android:layout_height="0dp"
+-            android:layout_alignTop="@id/widget_score_container"
+-            android:layout_alignBottom="@id/widget_score_rating"
+-            android:layout_alignParentEnd="true"
+-            android:layout_marginEnd="24dp"
+-            android:gravity="center_vertical"
+-            android:text="↑5"
+-            android:textColor="@color/widget_privacy_increase"
+-            android:textSize="18sp"
+-            android:visibility="gone" />
+-
+-        <!-- Score change decrease indicator -->
+-        <TextView
+-            android:id="@+id/widget_privacy_change_down"
+-            android:layout_width="wrap_content"
+-            android:layout_height="0dp"
+-            android:layout_alignTop="@id/widget_score_container"
+-            android:layout_alignBottom="@id/widget_score_rating"
+-            android:layout_alignParentEnd="true"
+-            android:layout_marginEnd="24dp"
+-            android:gravity="center_vertical"
+-            android:text="↓5"
+-            android:textColor="@color/widget_privacy_decrease"
+-            android:textSize="18sp"
+-            android:visibility="gone" />
+-
+-    </RelativeLayout>
++    </LinearLayout>
+ 
+ </FrameLayout>
+diff --git a/app/src/main/res/layout/widget_privacy.xml b/app/src/main/res/layout/widget_privacy.xml
+index 681d641..975ea9e 100644
+--- a/app/src/main/res/layout/widget_privacy.xml
++++ b/app/src/main/res/layout/widget_privacy.xml
+@@ -18,134 +18,108 @@
+         android:contentDescription="@null"
+         android:importantForAccessibility="no" />
+ 
+-    <RelativeLayout
++    <!-- Two columns around the shield. Score and change share one row, and the change
++         auto-sizes into the space left, so the two never overlap at large font scales. -->
++    <LinearLayout
+         android:layout_width="match_parent"
+         android:layout_height="match_parent"
+-        android:paddingStart="16dp"
++        android:gravity="center_vertical"
++        android:orientation="horizontal"
++        android:paddingStart="24dp"
+         android:paddingEnd="16dp"
+         android:paddingTop="8dp"
+         android:paddingBottom="8dp">
+ 
+-        <!-- Shield icon at horizontal center; declared first so other views can anchor to it. -->
++        <LinearLayout
++            android:layout_width="0dp"
++            android:layout_height="wrap_content"
++            android:layout_weight="1"
++            android:orientation="vertical">
++
++            <TextView
++                android:id="@+id/widget_device_name"
++                android:layout_width="wrap_content"
++                android:layout_height="wrap_content"
++                android:text="Pixel 9"
++                android:textColor="@color/widget_primary_text"
++                android:textSize="18sp"
++                android:textStyle="bold"
++                android:maxLines="1"
++                android:ellipsize="end" />
++
++            <TextView
++                android:id="@+id/widget_os_name"
++                android:layout_width="wrap_content"
++                android:layout_height="wrap_content"
++                android:text="GrapheneOS"
++                android:textColor="@color/widget_secondary_text"
++                android:textSize="14sp"
++                android:maxLines="1"
++                android:ellipsize="end" />
++        </LinearLayout>
++
+         <ImageView
+             android:id="@+id/widget_divider"
+             android:layout_width="40dp"
+             android:layout_height="40dp"
+-            android:layout_centerInParent="true"
++            android:layout_marginStart="12dp"
++            android:layout_marginEnd="12dp"
+             android:src="@drawable/ic_widget_shield"
+             android:tint="@color/widget_divider"
+             android:contentDescription="@null" />
+ 
+-        <!-- Zero-height anchor at the exact vertical center of the widget.
+-             Both text columns position relative to this point so the combined
+-             two-line block is geometrically centered, not just one row. -->
+-        <TextView
+-            android:id="@+id/widget_center_anchor"
++        <LinearLayout
+             android:layout_width="0dp"
+-            android:layout_height="0dp"
+-            android:layout_centerInParent="true"
+-            android:text="" />
+-
+-        <!-- OS name: sits just below the center anchor (bottom row, left column).
+-             This is also the baseline reference for "Good" on the right. -->
+-        <TextView
+-            android:id="@+id/widget_os_name"
+-            android:layout_width="wrap_content"
+             android:layout_height="wrap_content"
+-            android:layout_alignParentStart="true"
+-            android:layout_toStartOf="@id/widget_divider"
+-            android:layout_below="@id/widget_center_anchor"
+-            android:layout_marginStart="24dp"
+-            android:layout_marginTop="1dp"
+-            android:paddingEnd="12dp"
+-            android:text="GrapheneOS"
+-            android:textColor="@color/widget_secondary_text"
+-            android:textSize="14sp"
+-            android:maxLines="1"
+-            android:ellipsize="end" />
++            android:layout_weight="1"
++            android:orientation="vertical">
+ 
+-        <!-- Device name: sits just above the center anchor (top row, left column). -->
+-        <TextView
+-            android:id="@+id/widget_device_name"
+-            android:layout_width="wrap_content"
+-            android:layout_height="wrap_content"
+-            android:layout_alignParentStart="true"
+-            android:layout_toStartOf="@id/widget_divider"
+-            android:layout_above="@id/widget_center_anchor"
+-            android:layout_marginStart="24dp"
+-            android:layout_marginBottom="1dp"
+-            android:paddingEnd="12dp"
+-            android:text="Pixel 9"
+-            android:textColor="@color/widget_primary_text"
+-            android:textSize="18sp"
+-            android:textStyle="bold"
+-            android:maxLines="1"
+-            android:ellipsize="end" />
++            <LinearLayout
++                android:layout_width="match_parent"
++                android:layout_height="wrap_content"
++                android:gravity="center_vertical"
++                android:orientation="horizontal">
+ 
+-        <!-- Rating: layout_alignBaseline gives the exact same text baseline as OS name.
+-             toEndOf + alignParentEnd spans the full right half so gravity=center works. -->
+-        <TextView
+-            android:id="@+id/widget_score_rating"
+-            android:layout_width="wrap_content"
+-            android:layout_height="wrap_content"
+-            android:layout_toEndOf="@id/widget_divider"
+-            android:layout_alignParentEnd="true"
+-            android:layout_alignBaseline="@id/widget_os_name"
+-            android:gravity="center"
+-            android:text="@string/score_rating_excellent_name"
+-            android:textColor="@color/widget_secondary_text"
+-            android:textSize="14sp"
+-            android:maxLines="1" />
++                <TextView
++                    android:id="@+id/widget_score_value"
++                    android:layout_width="wrap_content"
++                    android:layout_height="wrap_content"
++                    android:text="85"
++                    android:textColor="@color/widget_primary_text"
++                    android:textSize="24sp"
++                    android:textStyle="bold"
++                    android:maxLines="1"
++                    android:ellipsize="end" />
+ 
+-        <!-- Score container: centers the score value in the right column (top row). -->
+-        <LinearLayout
+-            android:id="@+id/widget_score_container"
+-            android:layout_width="0dp"
+-            android:layout_height="wrap_content"
+-            android:layout_toEndOf="@id/widget_divider"
+-            android:layout_alignParentEnd="true"
+-            android:layout_above="@id/widget_score_rating"
+-            android:layout_marginBottom="2dp"
+-            android:gravity="center"
+-            android:orientation="horizontal">
++                <!-- Colour set in code: green for a rise, red for a drop. -->
++                <TextView
++                    android:id="@+id/widget_score_delta"
++                    android:layout_width="0dp"
++                    android:layout_height="match_parent"
++                    android:layout_weight="1"
++                    android:layout_marginStart="8dp"
++                    android:gravity="center_vertical|start"
++                    android:textColor="@color/widget_primary_text"
++                    android:textSize="20sp"
++                    android:textStyle="bold"
++                    android:maxLines="1"
++                    android:autoSizeTextType="uniform"
++                    android:autoSizeMinTextSize="10sp"
++                    android:autoSizeMaxTextSize="20sp"
++                    android:autoSizeStepGranularity="1sp"
++                    android:visibility="gone" />
++            </LinearLayout>
+ 
+-            <!-- Score value -->
+             <TextView
+-                android:id="@+id/widget_score_value"
++                android:id="@+id/widget_score_rating"
+                 android:layout_width="wrap_content"
+                 android:layout_height="wrap_content"
+-                android:text="85"
+-                android:textColor="@color/widget_primary_text"
+-                android:textSize="28sp"
+-                android:textStyle="bold"
+-                android:maxLines="1" />
++                android:text="@string/score_rating_excellent_name"
++                android:textColor="@color/widget_secondary_text"
++                android:textSize="14sp"
++                android:maxLines="1"
++                android:ellipsize="end" />
+         </LinearLayout>
+-
+-        <!-- Score change increase indicator: XML color resolves via resource qualifiers
+-             so theme changes (light/dark) always show the correct color. -->
+-        <TextView
+-            android:id="@+id/widget_privacy_change_up"
+-            android:layout_width="wrap_content"
+-            android:layout_height="wrap_content"
+-            android:layout_centerVertical="true"
+-            android:layout_alignParentEnd="true"
+-            android:text="↑5"
+-            android:textColor="@color/widget_privacy_increase"
+-            android:textSize="12sp"
+-            android:visibility="gone" />
+-
+-        <!-- Score change decrease indicator -->
+-        <TextView
+-            android:id="@+id/widget_privacy_change_down"
+-            android:layout_width="wrap_content"
+-            android:layout_height="wrap_content"
+-            android:layout_centerVertical="true"
+-            android:layout_alignParentEnd="true"
+-            android:text="↓5"
+-            android:textColor="@color/widget_privacy_decrease"
+-            android:textSize="12sp"
+-            android:visibility="gone" />
+-
+-    </RelativeLayout>
++    </LinearLayout>
+ 
+ </FrameLayout>
+diff --git a/app/src/main/res/layout/widget_privacy_no_background.xml b/app/src/main/res/layout/widget_privacy_no_background.xml
+new file mode 100644
+index 0000000..9cf2448
+--- /dev/null
++++ b/app/src/main/res/layout/widget_privacy_no_background.xml
+@@ -0,0 +1,133 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- No-background style (stored opacity 0), all API levels: text and icon straight on the
++     wallpaper, light with a dark shadow like the launcher's own labels. There is no
++     widget_background view, so the provider sends no alpha call to this layout. -->
++<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
++    android:id="@+id/widget_root"
++    android:layout_width="match_parent"
++    android:layout_height="match_parent">
++
++    <!-- Two columns around the shield. Score and change share one row, and the change
++         auto-sizes into the space left, so the two never overlap at large font scales. -->
++    <LinearLayout
++        android:layout_width="match_parent"
++        android:layout_height="match_parent"
++        android:gravity="center_vertical"
++        android:orientation="horizontal"
++        android:paddingStart="24dp"
++        android:paddingEnd="16dp"
++        android:paddingTop="8dp"
++        android:paddingBottom="8dp">
++
++        <LinearLayout
++            android:layout_width="0dp"
++            android:layout_height="wrap_content"
++            android:layout_weight="1"
++            android:orientation="vertical">
++
++            <TextView
++                android:id="@+id/widget_device_name"
++                android:layout_width="wrap_content"
++                android:layout_height="wrap_content"
++                android:text="Pixel 9"
++                android:textColor="@color/widget_no_background_text"
++                android:textSize="18sp"
++                android:textStyle="bold"
++                android:maxLines="1"
++                android:ellipsize="end"
++                android:shadowColor="@color/widget_text_shadow"
++                android:shadowDx="0"
++                android:shadowDy="2"
++                android:shadowRadius="6" />
++
++            <TextView
++                android:id="@+id/widget_os_name"
++                android:layout_width="wrap_content"
++                android:layout_height="wrap_content"
++                android:text="GrapheneOS"
++                android:textColor="@color/widget_no_background_text"
++                android:textSize="14sp"
++                android:maxLines="1"
++                android:ellipsize="end"
++                android:shadowColor="@color/widget_text_shadow"
++                android:shadowDx="0"
++                android:shadowDy="2"
++                android:shadowRadius="6" />
++        </LinearLayout>
++
++        <ImageView
++            android:id="@+id/widget_divider"
++            android:layout_width="40dp"
++            android:layout_height="40dp"
++            android:layout_marginStart="12dp"
++            android:layout_marginEnd="12dp"
++            android:src="@drawable/ic_widget_shield_no_background"
++            android:contentDescription="@null" />
++
++        <LinearLayout
++            android:layout_width="0dp"
++            android:layout_height="wrap_content"
++            android:layout_weight="1"
++            android:orientation="vertical">
++
++            <LinearLayout
++                android:layout_width="match_parent"
++                android:layout_height="wrap_content"
++                android:gravity="center_vertical"
++                android:orientation="horizontal">
++
++                <TextView
++                    android:id="@+id/widget_score_value"
++                    android:layout_width="wrap_content"
++                    android:layout_height="wrap_content"
++                    android:text="85"
++                    android:textColor="@color/widget_no_background_text"
++                    android:textSize="24sp"
++                    android:textStyle="bold"
++                    android:maxLines="1"
++                    android:ellipsize="end"
++                    android:shadowColor="@color/widget_text_shadow"
++                    android:shadowDx="0"
++                    android:shadowDy="2"
++                    android:shadowRadius="6" />
++
++                <!-- Colour set in code: green for a rise, red for a drop. -->
++                <TextView
++                    android:id="@+id/widget_score_delta"
++                    android:layout_width="0dp"
++                    android:layout_height="match_parent"
++                    android:layout_weight="1"
++                    android:layout_marginStart="8dp"
++                    android:gravity="center_vertical|start"
++                    android:textColor="@color/widget_no_background_text"
++                    android:textSize="20sp"
++                    android:textStyle="bold"
++                    android:maxLines="1"
++                    android:autoSizeTextType="uniform"
++                    android:autoSizeMinTextSize="10sp"
++                    android:autoSizeMaxTextSize="20sp"
++                    android:autoSizeStepGranularity="1sp"
++                    android:shadowColor="@color/widget_text_shadow"
++                    android:shadowDx="0"
++                    android:shadowDy="2"
++                    android:shadowRadius="6"
++                    android:visibility="gone" />
++            </LinearLayout>
++
++            <TextView
++                android:id="@+id/widget_score_rating"
++                android:layout_width="wrap_content"
++                android:layout_height="wrap_content"
++                android:text="@string/score_rating_excellent_name"
++                android:textColor="@color/widget_no_background_text"
++                android:textSize="14sp"
++                android:maxLines="1"
++                android:ellipsize="end"
++                android:shadowColor="@color/widget_text_shadow"
++                android:shadowDx="0"
++                android:shadowDy="2"
++                android:shadowRadius="6" />
++        </LinearLayout>
++    </LinearLayout>
++
++</FrameLayout>
+diff --git a/app/src/main/res/values-night-v31/colors.xml b/app/src/main/res/values-night-v31/colors.xml
+deleted file mode 100644
+index 6e85f3f..0000000
+--- a/app/src/main/res/values-night-v31/colors.xml
++++ /dev/null
+@@ -1,18 +0,0 @@
+-<?xml version="1.0" encoding="utf-8"?>
+-<resources>
+-    <!-- Widget colors – dark mode, API 31+ (Material You dynamic tokens).
+-         Darker end of the wallpaper-derived neutral palette. -->
+-
+-    <color name="widget_background">@android:color/system_neutral1_900</color>
+-    <color name="widget_primary_text">@android:color/system_neutral1_100</color>
+-    <color name="widget_secondary_text">@android:color/system_neutral1_300</color>
+-    <color name="widget_divider">@android:color/system_neutral1_600</color>
+-
+-    <!-- Score change indicator colors for dark mode.
+-         Light shades (200/300) of wallpaper-derived accents ensure high contrast
+-         against the system_accent2_800 dark background.
+-         system_accent1_200: pale primary tint  → increase (green on this app's theme)
+-         system_accent3_300: light tertiary tint → decrease (complementary/warm contrast) -->
+-    <color name="widget_privacy_increase">@android:color/system_accent1_200</color>
+-    <color name="widget_privacy_decrease">@android:color/system_accent3_300</color>
+-</resources>
+diff --git a/app/src/main/res/values-night/colors.xml b/app/src/main/res/values-night/colors.xml
+index 9d3fbaa..d20a012 100644
+--- a/app/src/main/res/values-night/colors.xml
++++ b/app/src/main/res/values-night/colors.xml
+@@ -3,13 +3,10 @@
+     <!-- Widget colors – dark mode static fallback (API 26–30).
+          Uses app dark theme colours: DarkBackground (#1C1B1F) with Cream text
+          (#FFFDD0), matching the app's dark ColorScheme (onBackground = Cream).
+-         API 31+ dark mode is overridden by values-night-v31/colors.xml using
+-         Material You dynamic tokens. -->
++         API 31+ uses layout-night-v31/widget_privacy.xml with Material You tokens. -->
+ 
+     <color name="widget_background">#1C1B1F</color>        <!-- DarkBackground from Color.kt -->
+     <color name="widget_primary_text">#FFFDD0</color>      <!-- Cream from Color.kt -->
+     <color name="widget_secondary_text">#FFFDD0</color>    <!-- Cream from Color.kt -->
+     <color name="widget_divider">#FFFDD0</color>           <!-- Cream from Color.kt (icon tint) -->
+-    <color name="widget_privacy_increase">#4CAF50</color>  <!-- Lighter green for dark mode -->
+-    <color name="widget_privacy_decrease">#F44336</color>  <!-- Lighter red for dark mode -->
+ </resources>
+diff --git a/app/src/main/res/values/colors.xml b/app/src/main/res/values/colors.xml
+index c7b76df..3e571ae 100644
+--- a/app/src/main/res/values/colors.xml
++++ b/app/src/main/res/values/colors.xml
+@@ -14,6 +14,10 @@
+     <color name="widget_primary_text">#FFFDD0</color>      <!-- Cream from Color.kt -->
+     <color name="widget_secondary_text">#FFFDD0</color>    <!-- Cream from Color.kt -->
+     <color name="widget_divider">#FFFDD0</color>           <!-- Cream from Color.kt (icon tint) -->
+-    <color name="widget_privacy_increase">#0B4619</color>  <!-- British Racing Green / primary -->
+-    <color name="widget_privacy_decrease">#BA1A1A</color>  <!-- MD3 error red -->
++
++    <!-- No-background style (widget_privacy_no_background), all API levels: light text with a
++         dark shadow, like launcher labels. Score and change tints are set in code (WidgetStyle). -->
++    <color name="widget_no_background_text">#FFFFFF</color>
++    <color name="widget_text_shadow">#CC000000</color>
++    <color name="widget_icon_outline">#B3000000</color>
+ </resources>
+diff --git a/app/src/main/res/values/strings.xml b/app/src/main/res/values/strings.xml
+index 8cbfd3b..329f6cd 100644
+--- a/app/src/main/res/values/strings.xml
++++ b/app/src/main/res/values/strings.xml
+@@ -927,7 +927,8 @@
+     <string name="label_whats_new_dismiss">Dismiss what\'s new</string>
+ 
+     <string name="label_widget_config_title">Widget appearance</string>
+-    <string name="label_widget_opacity_min">0%</string>
++    <string name="label_widget_opacity_min">None</string>
++    <string name="label_widget_no_background">No background</string>
+     <string name="label_widget_opacity_max">100%</string>
+     <string name="label_widget_cancel">Cancel</string>
+     <string name="label_widget_save">Save</string>
+@@ -939,8 +940,6 @@
+     <string name="fmt_about_version">Version %s</string>
+     <string name="fmt_score_delta_up">↑%d pts</string>
+     <string name="fmt_score_delta_down">↓%d pts</string>
+-    <string name="fmt_widget_delta_up">↑%d</string>
+-    <string name="fmt_widget_delta_down">↓%d</string>
+     <string name="fmt_cd_collapse">Collapse %s</string>
+     <string name="fmt_cd_expand">Expand %s</string>
+     <string name="fmt_review_period">Review every %d days</string>
+@@ -967,6 +966,14 @@
+     <!-- ============================================================ -->
+     <!-- PLURALS -->
+     <!-- ============================================================ -->
++    <plurals name="plural_widget_delta_up">
++        <item quantity="one">↑%d pt</item>
++        <item quantity="other">↑%d pts</item>
++    </plurals>
++    <plurals name="plural_widget_delta_down">
++        <item quantity="one">↓%d pt</item>
++        <item quantity="other">↓%d pts</item>
++    </plurals>
+     <plurals name="plural_days_remaining">
+         <item quantity="one">1 day remaining</item>
+         <item quantity="other">%d days remaining</item>
+diff --git a/app/src/main/res/xml/privacy_widget_info.xml b/app/src/main/res/xml/privacy_widget_info.xml
+index 069daeb..54e8739 100644
+--- a/app/src/main/res/xml/privacy_widget_info.xml
++++ b/app/src/main/res/xml/privacy_widget_info.xml
+@@ -9,7 +9,7 @@
+     android:initialLayout="@layout/widget_privacy"
+     android:configure="com.techtrest.privamatic.WidgetConfigurationActivity"
+     android:widgetFeatures="reconfigurable"
+-    android:resizeMode="horizontal"
++    android:resizeMode="horizontal|vertical"
+     android:widgetCategory="home_screen"
+     android:previewLayout="@layout/widget_privacy"
+     android:description="@string/widget_description"
+diff --git a/app/src/test/java/com/techtrest/privamatic/WidgetStyleTest.kt b/app/src/test/java/com/techtrest/privamatic/WidgetStyleTest.kt
+new file mode 100644
+index 0000000..49bbba8
+--- /dev/null
++++ b/app/src/test/java/com/techtrest/privamatic/WidgetStyleTest.kt
+@@ -0,0 +1,211 @@
++package com.techtrest.privamatic
++
++import com.techtrest.privamatic.WidgetStyle.MIN_CARD_OPACITY
++import com.techtrest.privamatic.data.scanner.PrivacyScoreCalculator.ScoreRating
++import org.junit.Assert.assertEquals
++import org.junit.Assert.assertFalse
++import org.junit.Assert.assertTrue
++import org.junit.Test
++import java.io.File
++import javax.xml.parsers.DocumentBuilderFactory
++import kotlin.math.atan2
++import kotlin.math.max
++import kotlin.math.min
++import kotlin.math.pow
++import kotlin.math.sqrt
++
++/**
++ * Widget opacity clamp, slider snap and colour choices (docs/specs/widget-pack.md).
++ *
++ * Contrast uses the model from docs/decisions/widget-readability.md: Material tones as neutral
++ * greys, blended in gamma-encoded sRGB over the card at the given opacity. White and black are
++ * the worst wallpapers for every colour here; the photo patch is the paper's grey rock.
++ */
++class WidgetStyleTest {
++
++    // --- clamp on read -------------------------------------------------------------------
++
++    @Test
++    fun effectiveOpacity_zeroAndRoundsToZero_areNoBackground() {
++        listOf(0f, 0.49f, -5f).forEach {
++            assertEquals("stored $it", WidgetStyle.NO_BACKGROUND, WidgetStyle.effectiveOpacity(it))
++        }
++    }
++
++    @Test
++    fun effectiveOpacity_belowMinimum_drawsAsMinimum() {
++        listOf(0.5f, 1f, 40f, MIN_CARD_OPACITY - 0.01f).forEach {
++            assertEquals("stored $it", MIN_CARD_OPACITY, WidgetStyle.effectiveOpacity(it))
++        }
++    }
++
++    @Test
++    fun effectiveOpacity_minimumAndAbove_unchanged() {
++        listOf(MIN_CARD_OPACITY, 87.3f, 100f).forEach {
++            assertEquals("stored $it", it, WidgetStyle.effectiveOpacity(it))
++        }
++    }
++
++    @Test
++    fun effectiveOpacity_outOfRange_isSafe() {
++        assertEquals(100f, WidgetStyle.effectiveOpacity(150f))
++        assertEquals(100f, WidgetStyle.effectiveOpacity(Float.NaN))
++    }
++
++    // --- slider snap ---------------------------------------------------------------------
++
++    @Test
++    fun snapSliderValue_lowerHalfIsNoBackground_upperHalfIsMinimum() {
++        assertEquals(0f, WidgetStyle.snapSliderValue(0f))
++        assertEquals(0f, WidgetStyle.snapSliderValue(MIN_CARD_OPACITY / 2 - 0.01f))
++        assertEquals(MIN_CARD_OPACITY, WidgetStyle.snapSliderValue(MIN_CARD_OPACITY / 2))
++        assertEquals(MIN_CARD_OPACITY, WidgetStyle.snapSliderValue(MIN_CARD_OPACITY - 0.01f))
++        assertEquals(MIN_CARD_OPACITY, WidgetStyle.snapSliderValue(MIN_CARD_OPACITY))
++        assertEquals(90f, WidgetStyle.snapSliderValue(90f))
++        assertEquals(100f, WidgetStyle.snapSliderValue(100f))
++    }
++
++    @Test
++    fun snapSliderValue_resultIsAlwaysDrawnAsIs() {
++        (0..100).forEach {
++            val snapped = WidgetStyle.snapSliderValue(it.toFloat())
++            assertEquals("slider $it", snapped, WidgetStyle.effectiveOpacity(snapped))
++        }
++    }
++
++    // --- colours -------------------------------------------------------------------------
++
++    private data class Pair3(val name: String, val fg: DoubleArray, val card: DoubleArray, val target: Double)
++
++    private val lightCard = tone(95.0)
++    private val darkCard = tone(10.0)
++
++    private fun cases(): List<Pair3> {
++        val light = listOf(
++            "primary T10" to tone(10.0), "secondary T20" to tone(20.0),
++            "green" to argb(WidgetStyle.GREEN_LIGHT), "teal" to argb(WidgetStyle.TEAL_LIGHT),
++            "red" to argb(WidgetStyle.RED_LIGHT)
++        ).map { Pair3("light ${it.first}", it.second, lightCard, 4.5) } +
++            Pair3("light shield T30", tone(30.0), lightCard, 3.0)
++        val dark = listOf(
++            "primary T95" to tone(95.0), "secondary T90" to tone(90.0),
++            "green" to argb(WidgetStyle.GREEN_DARK), "teal" to argb(WidgetStyle.TEAL_DARK),
++            "red" to argb(WidgetStyle.RED_DARK)
++        ).map { Pair3("dark ${it.first}", it.second, darkCard, 4.5) } +
++            Pair3("dark shield T80", tone(80.0), darkCard, 3.0)
++        return light + dark
++    }
++
++    @Test
++    fun everyCardColour_passesFromTheMinimumUp() {
++        for (c in cases()) {
++            for (step in MIN_CARD_OPACITY.toInt()..100) {
++                val worst = worstContrast(c.fg, c.card, step / 100.0)
++                assertTrue("${c.name} at $step: ${"%.2f".format(worst)} < ${c.target}", worst >= c.target)
++            }
++        }
++    }
++
++    @Test
++    fun minimum_isTheLowestPassingStep() {
++        val below = (MIN_CARD_OPACITY - 1) / 100.0
++        assertTrue(
++            "every colour still passes at ${MIN_CARD_OPACITY - 1} %, so the minimum could be lower",
++            cases().any { worstContrast(it.fg, it.card, below) < it.target }
++        )
++    }
++
++    @Test
++    fun scoreTint_followsTheRating() {
++        assertEquals(WidgetStyle.GREEN_LIGHT to WidgetStyle.GREEN_DARK, WidgetStyle.scoreColors(ScoreRating.EXCELLENT))
++        assertEquals(WidgetStyle.GREEN_LIGHT to WidgetStyle.GREEN_DARK, WidgetStyle.scoreColors(ScoreRating.GOOD))
++        assertEquals(WidgetStyle.TEAL_LIGHT to WidgetStyle.TEAL_DARK, WidgetStyle.scoreColors(ScoreRating.FAIR))
++        assertEquals(WidgetStyle.RED_LIGHT to WidgetStyle.RED_DARK, WidgetStyle.scoreColors(ScoreRating.POOR))
++        assertEquals(WidgetStyle.RED_LIGHT to WidgetStyle.RED_DARK, WidgetStyle.scoreColors(ScoreRating.CRITICAL))
++    }
++
++    /** The old dark-theme "down" was olive (hue ~60°) or lavender (~270°) depending on the wallpaper. */
++    @Test
++    fun changeColours_areRedAndGreenInBothThemes() {
++        val (upLight, upDark) = WidgetStyle.deltaColors(isIncrease = true)
++        val (downLight, downDark) = WidgetStyle.deltaColors(isIncrease = false)
++        for (c in listOf(upLight, upDark)) {
++            val h = hue(c)
++            assertTrue("up hue $h", h in 100.0..170.0)
++        }
++        for (c in listOf(downLight, downDark)) {
++            val h = hue(c)
++            assertTrue("down hue $h", h >= 345.0 || h <= 15.0)
++        }
++    }
++
++    // --- layouts -------------------------------------------------------------------------
++
++    private val sharedIds = listOf(
++        "widget_root", "widget_device_name", "widget_os_name", "widget_divider",
++        "widget_score_value", "widget_score_delta", "widget_score_rating"
++    )
++
++    @Test
++    fun cardLayouts_haveEveryViewTheProviderTouches() {
++        listOf("layout", "layout-v31", "layout-night-v31").forEach { dir ->
++            val ids = layoutIds("src/main/res/$dir/widget_privacy.xml")
++            (sharedIds + "widget_background").forEach { assertTrue("$dir lacks $it", it in ids) }
++        }
++    }
++
++    /** The provider sends no alpha call in this style; a stray one would fail the whole widget. */
++    @Test
++    fun noBackgroundLayout_hasNoBackgroundView() {
++        val ids = layoutIds("src/main/res/layout/widget_privacy_no_background.xml")
++        sharedIds.forEach { assertTrue("no-background layout lacks $it", it in ids) }
++        assertFalse(ids.contains("widget_background"))
++    }
++
++    // --- helpers -------------------------------------------------------------------------
++
++    private fun layoutIds(path: String): Set<String> {
++        val doc = DocumentBuilderFactory.newInstance().apply { isNamespaceAware = true }
++            .newDocumentBuilder().parse(File(path))
++        val all = doc.getElementsByTagName("*")
++        return (0 until all.length).mapNotNull {
++            (all.item(it) as org.w3c.dom.Element)
++                .getAttributeNS("http://schemas.android.com/apk/res/android", "id")
++                .removePrefix("@+id/").ifEmpty { null }
++        }.toSet()
++    }
++
++    private fun tone(t: Double): DoubleArray {
++        val y = if (t > 8) ((t + 16) / 116).pow(3) else t / 903.3
++        val s = if (y <= 0.0031308) 12.92 * y else 1.055 * y.pow(1 / 2.4) - 0.055
++        return doubleArrayOf(s, s, s)
++    }
++
++    private fun argb(c: Int) = doubleArrayOf(
++        ((c shr 16) and 0xFF) / 255.0, ((c shr 8) and 0xFF) / 255.0, (c and 0xFF) / 255.0
++    )
++
++    private fun lin(c: Double) = if (c <= 0.04045) c / 12.92 else ((c + 0.055) / 1.055).pow(2.4)
++
++    private fun lum(rgb: DoubleArray) = 0.2126 * lin(rgb[0]) + 0.7152 * lin(rgb[1]) + 0.0722 * lin(rgb[2])
++
++    private fun ratio(a: Double, b: Double) = (max(a, b) + 0.05) / (min(a, b) + 0.05)
++
++    private val wallpapers = listOf(
++        doubleArrayOf(1.0, 1.0, 1.0),
++        doubleArrayOf(0.0, 0.0, 0.0),
++        argb(0xFF839099.toInt()) // the paper's photo patch
++    )
++
++    private fun worstContrast(fg: DoubleArray, card: DoubleArray, alpha: Double): Double =
++        wallpapers.minOf { wp ->
++            val bg = DoubleArray(3) { alpha * card[it] + (1 - alpha) * wp[it] }
++            ratio(lum(fg), lum(bg))
++        }
++
++    private fun hue(c: Int): Double {
++        val (r, g, b) = argb(c).toList()
++        val h = Math.toDegrees(atan2(sqrt(3.0) * (g - b), 2 * r - g - b))
++        return if (h < 0) h + 360 else h
++    }
++}
+diff --git a/docs/screens/2026-10-22-widget-pack/config-clamp.png b/docs/screens/2026-10-22-widget-pack/config-clamp.png
+new file mode 100644
+index 0000000..f45581a
+Binary files /dev/null and b/docs/screens/2026-10-22-widget-pack/config-clamp.png differ
+diff --git a/docs/screens/2026-10-22-widget-pack/measurements.md b/docs/screens/2026-10-22-widget-pack/measurements.md
+new file mode 100644
+index 0000000..bfc4127
+--- /dev/null
++++ b/docs/screens/2026-10-22-widget-pack/measurements.md
+@@ -0,0 +1,192 @@
++# Widget pack — measurements (2026-10-22, Pixel 8, round A)
++
++Measurement build (card minimum temporarily 70 %), widgets 17–21 top to bottom at 70 / 75 / 76 / 100 % and no background, one screenshot per wallpaper × theme. Generated with:
++
++`python3 -I widget_contrast.py raw/<wp>-<th>.png raw/<wp>-<th>-ui.xml 70,75,76,100,0 <wp> <th> raw/black-<th>.png`
++
++Raw screenshots are local only (`raw/`, git-ignored). Contact sheet: `sweep-contact-sheet.png` (row 1 = photo light, photo dark, White light; row 2 = White dark, Black light, Black dark).
++
++## Card
++
++| Wallpaper | Theme | Opacity | Element | Text/icon | Blended bg (median) | Contrast (median bg) | Worst 5 % | Min | Pass |
++|---|---|---|---|---|---|---|---|---|---|
++| photo | light | 70 % | device name (18sp bold) | #2C1600 | #F4E9DE | 14.37 | 11.96 | 4.5 | yes |
++| photo | light | 70 % | OS name (14sp) | #4A2900 | #DED6CE | 9.09 | 8.92 | 4.5 | yes |
++| photo | light | 70 % | score (24sp bold) | #224C58 | #E3DAD3 | 6.79 | 6.66 | 4.5 | yes |
++| photo | light | 70 % | rating (14sp) | #4A2900 | #E3DAD2 | 9.47 | 9.27 | 4.5 | yes |
++| photo | light | 70 % | shield icon | #4D453F | #E1D9D1 | 6.72 | 6.60 | 3.0 | yes |
++| photo | light | 75 % | device name (18sp bold) | #2C1600 | #E0D7CF | 12.11 | 12.01 | 4.5 | yes |
++| photo | light | 75 % | OS name (14sp) | #4A2900 | #E1D7CE | 9.21 | 9.13 | 4.5 | yes |
++| photo | light | 75 % | score (24sp bold) | #224C58 | #E2D7CF | 6.62 | 6.60 | 4.5 | yes |
++| photo | light | 75 % | rating (14sp) | #4A2900 | #E2D7CF | 9.24 | 9.21 | 4.5 | yes |
++| photo | light | 75 % | shield icon | #4D453F | #E2D7CF | 6.64 | 6.62 | 3.0 | yes |
++| photo | light | 76 % | device name (18sp bold) | #2C1600 | #F0E1D4 | 13.44 | 13.29 | 4.5 | yes |
++| photo | light | 76 % | OS name (14sp) | #4A2900 | #F3E3D6 | 10.43 | 10.43 | 4.5 | yes |
++| photo | light | 76 % | score (24sp bold) | #224C58 | #F2E2D5 | 7.41 | 7.17 | 4.5 | yes |
++| photo | light | 76 % | rating (14sp) | #4A2900 | #F5E4D7 | 10.55 | 10.52 | 4.5 | yes |
++| photo | light | 76 % | shield icon | #4D453F | #F4E4D6 | 7.56 | 7.27 | 3.0 | yes |
++| photo | light | 100 % | device name (18sp bold) | #2C1600 | #FFEEE0 | 15.19 | 15.19 | 4.5 | yes |
++| photo | light | 100 % | OS name (14sp) | #4A2900 | #FFEEE0 | 11.54 | 11.54 | 4.5 | yes |
++| photo | light | 100 % | score (24sp bold) | #224C58 | #FFEEE0 | 8.27 | 8.27 | 4.5 | yes |
++| photo | light | 100 % | rating (14sp) | #4A2900 | #FFEEE0 | 11.54 | 11.54 | 4.5 | yes |
++| photo | light | 100 % | shield icon | #4D453F | #FFEEE0 | 8.29 | 8.29 | 3.0 | yes |
++| photo | dark | 70 % | device name (18sp bold) | #FFEEE0 | #5F5446 | 6.53 | 6.09 | 4.5 | yes |
++| photo | dark | 70 % | OS name (14sp) | #FFDCBD | #494136 | 7.75 | 6.95 | 4.5 | yes |
++| photo | dark | 70 % | score (24sp bold) | #A3CDDB | #4E453B | 5.50 | 5.24 | 4.5 | yes |
++| photo | dark | 70 % | rating (14sp) | #FFDCBD | #4E453A | 7.25 | 6.92 | 4.5 | yes |
++| photo | dark | 70 % | shield icon | #D0C4BC | #4C4439 | 5.61 | 5.17 | 3.0 | yes |
++| photo | dark | 75 % | device name (18sp bold) | #FFEEE0 | #40372B | 10.31 | 10.27 | 4.5 | yes |
++| photo | dark | 75 % | OS name (14sp) | #FFDCBD | #41372A | 8.99 | 8.85 | 4.5 | yes |
++| photo | dark | 75 % | score (24sp bold) | #A3CDDB | #42372B | 6.79 | 6.61 | 4.5 | yes |
++| photo | dark | 75 % | rating (14sp) | #FFDCBD | #42372B | 8.95 | 8.85 | 4.5 | yes |
++| photo | dark | 75 % | shield icon | #D0C4BC | #42372B | 6.79 | 6.54 | 3.0 | yes |
++| photo | dark | 76 % | device name (18sp bold) | #FFEEE0 | #4E3F2F | 8.94 | 8.63 | 4.5 | yes |
++| photo | dark | 76 % | OS name (14sp) | #FFDCBD | #514131 | 7.54 | 7.43 | 4.5 | yes |
++| photo | dark | 76 % | score (24sp bold) | #A3CDDB | #504030 | 5.82 | 5.64 | 4.5 | yes |
++| photo | dark | 76 % | rating (14sp) | #FFDCBD | #534232 | 7.40 | 7.32 | 4.5 | yes |
++| photo | dark | 76 % | shield icon | #D0C4BC | #524231 | 5.64 | 5.64 | 3.0 | yes |
++| photo | dark | 100 % | device name (18sp bold) | #FFEEE0 | #291806 | 15.12 | 15.12 | 4.5 | yes |
++| photo | dark | 100 % | OS name (14sp) | #FFDCBD | #291806 | 13.22 | 13.22 | 4.5 | yes |
++| photo | dark | 100 % | score (24sp bold) | #A3CDDB | #291806 | 10.03 | 10.03 | 4.5 | yes |
++| photo | dark | 100 % | rating (14sp) | #FFDCBD | #291806 | 13.22 | 13.22 | 4.5 | yes |
++| photo | dark | 100 % | shield icon | #D0C4BC | #291806 | 10.02 | 10.02 | 3.0 | yes |
++| white | light | 70 % | device name (18sp bold) | #2C1600 | #FFF3E9 | 15.75 | 15.75 | 4.5 | yes |
++| white | light | 70 % | OS name (14sp) | #4A2900 | #FFF3E9 | 11.97 | 11.97 | 4.5 | yes |
++| white | light | 70 % | score (24sp bold) | #224C58 | #FFF3E9 | 8.58 | 8.58 | 4.5 | yes |
++| white | light | 70 % | rating (14sp) | #4A2900 | #FFF3E9 | 11.97 | 11.97 | 4.5 | yes |
++| white | light | 70 % | shield icon | #4D453F | #FFF3E9 | 8.60 | 8.60 | 3.0 | yes |
++| white | light | 75 % | device name (18sp bold) | #2C1600 | #FFF2E8 | 15.65 | 15.65 | 4.5 | yes |
++| white | light | 75 % | OS name (14sp) | #4A2900 | #FFF2E8 | 11.89 | 11.89 | 4.5 | yes |
++| white | light | 75 % | score (24sp bold) | #224C58 | #FFF2E8 | 8.52 | 8.52 | 4.5 | yes |
++| white | light | 75 % | rating (14sp) | #4A2900 | #FFF2E8 | 11.89 | 11.89 | 4.5 | yes |
++| white | light | 75 % | shield icon | #4D453F | #FFF2E8 | 8.54 | 8.54 | 3.0 | yes |
++| white | light | 76 % | device name (18sp bold) | #2C1600 | #FFF2E8 | 15.65 | 15.65 | 4.5 | yes |
++| white | light | 76 % | OS name (14sp) | #4A2900 | #FFF2E8 | 11.89 | 11.89 | 4.5 | yes |
++| white | light | 76 % | score (24sp bold) | #224C58 | #FFF2E8 | 8.52 | 8.52 | 4.5 | yes |
++| white | light | 76 % | rating (14sp) | #4A2900 | #FFF2E8 | 11.89 | 11.89 | 4.5 | yes |
++| white | light | 76 % | shield icon | #4D453F | #FFF2E8 | 8.54 | 8.54 | 3.0 | yes |
++| white | light | 100 % | device name (18sp bold) | #2C1600 | #FFEEE0 | 15.19 | 15.19 | 4.5 | yes |
++| white | light | 100 % | OS name (14sp) | #4A2900 | #FFEEE0 | 11.54 | 11.54 | 4.5 | yes |
++| white | light | 100 % | score (24sp bold) | #224C58 | #FFEEE0 | 8.27 | 8.27 | 4.5 | yes |
++| white | light | 100 % | rating (14sp) | #4A2900 | #FFEEE0 | 11.54 | 11.54 | 4.5 | yes |
++| white | light | 100 % | shield icon | #4D453F | #FFEEE0 | 8.29 | 8.29 | 3.0 | yes |
++| white | dark | 70 % | device name (18sp bold) | #FFEEE0 | #6A5E51 | 5.57 | 5.57 | 4.5 | yes |
++| white | dark | 70 % | OS name (14sp) | #FFDCBD | #6A5E51 | 4.87 | 4.87 | 4.5 | yes |
++| white | dark | 70 % | score (24sp bold) | #A3CDDB | #6A5E51 | 3.69 | 3.69 | 4.5 | **no** |
++| white | dark | 70 % | rating (14sp) | #FFDCBD | #6A5E51 | 4.87 | 4.87 | 4.5 | yes |
++| white | dark | 70 % | shield icon | #D0C4BC | #6A5E51 | 3.69 | 3.69 | 3.0 | yes |
++| white | dark | 75 % | device name (18sp bold) | #FFEEE0 | #5F5244 | 6.68 | 6.68 | 4.5 | yes |
++| white | dark | 75 % | OS name (14sp) | #FFDCBD | #5F5244 | 5.84 | 5.84 | 4.5 | yes |
++| white | dark | 75 % | score (24sp bold) | #A3CDDB | #5F5244 | 4.43 | 4.43 | 4.5 | **no** |
++| white | dark | 75 % | rating (14sp) | #FFDCBD | #5F5244 | 5.84 | 5.84 | 4.5 | yes |
++| white | dark | 75 % | shield icon | #D0C4BC | #5F5244 | 4.43 | 4.43 | 3.0 | yes |
++| white | dark | 76 % | device name (18sp bold) | #FFEEE0 | #5D5043 | 6.89 | 6.89 | 4.5 | yes |
++| white | dark | 76 % | OS name (14sp) | #FFDCBD | #5D5043 | 6.02 | 6.02 | 4.5 | yes |
++| white | dark | 76 % | score (24sp bold) | #A3CDDB | #5D5043 | 4.57 | 4.57 | 4.5 | yes |
++| white | dark | 76 % | rating (14sp) | #FFDCBD | #5D5043 | 6.02 | 6.02 | 4.5 | yes |
++| white | dark | 76 % | shield icon | #D0C4BC | #5D5043 | 4.57 | 4.57 | 3.0 | yes |
++| white | dark | 100 % | device name (18sp bold) | #FFEEE0 | #291806 | 15.12 | 15.12 | 4.5 | yes |
++| white | dark | 100 % | OS name (14sp) | #FFDCBD | #291806 | 13.22 | 13.22 | 4.5 | yes |
++| white | dark | 100 % | score (24sp bold) | #A3CDDB | #291806 | 10.03 | 10.03 | 4.5 | yes |
++| white | dark | 100 % | rating (14sp) | #FFDCBD | #291806 | 13.22 | 13.22 | 4.5 | yes |
++| white | dark | 100 % | shield icon | #D0C4BC | #291806 | 10.02 | 10.02 | 3.0 | yes |
++| black | light | 70 % | device name (18sp bold) | #021943 | #A6A8B2 | 7.25 | 7.25 | 4.5 | yes |
++| black | light | 70 % | OS name (14sp) | #1B2F59 | #A6A8B2 | 5.55 | 5.55 | 4.5 | yes |
++| black | light | 70 % | score (24sp bold) | #224C58 | #A6A8B2 | 3.95 | 3.95 | 4.5 | **no** |
++| black | light | 70 % | rating (14sp) | #1B2F59 | #A6A8B2 | 5.55 | 5.55 | 4.5 | yes |
++| black | light | 70 % | shield icon | #46464B | #A6A8B2 | 3.96 | 3.96 | 3.0 | yes |
++| black | light | 75 % | device name (18sp bold) | #021943 | #B2B4BF | 8.32 | 8.32 | 4.5 | yes |
++| black | light | 75 % | OS name (14sp) | #1B2F59 | #B2B4BF | 6.37 | 6.37 | 4.5 | yes |
++| black | light | 75 % | score (24sp bold) | #224C58 | #B2B4BF | 4.54 | 4.54 | 4.5 | yes |
++| black | light | 75 % | rating (14sp) | #1B2F59 | #B2B4BF | 6.37 | 6.37 | 4.5 | yes |
++| black | light | 75 % | shield icon | #46464B | #B2B4BF | 4.55 | 4.55 | 3.0 | yes |
++| black | light | 76 % | device name (18sp bold) | #021943 | #B4B6C1 | 8.51 | 8.51 | 4.5 | yes |
++| black | light | 76 % | OS name (14sp) | #1B2F59 | #B4B6C1 | 6.51 | 6.51 | 4.5 | yes |
++| black | light | 76 % | score (24sp bold) | #224C58 | #B4B6C1 | 4.64 | 4.64 | 4.5 | yes |
++| black | light | 76 % | rating (14sp) | #1B2F59 | #B4B6C1 | 6.51 | 6.51 | 4.5 | yes |
++| black | light | 76 % | shield icon | #46464B | #B4B6C1 | 4.65 | 4.65 | 3.0 | yes |
++| black | light | 100 % | device name (18sp bold) | #021943 | #EEF0FF | 15.17 | 15.17 | 4.5 | yes |
++| black | light | 100 % | OS name (14sp) | #1B2F59 | #EEF0FF | 11.61 | 11.61 | 4.5 | yes |
++| black | light | 100 % | score (24sp bold) | #224C58 | #EEF0FF | 8.27 | 8.27 | 4.5 | yes |
++| black | light | 100 % | rating (14sp) | #1B2F59 | #EEF0FF | 11.61 | 11.61 | 4.5 | yes |
++| black | light | 100 % | shield icon | #46464B | #EEF0FF | 8.29 | 8.29 | 3.0 | yes |
++| black | dark | 70 % | device name (18sp bold) | #EEF0FF | #0F131F | 16.36 | 16.36 | 4.5 | yes |
++| black | dark | 70 % | OS name (14sp) | #D9E2FF | #0F131F | 14.36 | 14.36 | 4.5 | yes |
++| black | dark | 70 % | score (24sp bold) | #A3CDDB | #0F131F | 10.87 | 10.87 | 4.5 | yes |
++| black | dark | 70 % | rating (14sp) | #D9E2FF | #0F131F | 14.36 | 14.36 | 4.5 | yes |
++| black | dark | 70 % | shield icon | #C7C6CB | #0F131F | 10.91 | 10.91 | 3.0 | yes |
++| black | dark | 75 % | device name (18sp bold) | #EEF0FF | #101421 | 16.21 | 16.21 | 4.5 | yes |
++| black | dark | 75 % | OS name (14sp) | #D9E2FF | #101421 | 14.22 | 14.22 | 4.5 | yes |
++| black | dark | 75 % | score (24sp bold) | #A3CDDB | #101421 | 10.76 | 10.76 | 4.5 | yes |
++| black | dark | 75 % | rating (14sp) | #D9E2FF | #101421 | 14.22 | 14.22 | 4.5 | yes |
++| black | dark | 75 % | shield icon | #C7C6CB | #101421 | 10.81 | 10.81 | 3.0 | yes |
++| black | dark | 76 % | device name (18sp bold) | #EEF0FF | #101421 | 16.21 | 16.21 | 4.5 | yes |
++| black | dark | 76 % | OS name (14sp) | #D9E2FF | #101421 | 14.22 | 14.22 | 4.5 | yes |
++| black | dark | 76 % | score (24sp bold) | #A3CDDB | #101421 | 10.76 | 10.76 | 4.5 | yes |
++| black | dark | 76 % | rating (14sp) | #D9E2FF | #101421 | 14.22 | 14.22 | 4.5 | yes |
++| black | dark | 76 % | shield icon | #C7C6CB | #101421 | 10.81 | 10.81 | 3.0 | yes |
++| black | dark | 100 % | device name (18sp bold) | #EEF0FF | #151B2C | 15.14 | 15.14 | 4.5 | yes |
++| black | dark | 100 % | OS name (14sp) | #D9E2FF | #151B2C | 13.28 | 13.28 | 4.5 | yes |
++| black | dark | 100 % | score (24sp bold) | #A3CDDB | #151B2C | 10.05 | 10.05 | 4.5 | yes |
++| black | dark | 100 % | rating (14sp) | #D9E2FF | #151B2C | 13.28 | 13.28 | 4.5 | yes |
++| black | dark | 100 % | shield icon | #C7C6CB | #151B2C | 10.10 | 10.10 | 3.0 | yes |
++
++## No background
++
++"With shadow" = the 1–4 px ring around each glyph. "Wallpaper" = pixels at least 12 px from any glyph. Glyph masks from the Black shots.
++
++| Wallpaper | Theme | Style | Element | Text/icon | Ring (median) | With shadow, median | With shadow, worst 5 % | Wallpaper (median) | Wallpaper, median | Wallpaper, worst 5 % | Min |
++|---|---|---|---|---|---|---|---|---|---|---|---|
++| photo | light | none | device name (18sp bold) | #FFFFFF | #A09283 | 3.03 | 2.02 | #B3A28E | 2.48 | 1.66 | 4.5 |
++| photo | light | none | OS name (14sp) | #FFFFFF | #8B7E71 | 3.95 | 2.93 | #B3A28E | 2.48 | 1.66 | 4.5 |
++| photo | light | none | score (24sp bold) | #A3CDDB | #918475 | 2.14 | 1.51 | #B3A28E | 1.45 | 1.01 | 4.5 |
++| photo | light | none | rating (14sp) | #FFFFFF | #948676 | 3.54 | 2.73 | #B3A28E | 2.48 | 1.66 | 4.5 |
++| photo | light | none | shield icon | #FFFFFF | #43403C | 10.32 | 3.10 | #B3A28E | 2.48 | 1.66 | 3.0 |
++| photo | dark | none | device name (18sp bold) | #FFFFFF | #A09283 | 3.03 | 2.02 | #B3A28E | 2.48 | 1.66 | 4.5 |
++| photo | dark | none | OS name (14sp) | #FFFFFF | #8B7E71 | 3.95 | 2.93 | #B3A28E | 2.48 | 1.66 | 4.5 |
++| photo | dark | none | score (24sp bold) | #A3CDDB | #918475 | 2.14 | 1.51 | #B3A28E | 1.45 | 1.01 | 4.5 |
++| photo | dark | none | rating (14sp) | #FFFFFF | #948676 | 3.54 | 2.73 | #B3A28E | 2.48 | 1.66 | 4.5 |
++| photo | dark | none | shield icon | #FFFFFF | #43403C | 10.32 | 3.10 | #B3A28E | 2.48 | 1.66 | 3.0 |
++| white | light | none | device name (18sp bold) | #FFFFFF | #CACACA | 1.64 | 1.08 | #FFFFFF | 1.00 | 1.00 | 4.5 |
++| white | light | none | OS name (14sp) | #FFFFFF | #D4D4D4 | 1.48 | 1.06 | #FFFFFF | 1.00 | 1.00 | 4.5 |
++| white | light | none | score (24sp bold) | #A3CDDB | #D3D3D3 | 1.28 | 1.03 | #FFFFFF | 1.71 | 1.71 | 4.5 |
++| white | light | none | rating (14sp) | #FFFFFF | #D9D9D9 | 1.41 | 1.05 | #FFFFFF | 1.00 | 1.00 | 4.5 |
++| white | light | none | shield icon | #FFFFFF | #4C4C4C | 8.59 | 1.27 | #FFFFFF | 1.00 | 1.00 | 3.0 |
++| white | dark | none | device name (18sp bold) | #FFFFFF | #CACACA | 1.64 | 1.08 | #FFFFFF | 1.00 | 1.00 | 4.5 |
++| white | dark | none | OS name (14sp) | #FFFFFF | #D4D4D4 | 1.48 | 1.06 | #FFFFFF | 1.00 | 1.00 | 4.5 |
++| white | dark | none | score (24sp bold) | #A3CDDB | #D3D3D3 | 1.28 | 1.03 | #FFFFFF | 1.71 | 1.71 | 4.5 |
++| white | dark | none | rating (14sp) | #FFFFFF | #D9D9D9 | 1.41 | 1.05 | #FFFFFF | 1.00 | 1.00 | 4.5 |
++| white | dark | none | shield icon | #FFFFFF | #4C4C4C | 8.59 | 1.27 | #FFFFFF | 1.00 | 1.00 | 3.0 |
++| black | light | none | device name (18sp bold) | #FFFFFF | #000000 | 21.00 | 21.00 | #000000 | 21.00 | 21.00 | 4.5 |
++| black | light | none | OS name (14sp) | #FFFFFF | #000000 | 21.00 | 21.00 | #000000 | 21.00 | 21.00 | 4.5 |
++| black | light | none | score (24sp bold) | #A3CDDB | #000000 | 12.31 | 12.31 | #000000 | 12.31 | 12.31 | 4.5 |
++| black | light | none | rating (14sp) | #FFFFFF | #000000 | 21.00 | 21.00 | #000000 | 21.00 | 21.00 | 4.5 |
++| black | light | none | shield icon | #FFFFFF | #080808 | 20.09 | 8.59 | #000000 | 21.00 | 21.00 | 3.0 |
++| black | dark | none | device name (18sp bold) | #FFFFFF | #000000 | 21.00 | 21.00 | #000000 | 21.00 | 21.00 | 4.5 |
++| black | dark | none | OS name (14sp) | #FFFFFF | #000000 | 21.00 | 21.00 | #000000 | 21.00 | 21.00 | 4.5 |
++| black | dark | none | score (24sp bold) | #A3CDDB | #000000 | 12.31 | 12.31 | #000000 | 12.31 | 12.31 | 4.5 |
++| black | dark | none | rating (14sp) | #FFFFFF | #000000 | 21.00 | 21.00 | #000000 | 21.00 | 21.00 | 4.5 |
++| black | dark | none | shield icon | #FFFFFF | #080808 | 20.09 | 8.59 | #000000 | 21.00 | 21.00 | 3.0 |
++
++## Round B (final build, minimum 76 %): tints and change on Black
++
++Widgets stored at 40 / 75 / 76 (all drawn at 76 %), 100 and 0. `python3 -I widget_contrast.py raw/<shot>.png raw/<shot>-ui.xml 76,76,76,100,0 black <theme> raw/<shot>.png`, score and change rows only.
++
++| Wallpaper | Theme | Opacity | Element | Text/icon | Blended bg (median) | Contrast (median bg) | Worst 5 % | Min | Pass |
++|---|---|---|---|---|---|---|---|---|---|
++| black | light | 76 % | score (24sp bold) | #93000A | #B4B6C1 | 4.63 | 4.63 | 4.5 | yes |
++| black | light | 76 % | change (20sp bold) | #93000A | #B4B6C1 | 4.63 | 4.63 | 4.5 | yes |
++| black | light | 100 % | score (24sp bold) | #93000A | #EEF0FF | 8.26 | 8.26 | 4.5 | yes |
++| black | light | 100 % | change (20sp bold) | #93000A | #EEF0FF | 8.26 | 8.26 | 4.5 | yes |
++| black | light | 76 % | score (24sp bold) | #224C58 | #B4B6C1 | 4.64 | 4.64 | 4.5 | yes |
++| black | light | 76 % | change (20sp bold) | #004225 | #B4B6C1 | 5.76 | 5.76 | 4.5 | yes |
++| black | light | 100 % | score (24sp bold) | #224C58 | #EEF0FF | 8.27 | 8.27 | 4.5 | yes |
++| black | light | 100 % | change (20sp bold) | #004225 | #EEF0FF | 10.27 | 10.27 | 4.5 | yes |
++| black | dark | 76 % | score (24sp bold) | #FFB4AB | #101421 | 10.81 | 10.81 | 4.5 | yes |
++| black | dark | 76 % | change (20sp bold) | #FFB4AB | #101421 | 10.81 | 10.81 | 4.5 | yes |
++| black | dark | 100 % | score (24sp bold) | #FFB4AB | #151B2C | 10.10 | 10.10 | 4.5 | yes |
++| black | dark | 100 % | change (20sp bold) | #FFB4AB | #151B2C | 10.10 | 10.10 | 4.5 | yes |
++| black | dark | 76 % | score (24sp bold) | #A3CDDB | #101421 | 10.76 | 10.76 | 4.5 | yes |
++| black | dark | 76 % | change (20sp bold) | #93D5AA | #101421 | 10.79 | 10.79 | 4.5 | yes |
++| black | dark | 100 % | score (24sp bold) | #A3CDDB | #151B2C | 10.05 | 10.05 | 4.5 | yes |
++| black | dark | 100 % | change (20sp bold) | #93D5AA | #151B2C | 10.07 | 10.07 | 4.5 | yes |
+diff --git a/docs/screens/2026-10-22-widget-pack/sweep-contact-sheet.png b/docs/screens/2026-10-22-widget-pack/sweep-contact-sheet.png
+new file mode 100644
+index 0000000..3fde6a0
+Binary files /dev/null and b/docs/screens/2026-10-22-widget-pack/sweep-contact-sheet.png differ
+diff --git a/docs/screens/2026-10-22-widget-pack/tint-change-font2-sheet.png b/docs/screens/2026-10-22-widget-pack/tint-change-font2-sheet.png
+new file mode 100644
+index 0000000..eacf25e
+Binary files /dev/null and b/docs/screens/2026-10-22-widget-pack/tint-change-font2-sheet.png differ
+diff --git a/docs/screens/2026-10-22-widget-pack/widget_contrast.py b/docs/screens/2026-10-22-widget-pack/widget_contrast.py
+new file mode 100644
+index 0000000..847bb66
+--- /dev/null
++++ b/docs/screens/2026-10-22-widget-pack/widget_contrast.py
+@@ -0,0 +1,155 @@
++"""WCAG contrast of every widget on one home-screen shot (several widgets, top to bottom).
++
++Usage: python3 -I widget_contrast.py <png> <ui.xml> <label,label,...> <wp> <theme> [<mask.png>]
++Labels name the widgets from top to bottom: an opacity in percent ("76") or "0" for the
++no-background style. Method as docs/screens/2026-10-21-widget-readability/contrast.py:
++per element box, the glyph mask is every pixel far from the box's median colour, the text colour
++is the median of the glyph's core, and the background is every pixel outside the dilated mask.
++"Worst 5 %" is the 5th percentile of the contrast against those background pixels.
++
++No-background widgets: the text colour is fixed (white, or the light tint), so the glyph is the
++pixels near the brightest core colour. On a white wallpaper that can't separate text from
++wallpaper, so <mask.png> (the same widgets on the Black wallpaper) gives the glyph mask; the text
++colour is then the median of the shot's own pixels under the mask core. Two backgrounds are reported:
++  - "with shadow": the 1–4 px ring around the glyph, where the shadow sits;
++  - "wallpaper": pixels at least 12 px from any glyph in the widget, i.e. the wallpaper alone.
++"""
++import re
++import sys
++from pathlib import Path
++
++import numpy as np
++from PIL import Image
++
++ELEMENTS = {
++    "widget_device_name": ("device name (18sp bold)", 4.5),
++    "widget_os_name": ("OS name (14sp)", 4.5),
++    "widget_score_value": ("score (24sp bold)", 4.5),
++    "widget_score_delta": ("change (20sp bold)", 4.5),
++    "widget_score_rating": ("rating (14sp)", 4.5),
++    "widget_divider": ("shield icon", 3.0),
++}
++NODE_RE = re.compile(r'<node [^>]*?resource-id="[^"]*:id/(widget_\w+)"[^>]*?bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"')
++
++
++def lin(c):
++    c = np.asarray(c, dtype=float) / 255.0
++    return np.where(c <= 0.04045, c / 12.92, ((c + 0.055) / 1.055) ** 2.4)
++
++
++def lum(rgb):
++    r, g, b = np.moveaxis(lin(rgb), -1, 0)
++    return 0.2126 * r + 0.7152 * g + 0.0722 * b
++
++
++def ratio(l1, l2):
++    return (np.maximum(l1, l2) + 0.05) / (np.minimum(l1, l2) + 0.05)
++
++
++def hexc(rgb):
++    return "#%02X%02X%02X" % tuple(int(round(v)) for v in rgb)
++
++
++def dilate(mask, r):
++    out = mask.copy()
++    for dy in range(-r, r + 1):
++        for dx in range(-r, r + 1):
++            out |= np.roll(np.roll(mask, dy, 0), dx, 1)
++    return out
++
++
++def widgets(ui_text):
++    """[{id: box}] per widget, top to bottom, grouped by the widget_root that contains each node."""
++    nodes = [(m.group(1), tuple(map(int, m.groups()[1:]))) for m in NODE_RE.finditer(ui_text)]
++    roots = sorted([b for rid, b in nodes if rid == "widget_root"], key=lambda b: b[1])
++    out = []
++    for rx1, ry1, rx2, ry2 in roots:
++        d = {"widget_root": (rx1, ry1, rx2, ry2)}
++        for rid, (x1, y1, x2, y2) in nodes:
++            if rid in ELEMENTS and x2 > x1 and y2 > y1 and rx1 <= x1 and x2 <= rx2 and ry1 <= y1 and y2 <= ry2:
++                d[rid] = (x1, y1, x2, y2)
++        out.append(d)
++    return out
++
++
++def card_row(img, box):
++    x1, y1, x2, y2 = box
++    crop = img[y1:y2, x1:x2]
++    med = np.median(crop.reshape(-1, 3), axis=0)
++    dist = np.linalg.norm(crop - med, axis=2)
++    if dist.max() < 12:
++        return None
++    glyph = dist > max(12.0, 0.25 * dist.max())
++    core = dist >= np.percentile(dist[glyph], 70)
++    fg = np.median(crop[core], axis=0)
++    bg = crop[~dilate(glyph, 2)]
++    r = ratio(lum(fg), lum(bg))
++    return hexc(fg), hexc(np.median(bg, axis=0)), float(np.percentile(r, 5)), float(ratio(lum(fg), lum(np.median(bg, axis=0))))
++
++
++def bare_glyph(crop):
++    """Glyph pixels of light text: near the brightest core colour of the box."""
++    l = lum(crop)
++    core = l >= np.percentile(l, 97)
++    fg = np.median(crop[core], axis=0)
++    return np.linalg.norm(crop - fg, axis=2) < 40, fg
++
++
++def bare_rows(img, w, ref):
++    rx1, ry1, rx2, ry2 = w["widget_root"]
++    root = img[ry1:ry2, rx1:rx2]
++    all_glyphs = np.zeros(root.shape[:2], bool)
++    found = {}
++    for rid in ELEMENTS:
++        if rid not in w:
++            continue
++        x1, y1, x2, y2 = w[rid]
++        crop = img[y1:y2, x1:x2]
++        g, _ = bare_glyph(ref[y1:y2, x1:x2])
++        l = lum(ref[y1:y2, x1:x2])
++        core = g & (l >= np.percentile(l[g], 50)) if g.any() else g
++        fg = np.median(crop[core], axis=0)
++        found[rid] = (g, fg)
++        all_glyphs[y1 - ry1:y2 - ry1, x1 - rx1:x2 - rx1] |= g
++    far = ~dilate(all_glyphs, 12)
++    wallpaper = root[far]
++    rows = []
++    for rid, (g, fg) in found.items():
++        x1, y1, x2, y2 = w[rid]
++        crop = img[y1:y2, x1:x2]
++        ring = dilate(g, 4) & ~dilate(g, 1)
++        rp = crop[ring]
++        r_ring = ratio(lum(fg), lum(rp))
++        r_wp = ratio(lum(fg), lum(wallpaper))
++        rows.append((rid, hexc(fg), hexc(np.median(rp, axis=0)), float(np.median(r_ring)), float(np.percentile(r_ring, 5)),
++                     hexc(np.median(wallpaper, axis=0)), float(np.median(r_wp)), float(np.percentile(r_wp, 5))))
++    return rows
++
++
++def main():
++    png, ui, labels = Path(sys.argv[1]), Path(sys.argv[2]), sys.argv[3].split(",")
++    wp, th = sys.argv[4], sys.argv[5]
++    img = np.asarray(Image.open(png).convert("RGB"), dtype=float)
++    ref = np.asarray(Image.open(sys.argv[6]).convert("RGB"), dtype=float) if len(sys.argv) > 6 else img
++    ws = widgets(ui.read_text(errors="replace"))
++    if len(ws) != len(labels):
++        sys.exit(f"{len(ws)} widgets in {ui}, {len(labels)} labels")
++    for label, w in zip(labels, ws):
++        if label == "0":
++            for rid, fg, ringc, r_med, r_p5, wpc, w_med, w_p5 in bare_rows(img, w, ref):
++                name, need = ELEMENTS[rid]
++                print(f"| {wp} | {th} | none | {name} | {fg} | {ringc} | {r_med:.2f} | {r_p5:.2f} | {wpc} | {w_med:.2f} | {w_p5:.2f} | {need} |")
++            continue
++        for rid, (name, need) in ELEMENTS.items():
++            if rid not in w:
++                continue
++            row = card_row(img, w[rid])
++            if row is None:
++                continue
++            fg, bg, p5, med = row
++            ok = "yes" if p5 >= need else "**no**"
++            print(f"| {wp} | {th} | {label} % | {name} | {fg} | {bg} | {med:.2f} | {p5:.2f} | {need} | {ok} |")
++
++
++if __name__ == "__main__":
++    main()
+diff --git a/docs/specs/widget-pack.md b/docs/specs/widget-pack.md
+new file mode 100644
+index 0000000..0d8ded1
+--- /dev/null
++++ b/docs/specs/widget-pack.md
+@@ -0,0 +1,135 @@
++# Widget readability + widget pack — spec
++
++Run type: implementation run. Branch: `feat/widget-pack` (from `master`, 2026-10-22).
++Based on `docs/decisions/widget-readability.md` (option B).
++
++## Goal
++
++The home-screen widget is readable at every opacity the user can pick, on any wallpaper and in both themes.
++The score is tinted by its rating, as in the app. The change indicator reads "↓6 pts" and is clearly red or green.
++At font scale 2.0 the score and the indicator never overlap.
++
++## Scope
++
++**In:**
++- Two styles, chosen by the stored opacity (key `widget_opacity_<id>` in `widget_preferences`, unchanged):
++  - **Card**, from the minimum (see Measurements) to 100 %;
++  - **No background** at 0: text and icon straight on the wallpaper, light text with a shadow, like launcher labels.
++- Clamp on read: a stored value that rounds to 0 is "no background"; anything else below the minimum is drawn
++  (and shown on the configuration screen) as the minimum. Stored data is never rewritten.
++- Configuration slider: 0, or minimum to 100. Values between snap to 0 (lower half) or the minimum (upper half).
++- Stronger card text and icon tokens: light primary T10, secondary T20, shield T30 on a T95 card;
++  dark primary T95, secondary T90, shield T80 on a T10 card (`system_accent2_900`, was T20).
++- Score tint by rating (API 31+ through `RemoteViews.setColorInt` day/night pairs; fixed hex as named constants).
++- Change indicator: plurals "↑1 pt" / "↓6 pts", 20sp bold, green/red by direction in both themes.
++- Layout: two columns plus the shield; score and indicator share one row, the indicator auto-sizes, so nothing overlaps
++  at font scale 2.0. `resizeMode` gains `vertical`.
++- Remove the unused widget colours in `values-night-v31/colors.xml`.
++- Fix the "orange-ish" comment at `ScoreCard.kt:119` (it is teal).
++
++**Out:**
++- The Android 8–11 slider issue (`setImageAlpha` on a background-only `ImageView`). Report only.
++- The widget update trigger (exported receiver; no update on wallpaper or font-scale change). Report only.
++- Dark text in the no-background style on light wallpapers (`HINT_SUPPORTS_DARK_TEXT`): Oliver chose light text with shadow.
++
++## Oliver's calls
++
++| Question | Default |
++|---|---|
++| Option | **B** — decided by Oliver, 2026-10-22. |
++| Minimum card opacity | Not guessed: the lowest step from 70 to 76 % at which all text reaches 4.5:1 and the icon 3:1 on all six wallpaper/theme combinations (decided 2026-10-22). **Measured: 76 %** (75 % fails at 4.43; see Measurements). |
++| Fair tint | App-matching teal, darkened to `#224C58` in light theme (decided 2026-10-22). |
++| No-background score and indicator colour | Default: the dark-theme tints (light green/teal/red), with the same shadow as the text. |
++| Slider snapping below the minimum | Default: lower half snaps to 0 ("No background"), upper half to the minimum. |
++
++## Colours
++
++| Element | Light (card T95) | Dark (card T10) | No background |
++|---|---|---|---|
++| Device name | `system_accent1_900` (T10) | `system_accent1_50` (T95) | white + shadow |
++| OS name, rating | `system_accent1_800` (T20) | `system_accent1_100` (T90) | white + shadow |
++| Shield | `system_neutral1_700` (T30) | `system_neutral1_200` (T80) | white, dark outline |
++| Score Excellent/Good, ↑ | `#004225` | `#93D5AA` | `#93D5AA` + shadow |
++| Score Fair | `#224C58` | `#A3CDDB` | `#A3CDDB` + shadow |
++| Score Poor/Critical, ↓ | `#93000A` | `#FFB4AB` | `#FFB4AB` + shadow |
++
++API 26–30 keep their Cream-on-dark card; the score and indicator use the dark-theme tints there (not device-checked).
++
++## Invariants
++
++1. The stored opacity key, its file and its values are unchanged; nothing rewrites them. Clamping happens only when reading.
++2. Opacity 0 (or anything that rounds to 0) is the no-background style; it never draws a card.
++3. Every RemoteViews call targets a view that exists in the layout it is applied to (no "Problem loading widget"):
++   the no-background layout has no `widget_background`, so no alpha call goes to it.
++4. API 31+ colours follow the launcher's light/dark mode without a new update (XML tokens or `setColorInt` pairs; no single-colour `setTextColor` on the card style).
++
++## Milestones
++
++| # | Milestone | Gate (evidence that proves it) |
++|---|---|---|
++| 1 | Clamp, slider snap, tints | Unit tests: clamp and snap edges; every tint and token reaches its target at the minimum and at 100 % on white and black wallpaper (tone model). |
++| 2 | Minimum measured | Pixel 8: photo/White/Black × light/dark at 70, 75, 76 and 100 %, `contrast.py` from screenshot pixels. Table below. |
++| 3 | No-background style | Same six combinations at 0: screenshots and contrast including the shadow; weakest case named. |
++| 4 | Tint and indicator | Score tint for two ratings; ↑ and ↓ indicator (Private DNS toggled on the Pixel 8). |
++| 5 | Font scale 2.0 | Screenshot, no overlap. |
++| 6 | Clamp on device | A widget with stored 40 % draws the same card as one at the minimum. |
++| 7 | Restore | Wallpaper, theme, font scale, Private DNS and widgets as before. |
++
++## Measurements
++
++**Chosen minimum: 76 %** (measured 2026-10-22, Pixel 8, Android 17, Pixel Launcher).
++
++Method (round A): a measurement build with the minimum temporarily at 70 %, five widgets (ids 17–21) at 70 / 75 / 76 / 100 % and
++no background on one page. Photo (the phone's own mountain photo), plain White and plain Black home wallpaper × light and dark theme.
++No widget update after a theme or wallpaper change: the launcher switched every colour by itself.
++`widget_contrast.py` uses the same method as the paper's `contrast.py`. Run on the paper's screenshots, it gives back their numbers exactly.
++Weakest text per combination (worst 5 % of pixels; text must reach 4.5, the shield 3.0). **Bold = fails.**
++
++| Wallpaper | Theme | 70 % | 75 % | 76 % | 100 % | Shield at 76 % / 100 % |
++|---|---|---|---|---|---|---|
++| photo | light | 6.66 (score) | 6.60 (score) | 7.17 (score) | 8.27 (score) | 7.27 / 8.29 |
++| photo | dark | 5.24 (score) | 6.61 (score) | 5.64 (score) | 10.03 (score) | 5.64 / 10.02 |
++| White | light | 8.58 (score) | 8.52 (score) | 8.52 (score) | 8.27 (score) | 8.54 / 8.29 |
++| White | dark | **3.69 (score)** | **4.43 (score)** | 4.57 (score) | 10.03 (score) | 4.57 / 10.02 |
++| Black | light | **3.95 (score)** | 4.54 (score) | 4.64 (score) | 8.27 (score) | 4.65 / 8.29 |
++| Black | dark | 10.87 (score) | 10.76 (score) | 10.76 (score) | 10.05 (score) | 10.81 / 10.10 |
++
++- 75 % fails: the dark-theme Fair score `#A3CDDB` on White reaches 4.43. Contrast only rises with opacity here, so 70–74 % fail too.
++  76 % passes everything. The tightest margin is that same score at 4.57 (model 4.58), then light Fair `#224C58` on Black at 4.64.
++- The shield, which failed everywhere before (2.0 / 2.9 at 100 %), now reaches at least 4.57.
++- On the device the score was Fair (53), so the teal was measured. The green and red tints are covered by the model and
++  `WidgetStyleTest` (dark green 4.59, dark red 4.60 at 76 % on White; both fail at 75 %).
++- On the photo, each widget sits over a different patch, so the rows aren't directly comparable with each other.
++- Full table: `docs/screens/2026-10-22-widget-pack/measurements.md`. Contact sheet: `sweep-contact-sheet.png` there.
++
++**No background** (same shots; text white `#FFFFFF`, score `#A3CDDB`; worst-5 % in brackets):
++
++| Wallpaper | Text vs its shadow ring, median | Text vs plain wallpaper, median | Shield (fill vs outline ring) |
++|---|---|---|---|
++| Black | 21.0 (21.0) | 21.0 | 20.1 (8.6) |
++| photo (light brown hills, `#B3A28E`) | 3.0–4.0 (2.0–2.9); score 2.1 | 2.5; score 1.5 | 10.3 (3.1) |
++| White | 1.4–1.6 (≈1.1); score 1.3 | 1.0; score 1.7 | 8.6 (1.3) |
++
++Weakest: **White**, in both themes; the style ignores the theme. The text is readable only through its grey shadow, and it is far below 4.5:1.
++On a light-to-mid photo it reads, but is still below 4.5:1. It works well only on dark wallpapers.
++This is the cost of Oliver's choice of light text only. The launcher's own fix, dark text when the wallpaper reports
++`HINT_SUPPORTS_DARK_TEXT`, is the follow-up (see Found in STATE).
++
++**Round B (final build, minimum 76 %)**, Pixel 8, Black wallpaper. Contact sheet: `tint-change-font2-sheet.png`;
++configuration screens: `config-clamp.png`.
++
++| Gate | Result |
++|---|---|
++| Clamp on device | Widgets stored at 40, 75 and 76 draw the identical card pixel (180,182,193) = 76 % of the card (238,240,255) over black. The settings screen shows "Opacity: 76%" for the widget stored at 40 and "No background" for 0. Leaving with Back saved nothing (the prefs file was unchanged). |
++| Score tint, two ratings | Private DNS `off` → 47 "Needs Attention" (Poor) in `#93000A` light / `#FFB4AB` dark. Back to unset → 53 Fair in `#224C58` / `#A3CDDB`. |
++| Change indicator | "↓6 pts" red (`#93000A` / `#FFB4AB`) and "↑6 pts" green (`#004225` / `#93D5AA`), both themes, switched by the launcher without an update. At 76 % in light theme on Black: red 4.63, green 5.76, teal score 4.64. |
++| Font scale 2.0 | Score "53" ends at x=745 and "↑6 pts" starts at x=766: no overlap. All text sits inside the widget; "Stock Android" ellipsizes to "Stock And…". Same in dark theme. |
++| Restore | Five test widgets removed (only the old invisible ids 14 and 15 remain), page 3 gone. Wallpaper back to the photo: home page 1 pixel-identical to the baseline, page 2 identical except a 59×16 px spot at the page indicator. Theme light, font scale 1.0, Private DNS unset. The debug app's `widget_preferences` and `score_history` files were written back from their pre-run copies. Crash buffer empty in both rounds. |
++
++Not verified on a device: API 26–30 (legacy card and its tint colours; no API 30 emulator), and Good/Excellent green as a *score* tint (the green was measured as the ↑ colour).
++
++## STOP points
++
++| When | What Oliver does |
++|---|---|
++| After the diff review, before merge | Runs the external review (see CLAUDE.md, External review) and saves the findings file. |
+diff --git a/docs/state-archive/2026-10.md b/docs/state-archive/2026-10.md
+index b501ef9..505331a 100644
+--- a/docs/state-archive/2026-10.md
++++ b/docs/state-archive/2026-10.md
+@@ -2,6 +2,36 @@
+ 
+ Newest first. Moved unedited from `STATE.md`.
+ 
++### 2026-10-21 — default-app row copy (`fix/default-app-copy` → `master`)
++
++- [x] Investigation (code): on `master` the unknown branch of browser, SMS and email (`DefaultAppsChecker.kt:99/169/304`)
++      showed "Using X (unknown, 0 pts)". It fires for any default app on neither list; the launcher was fixed already.
++      On the Pixel 8 today none of them leaks: Chrome, Fossify Messages and Gmail are all rated (`cmd role get-role-holders`, `resolve-activity`).
++- [x] Fix: the four rows (browser, SMS, email, launcher) take all their text from `strings.xml`: `fmt_default_app_using`,
++      `fmt_default_app_not_rated` (replaces `fmt_launcher_not_rated`), `status_no_default_*`, `status_default_*_unknown`,
++      `fmt_technical_package` and `fmt_technical_error`. The English text is unchanged except for the leak.
++- [x] `PrivacyIssue.appName` carries the name; QuickWinsDetector reads it, and `extractAppName` is gone. Pure pass-through:
++      every quick-win branch is `!isSecure`, where `appName` is the same name the old code parsed back out of "Using …".
++- [x] Scoring unchanged: `DefaultAppsCheckerScoringTest` pins (isSecure, isUnknown, points) for every branch of the five default-app checks.
++      It passed on the unchanged code first (baseline), then after the change. New tests cover the not-rated copy, `appName`,
++      and a quick win whose status text is translated.
++- [x] `compileDebugKotlin` OK; `testDebugUnitTest --rerun`: 18 suites, 160 tests, 0 failures.
++- [x] Device, Pixel 8 (stand-in verify agent, fresh APK). Throwaway placeholders were built in the scratchpad, signed with a
++      throwaway openssl key (the guard hook blocks the JDK key tool), and set as defaults: Test Browser and Test Messages through roles.
++      The EMAIL role refused Test Mail, so Gmail was disabled for user 0 while the screenshots were taken.
++  - Details → Default Apps: "Using Test Browser / Test Messages / Test Mail — not rated yet", each with the Info icon and no chip.
++    The rated comparison "Using Pixel Launcher" shows the −2 chip. The `uiautomator` text has no "pts" or "(unknown".
++    "Package: org.example.teststub.browser" shows when the row is expanded. Crash buffer empty.
++  - Evidence: `docs/screens/2026-10-21-default-app-copy/` (one screen covers all four rows).
++  - Restored: Chrome, Fossify Messages, Pixel Launcher and Gmail (`mailto:`) as before; placeholders uninstalled; `pm list packages org.example.teststub` is empty.
++- [ ] Not verified on a device: the "No default … set" and "Unable to determine …" branches (covered by the unit test only).
++- [x] Own diff review against `master`: no blockers. External review is not required: the QuickWinsDetector change only passes the name through.
++
++### 2026-10-21 — CLAUDE.md tweaks (`chore/claude-md-tweaks` → `master`)
++
++- [x] Found ends with a "Roadmap:" line. Review file names replace `/` with `-`. Backup-test gotcha: run `pm unstop` after `pm clear`. CLAUDE.md is 124 lines.
++- [x] Docs only, so there is no build gate. Diff reviewed against `master`: no blockers. Merged with `--no-ff`.
++
+ ### 2026-10-21 — workflow pieces + backup exclusions (`fix/backup-exclusions` → `master`)
+ 
+ - [x] Workflow, one commit each: `docs/specs/TEMPLATE.md`, `.claude/agents/device-verify.md`, `docs/reviews/REVIEW_PROMPT.md` (verbatim),
