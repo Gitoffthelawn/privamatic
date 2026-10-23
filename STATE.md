@@ -41,7 +41,16 @@ pre-`c837e59` branch, overwrites or deletes it. Back it up first. The guard hook
 - [ ] **Release note for the backup change** (Oliver agrees the text): trusted apps and settings no longer move to a new phone.
 - [x] **Widget readability: design run.** Paper `docs/decisions/widget-readability.md`; see Runs.
 - [ ] **Widget readability + widget pack: implementation run** (`feat/widget-pack`). **Parked 2026-10-23** after the second
-      layout fix round (CLAUDE.md, park don't patch): two font-2.0 details open (Open questions). Review files not regenerated yet.
+      layout fix round. Next = **round 3**, decisions already made (Oliver, 2026-10-23):
+  - [ ] Centre the truncated rating in its box (score and "Need…" share a centre at font 2.0).
+  - [ ] Let the no-background score's halo draw past the widget padding (no flat top at font 2.0).
+  - [ ] Halos approved as they are. Thicken the no-background shield outline if it's a small change, and measure it (now worst 5 % 1.2–2.1 in the wrong variant).
+  - [ ] "↓6 pts" at font 1.0 when it fits whole next to the rating; the unit drops only when the end half is too narrow. If it can't fit
+        whole at 1.0, show Oliver the measurement instead. Update the spec's "Change text" call and the changelog line to match.
+  - [ ] Device: a two-digit change and an ↑ change; the device-name and OS halos hugging their text (wrapped in source, never seen on a device).
+  - [ ] Clean → regenerate `docs/reviews/feat-widget-pack.diff` and the round-1 prompt (invariants: no-background text colour from the
+        wallpaper hint, never from pixels near the widget; score number and arrow never truncated) and stop at "external review".
+        Not clean → park again. **No round 4 without Oliver.**
 - [ ] **Widget opacity on Android 8–11 probably does nothing** (`setImageAlpha` on a background-only `ImageView`). Hypothesis; needs an API 30 emulator.
 - [ ] **device-verify ran its sweep from a scratchpad script**, which hides each adb call from the guard hook. The commands matched the prompt, Pixel 8 only.
       Consider a line in the agent file: "run commands inline, never from a script file".
@@ -84,11 +93,7 @@ It is the real guard. The allow and deny lists are a convenience.
 
 ## Open questions for Oliver
 
-- **Widget pack, parked after two layout rounds (2026-10-23).** Layout = the released one from Oliver's screenshot; font 1.0 matches it.
-  Open at font scale 2.0 only: (1) an ellipsized rating ("Need…") is drawn from the start of its box, 15 px off the score's centre;
-  (2) with no background the score's halo is clipped flat by the widget's 8 dp top padding (digits whole). Proposed: `gravity="center_horizontal"`
-  on score and rating, `clipToPadding="false"` on the layout, then one device round (it also confirms the hugging name/OS halos).
-  Also: do the 65 % halo pills look right to Oliver? (`docs/screens/2026-10-23-widget-pack/no-background-halo-sheet.png`)
+- None open; the widget pack's next steps are decided (Next, round 3).
 
 ## Runs
 
