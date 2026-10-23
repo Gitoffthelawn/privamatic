@@ -22,10 +22,13 @@ At font scale 2.0 the score and the indicator never overlap.
 - Stronger card text and icon tokens: light primary T10, secondary T20, shield T30 on a T95 card;
   dark primary T95, secondary T90, shield T80 on a T10 card (`system_accent2_900`, was T20).
 - Score tint by rating (API 31+ through `RemoteViews.setColorInt` day/night pairs; fixed hex as named constants).
-- Change indicator: plurals "↑1 pt" / "↓6 pts", 20sp bold, green/red by direction in both themes.
-- Layout: device block at the start; shield, 16dp gap and the score group (score + change, rating) at the end, with the
-  same 24dp inner margin as the start; the free space sits in the middle. Score and change share one row, so they never
-  overlap at font scale 2.0. `resizeMode` gains `vertical`.
+- Change indicator: "↑6" / "↓6" (number only, as released), 18sp regular, green/red by direction in both themes.
+- Layout: the released v1.5.1 geometry (Oliver's screenshot, 2026-10-23): device block at the start (40dp in), shield
+  centred, score and rating centred in the end half (rating on the OS baseline), the change at the end edge (40dp in),
+  centred on both rows. While a change shows, the score and rating rows reserve its width on both sides, so they stay
+  centred and never run under it; a text too wide for that moves towards the shield, then ellipsizes. `resizeMode` gains `vertical`.
+- No-background halo: each text sits on a rounded halo of the opposite colour at 65 %, so it keeps 3:1 against it on any
+  wallpaper in both colour variants, including the moment between a wallpaper change and the next widget update.
 - Remove the unused widget colours in `values-night-v31/colors.xml`.
 - Fix the "orange-ish" comment at `ScoreCard.kt:119` (it is teal).
 
@@ -43,7 +46,10 @@ At font scale 2.0 the score and the indicator never overlap.
 | No-background score and indicator colour | The dark-theme tints with the text's shadow; with dark text, the light-theme tints (decided 2026-10-22). |
 | No-background text on light wallpapers | Must pass there too: dark text from the wallpaper's `HINT_SUPPORTS_DARK_TEXT`, as Pixel Launcher (decided 2026-10-22). Light glow or none: measured, see Measurements. |
 | Settings | "Show background" switch plus a 76–100 % slider; off stores 0 (decided 2026-10-22; replaces the snapping slider). |
-| Layout | Score group aligned to the end with the start's inner margin, shield 16dp before it, free space in the middle (decided 2026-10-22, from Oliver's 100 % screenshot). |
+| Layout | The released v1.5.1 layout, as in Oliver's screenshot of 2026-10-23; positions and text sizes only (colours as above). Replaces the 2026-10-22 layouts. |
+| Change text | "↓6" without "pts", as released: with "pts" the centred score and the change collide at normal text size (decided 2026-10-23). |
+| Large text | Score number and the arrow with its number are never cut; the score or rating moves towards the shield before it gets "…" (decided 2026-10-23). |
+| Colour lag after a wallpaper change | Readable anyway: a halo that keeps 3:1 in the "wrong" variant on White, Black and the photo (decided 2026-10-23). The wallpaper hint stays the rule for the colour. |
 
 ## Wallpaper hint (platform facts, checked 2026-10-22)
 
@@ -59,7 +65,7 @@ From `api-versions.xml` of the android-37.2 SDK platform, and `javap` on its `an
 ## Changelog (agreed by Oliver, 2026-10-22)
 
 - Widget: easier to read on any wallpaper. The background is now at least 76 % opaque, or switch it off to put the text straight on your wallpaper. If you had a low opacity set, the widget now looks more solid.
-- Widget: the score is coloured by its rating, and changes show as "↓6 pts" in red or "↑6 pts" in green.
+- Widget: the score is coloured by its rating, and changes show as "↓6" in red or "↑6" in green.
 - Widget: the score and its change no longer overlap with large text.
 
 ## Colours
@@ -84,6 +90,7 @@ API 26–30 keep their Cream-on-dark card; the score and indicator use the dark-
 4. API 31+ colours follow the launcher's light/dark mode without a new update (XML tokens or `setColorInt` pairs; no single-colour `setTextColor` on the card style).
 5. The no-background text colour comes from the system wallpaper's colour hint (`HINT_SUPPORTS_DARK_TEXT`), never from guessing at pixels near the widget.
 6. The settings screen can only store 0 (switch off) or a value from the minimum to 100; opening it and saving unchanged draws the same widget.
+7. The change never overlaps the score or the rating and is never cut: each row measures the change's space first. Score and rating stay centred in the end half while they fit beside it, then move towards the shield, and only then ellipsize.
 
 ## Milestones
 
@@ -177,6 +184,14 @@ Key images: `no-background-hint-sheet.png`, `settings-switch-slider.png`. Full t
 - **Clamp:** stored 40 and 76 draw pixel-identical cards (alpha 0.756) on White (dark theme) and Black.
 
 Not verified on a device: API 26–30 (legacy card and its tint colours; no API 30 emulator), and Good/Excellent green as a *score* tint (the green was measured as the ↑ colour).
+
+**2026-10-23 (halo, released layout)**, Pixel 8: `docs/screens/2026-10-23-widget-pack/measurements.md`.
+- Halo: every no-background text reaches ≥ 4.12:1 against its halo (worst 5 %) on White, Black and the photo, in the matching and the
+  "wrong" colour variant (`no-background-halo-sheet.png`). Against the bare wallpaper the wrong variant is 1.0–2.2.
+- Layout, font 1.0: as Oliver's screenshot (text 41 dp in on both sides, shield centred, score centred over the rating, "↓6" at the end).
+  "Needs Attention" beside a change moves towards the shield and stays whole (`layout-font1.png`).
+- Layout, font 2.0: score and arrow whole, nothing overlaps; OS and rating ellipsize (`layout-font2.png`). Open: the cut rating sits
+  15 px off the score's centre, and the no-background score halo is clipped by the top padding.
 
 ## STOP points
 
