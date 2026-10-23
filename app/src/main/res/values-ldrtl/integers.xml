@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Right-to-left locales: the reverse is ltr (see values/integers.xml). -->
+    <integer name="widget_reversed_layout_direction">0</integer>
+</resources>

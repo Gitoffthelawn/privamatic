@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- android:layoutDirection of the widget's score and rating rows: the reverse of the
+         locale's, so the row measures the space reserved at the end edge before its text
+         (layout/widget_privacy.xml). 1 = rtl, 0 = ltr. -->
+    <integer name="widget_reversed_layout_direction">1</integer>
+</resources>

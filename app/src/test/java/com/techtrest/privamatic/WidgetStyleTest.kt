@@ -177,11 +177,118 @@ class WidgetStyleTest {
         }
     }
 
+    /**
+     * No background: every text and tint reaches 3:1 against its own halo on White, Black and the
+     * photo patches, in both variants. The "wrong" variant (light text on White, dark on Black) is
+     * what shows between a wallpaper change and the next widget update.
+     */
+    @Test
+    fun noBackgroundHalo_keepsEveryText3to1InBothVariants() {
+        val light = listOf(color("widget_no_background_text"), WidgetStyle.GREEN_DARK, WidgetStyle.TEAL_DARK, WidgetStyle.RED_DARK)
+        val dark = listOf(color("widget_no_background_dark_text"), WidgetStyle.GREEN_LIGHT, WidgetStyle.TEAL_LIGHT, WidgetStyle.RED_LIGHT)
+        val variants = listOf(light to color("widget_text_halo"), dark to color("widget_text_halo_light"))
+        val photo = listOf(argb(0xFF839099.toInt()), argb(0xFFB3A28E.toInt()), argb(0xFFD4C4B5.toInt()))
+        for ((fills, halo) in variants) {
+            val alpha = ((halo ushr 24) and 0xFF) / 255.0
+            for (wp in wallpapers + photo) {
+                val bg = DoubleArray(3) { alpha * argb(halo)[it] + (1 - alpha) * wp[it] }
+                for (fill in fills) {
+                    val r = ratio(lum(argb(fill)), lum(bg))
+                    assertTrue("#%06X on halo #%08X over %s: %.2f".format(fill and 0xFFFFFF, halo, wp.toList(), r), r >= 3.0)
+                }
+            }
+        }
+    }
+
     // --- layouts -------------------------------------------------------------------------
+
+    private val allLayouts = listOf(
+        "layout/widget_privacy", "layout-v31/widget_privacy", "layout-night-v31/widget_privacy",
+        "layout/widget_privacy_no_background", "layout/widget_privacy_no_background_dark_text"
+    )
+
+    /**
+     * Score row: [space at the end edge, score over rating, space at the shield], laid out in the
+     * reversed direction so it measures the end-edge space first and the shield-side space last.
+     * Each space is a copy of the change at its size, so score and rating stay centred in the half
+     * and can't run under the change; if they are too wide they push into the shield-side space first.
+     */
+    @Test
+    fun scoreRow_reservesTheChangeOnBothSides() {
+        allLayouts.forEach { name ->
+            val doc = parse("src/main/res/$name.xml")
+            val delta = doc.element("widget_score_delta")
+            val row = doc.element("widget_score_row")
+            val children = row.childElements()
+            assertEquals("$name row", 3, children.size)
+            assertEquals("$name end space first", "@+id/widget_delta_space_end", children[0].attr("id"))
+            assertEquals("$name shield space last", "@+id/widget_delta_space_shield", children[2].attr("id"))
+            assertEquals(
+                "$name score above rating", listOf("@+id/widget_score_value", "@+id/widget_score_rating"),
+                children[1].childElements().map { it.attr("id") }
+            )
+            assertEquals("$name direction", "@integer/widget_reversed_layout_direction", row.attr("layoutDirection"))
+            listOf(children[0], children[2]).forEach { space ->
+                assertEquals("$name space size", delta.attr("textSize"), space.attr("textSize"))
+                assertEquals("$name space style", delta.attr("textStyle"), space.attr("textStyle"))
+                assertEquals("$name space height", "0dp", space.attr("layout_height"))
+            }
+            assertEquals("$name change maxLines", "1", delta.attr("maxLines"))
+        }
+    }
+
+    /**
+     * Each space is as wide as the change's footprint from the end edge: its text plus the
+     * change's end margin, its halo padding and a 4dp gap.
+     */
+    @Test
+    fun spaces_matchTheChangesFootprint() {
+        allLayouts.forEach { name ->
+            val doc = parse("src/main/res/$name.xml")
+            val delta = doc.element("widget_score_delta")
+            val margin = dp((delta.parentNode as org.w3c.dom.Element).attr("layout_marginEnd"))
+            val footprint = margin + dp(delta.attr("paddingStart")) + dp(delta.attr("paddingEnd")) + 4
+            listOf("widget_delta_space_end", "widget_delta_space_shield").forEach {
+                val space = doc.element(it)
+                assertEquals("$name $it", footprint, dp(space.attr("paddingStart")) + dp(space.attr("paddingEnd")))
+            }
+        }
+    }
+
+    /** Reversed means the opposite of the locale: rtl in left-to-right locales, ltr in right-to-left ones. */
+    @Test
+    fun reversedDirection_isTheOppositeOfTheLocale() {
+        fun value(dir: String) = parse("src/main/res/$dir/integers.xml").getElementsByTagName("integer").let { list ->
+            (0 until list.length).map { list.item(it) as org.w3c.dom.Element }
+                .single { it.getAttribute("name") == "widget_reversed_layout_direction" }.textContent.trim()
+        }
+        assertEquals("1", value("values"))   // View.LAYOUT_DIRECTION_RTL
+        assertEquals("0", value("values-ldrtl")) // View.LAYOUT_DIRECTION_LTR
+    }
+
+    @Test
+    fun noBackgroundLayouts_putEveryTextOnItsHalo() {
+        val texts = listOf(
+            "widget_device_name", "widget_os_name", "widget_score_value", "widget_score_delta", "widget_score_rating"
+        )
+        mapOf(
+            "widget_privacy_no_background" to "@drawable/widget_text_halo",
+            "widget_privacy_no_background_dark_text" to "@drawable/widget_text_halo_light"
+        ).forEach { (name, halo) ->
+            val doc = parse("src/main/res/layout/$name.xml")
+            texts.forEach {
+                val tv = doc.element(it)
+                assertEquals("$name $it", halo, tv.attr("background"))
+                // Pinned at both edges in the RelativeLayout, a text (and its halo) would stretch to the shield.
+                assertEquals("$name $it sits in a wrapper", "LinearLayout", (tv.parentNode as org.w3c.dom.Element).tagName)
+            }
+        }
+    }
 
     private val sharedIds = listOf(
         "widget_root", "widget_device_name", "widget_os_name", "widget_divider",
-        "widget_score_value", "widget_score_delta", "widget_score_rating"
+        "widget_score_value", "widget_score_delta", "widget_score_rating",
+        "widget_score_row", "widget_delta_space_end", "widget_delta_space_shield"
     )
 
     @Test
@@ -204,9 +311,33 @@ class WidgetStyleTest {
 
     // --- helpers -------------------------------------------------------------------------
 
+    private fun parse(path: String) = DocumentBuilderFactory.newInstance().apply { isNamespaceAware = true }
+        .newDocumentBuilder().parse(File(path))
+
+    private fun org.w3c.dom.Element.attr(name: String): String =
+        getAttributeNS("http://schemas.android.com/apk/res/android", name)
+
+    private fun org.w3c.dom.Element.childElements(): List<org.w3c.dom.Element> =
+        (0 until childNodes.length).map { childNodes.item(it) }.filterIsInstance<org.w3c.dom.Element>()
+
+    private fun dp(value: String): Int = value.removeSuffix("dp").ifEmpty { "0" }.toInt()
+
+    private fun org.w3c.dom.Document.element(id: String): org.w3c.dom.Element {
+        val all = getElementsByTagName("*")
+        return (0 until all.length).map { all.item(it) as org.w3c.dom.Element }
+            .single { it.attr("id") == "@+id/$id" }
+    }
+
+    /** A widget colour from values/colors.xml as ARGB. */
+    private fun color(name: String): Int {
+        val colors = parse("src/main/res/values/colors.xml").getElementsByTagName("color")
+        val hex = (0 until colors.length).map { colors.item(it) as org.w3c.dom.Element }
+            .single { it.getAttribute("name") == name }.textContent.trim().removePrefix("#")
+        return (if (hex.length == 6) "FF$hex" else hex).toLong(16).toInt()
+    }
+
     private fun layoutIds(path: String): Set<String> {
-        val doc = DocumentBuilderFactory.newInstance().apply { isNamespaceAware = true }
-            .newDocumentBuilder().parse(File(path))
+        val doc = parse(path)
         val all = doc.getElementsByTagName("*")
         return (0 until all.length).mapNotNull {
             (all.item(it) as org.w3c.dom.Element)

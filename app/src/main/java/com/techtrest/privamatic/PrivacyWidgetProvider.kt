@@ -178,15 +178,20 @@ class PrivacyWidgetProvider : AppWidgetProvider() {
 
         val isIncrease = scoreDelta != null && scoreDelta > 0
         if (showDelta && scoreDelta != null) {
-            val changeText = context.resources.getQuantityString(
-                if (isIncrease) R.plurals.plural_widget_delta_up else R.plurals.plural_widget_delta_down,
-                abs(scoreDelta),
+            val changeText = context.getString(
+                if (isIncrease) R.string.fmt_widget_delta_up else R.string.fmt_widget_delta_down,
                 abs(scoreDelta)
             )
             views.setTextViewText(R.id.widget_score_delta, changeText)
             views.setViewVisibility(R.id.widget_score_delta, View.VISIBLE)
+            // Invisible copies keep the score and rating centred and clear of the change (see the layout).
+            for (id in DELTA_SPACE_IDS) {
+                views.setTextViewText(id, changeText)
+                views.setViewVisibility(id, View.INVISIBLE)
+            }
         } else {
             views.setViewVisibility(R.id.widget_score_delta, View.GONE)
+            for (id in DELTA_SPACE_IDS) views.setViewVisibility(id, View.GONE)
         }
         val scoreColors = rating?.let { WidgetStyle.scoreColors(it) }
         val deltaColors = WidgetStyle.deltaColors(isIncrease)
@@ -255,6 +260,9 @@ class PrivacyWidgetProvider : AppWidgetProvider() {
         const val ACTION_MIDNIGHT_SNAPSHOT = "com.techtrest.privamatic.ACTION_MIDNIGHT_SNAPSHOT"
 
         private const val ALARM_REQUEST_CODE = 1001
+
+        /** The change's invisible copies on both sides of the score and rating. */
+        private val DELTA_SPACE_IDS = intArrayOf(R.id.widget_delta_space_end, R.id.widget_delta_space_shield)
 
         /** Six hours in milliseconds. */
         private const val UPDATE_INTERVAL_MS = 6L * 60 * 60 * 1000
