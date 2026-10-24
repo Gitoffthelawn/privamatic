@@ -2,6 +2,7 @@ package com.techtrest.privamatic
 
 import android.app.AlarmManager
 import android.app.PendingIntent
+import android.app.WallpaperManager
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
@@ -11,9 +12,12 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.SystemClock
 import android.util.Log
+import android.util.TypedValue
+import android.view.LayoutInflater
 import android.view.View
 import com.techtrest.privamatic.BuildConfig
 import android.widget.RemoteViews
+import android.widget.TextView
 import com.techtrest.privamatic.data.ScoreHistoryRepository
 import com.techtrest.privamatic.data.TrustedAppsAdjuster
 import com.techtrest.privamatic.data.TrustedAppsRepository
@@ -67,6 +71,7 @@ class PrivacyWidgetProvider : AppWidgetProvider() {
                 ComponentName(context, PrivacyWidgetProvider::class.java)
             )
             if (ids.isNotEmpty()) {
+                WidgetDebugOverride.applyExtras(context, intent, ids)
                 onUpdate(context, manager, ids)
             }
         }
@@ -97,10 +102,13 @@ class PrivacyWidgetProvider : AppWidgetProvider() {
                 val scoreHistoryRepository = ScoreHistoryRepository(context)
                 val scoreHistory = scoreHistoryRepository.recordScore(score)
                 val scoreDelta = scoreHistory.scoreDelta
+                val darkText = noBackgroundUsesDarkText(context)
                 val showPrivacyChange = scoreDelta != null &&
                         scoreDelta != 0 &&
                         scoreHistory.deltaFirstAppearedTimestamp != 0L &&
                         (System.currentTimeMillis() - scoreHistory.deltaFirstAppearedTimestamp) <= CHANGE_EXPIRY_MS
+                // Debug builds only: a device check can force the change state; always null in release.
+                val forcedDelta = WidgetDebugOverride.forcedDelta(context)
 
                 for (appWidgetId in appWidgetIds) {
                     updateWidget(
@@ -110,9 +118,11 @@ class PrivacyWidgetProvider : AppWidgetProvider() {
                         deviceName = deviceName,
                         osName = osName,
                         scoreText = score.toString(),
+                        rating = rating,
                         ratingText = ratingText,
-                        scoreDelta = scoreDelta,
-                        showDelta = showPrivacyChange
+                        scoreDelta = forcedDelta ?: scoreDelta,
+                        showDelta = if (forcedDelta != null) forcedDelta != 0 else showPrivacyChange,
+                        darkText = darkText
                     )
                 }
             } catch (e: Exception) {
@@ -127,9 +137,11 @@ class PrivacyWidgetProvider : AppWidgetProvider() {
                         deviceName = deviceName,
                         osName = osName,
                         scoreText = "--",
+                        rating = null,
                         ratingText = "—",
                         scoreDelta = null,
-                        showDelta = false
+                        showDelta = false,
+                        darkText = noBackgroundUsesDarkText(context)
                     )
                 }
             } finally {
@@ -149,66 +161,91 @@ class PrivacyWidgetProvider : AppWidgetProvider() {
         deviceName: String,
         osName: String,
         scoreText: String,
+        rating: PrivacyScoreCalculator.ScoreRating?,
         ratingText: String,
         scoreDelta: Int?,
-        showDelta: Boolean
+        showDelta: Boolean,
+        darkText: Boolean
     ) {
-        val views = RemoteViews(context.packageName, R.layout.widget_privacy)
+        // Stored values below the card minimum draw as the minimum; 0 is the no-background style.
+        val opacity = WidgetStyle.effectiveOpacity(WidgetPreferences.getOpacity(context, appWidgetId))
+        val noBackground = opacity == WidgetStyle.NO_BACKGROUND
+        val layout = when {
+            !noBackground -> R.layout.widget_privacy
+            darkText -> R.layout.widget_privacy_no_background_dark_text
+            else -> R.layout.widget_privacy_no_background
+        }
+        val views = RemoteViews(context.packageName, layout)
 
-        views.setTextViewText(R.id.widget_device_name, deviceName)
+        // Debug builds only: a device check can force a long name; always null in release.
+        views.setTextViewText(R.id.widget_device_name, WidgetDebugOverride.forcedDeviceName(context) ?: deviceName)
         views.setTextViewText(R.id.widget_os_name, osName)
         views.setTextViewText(R.id.widget_score_value, scoreText)
         views.setTextViewText(R.id.widget_score_rating, ratingText)
 
-        // Handle privacy change indicator.
-        // Uses two separate TextViews (up/down) with XML-defined colors so that
-        // theme changes (light↔dark) always resolve the correct color from
-        // resource qualifiers, avoiding stale programmatic setTextColor values.
-        if (showDelta && scoreDelta != null) {
-            val isIncrease = scoreDelta > 0
-            val changeText = if (isIncrease) {
-                context.getString(R.string.fmt_widget_delta_up, abs(scoreDelta))
-            } else {
-                context.getString(R.string.fmt_widget_delta_down, abs(scoreDelta))
-            }
-
-            if (isIncrease) {
-                views.setTextViewText(R.id.widget_privacy_change_up, changeText)
-                views.setViewVisibility(R.id.widget_privacy_change_up, View.VISIBLE)
-                views.setViewVisibility(R.id.widget_privacy_change_down, View.GONE)
-            } else {
-                views.setTextViewText(R.id.widget_privacy_change_down, changeText)
-                views.setViewVisibility(R.id.widget_privacy_change_down, View.VISIBLE)
-                views.setViewVisibility(R.id.widget_privacy_change_up, View.GONE)
-            }
+        // While a change is live it takes the shield's place. The shield goes invisible, not gone,
+        // so the sides keep their anchor. Both states are set every time: the launcher reapplies
+        // an update onto the views it already shows.
+        val isIncrease = scoreDelta != null && scoreDelta > 0
+        if (showDelta && scoreDelta != null && scoreDelta != 0) {
+            val changeText = context.getString(
+                if (isIncrease) R.string.fmt_widget_delta_up else R.string.fmt_widget_delta_down,
+                abs(scoreDelta)
+            )
+            val textSize = centreChangeTextSize(context, layout, changeText)
+            views.setTextViewText(R.id.widget_centre_change, changeText)
+            views.setTextViewTextSize(R.id.widget_centre_change, TypedValue.COMPLEX_UNIT_PX, textSize)
+            views.setContentDescription(
+                R.id.widget_centre_change,
+                context.resources.getQuantityString(
+                    if (isIncrease) R.plurals.plural_cd_widget_score_rose else R.plurals.plural_cd_widget_score_dropped,
+                    abs(scoreDelta),
+                    abs(scoreDelta)
+                )
+            )
+            views.setViewVisibility(R.id.widget_centre_change, View.VISIBLE)
+            views.setViewVisibility(R.id.widget_divider, View.INVISIBLE)
         } else {
-            views.setViewVisibility(R.id.widget_privacy_change_up, View.GONE)
-            views.setViewVisibility(R.id.widget_privacy_change_down, View.GONE)
+            views.setViewVisibility(R.id.widget_centre_change, View.GONE)
+            views.setViewVisibility(R.id.widget_divider, View.VISIBLE)
         }
+        val scoreColors = rating?.let { WidgetStyle.scoreColors(it) }
+        val deltaColors = WidgetStyle.deltaColors(isIncrease)
 
-        // Apply per-widget opacity to background only (text/icons stay fully opaque)
-        val opacity = WidgetPreferences.getOpacity(context, appWidgetId)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            views.setFloat(R.id.widget_background, "setAlpha", opacity / 100f)
-        } else {
-            views.setInt(R.id.widget_background, "setImageAlpha", ((opacity / 100f) * 255).toInt())
-        }
-
-        // On Android 11 and below (API < 31), android:theme on non-root RemoteViews
-        // views is not properly supported and can cause RemoteViews inflation failure
-        // on some builds (e.g. LineageOS on older hardware), showing "Problem loading
-        // widget". The android:theme attribute has been removed from the base layout,
-        // and here we explicitly apply static brand colours (Cream text) so the widget
-        // is always readable regardless of the device's theme engine or colour resolution.
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
-            val cream = Cream.toArgb()
-            views.setTextColor(R.id.widget_device_name, cream)
-            views.setTextColor(R.id.widget_os_name, cream)
-            views.setTextColor(R.id.widget_score_value, cream)
-            views.setTextColor(R.id.widget_score_rating, cream)
-            // Change indicators: use light colours visible on the dark BRG/dark background
-            views.setTextColor(R.id.widget_privacy_change_up, WIDGET_POSITIVE_COLOR)
-            views.setTextColor(R.id.widget_privacy_change_down, WIDGET_NEGATIVE_COLOR)
+        when {
+            // No card: the layout's own text and shadow. Dark text on a light wallpaper takes the
+            // light-theme tints, light text the light-on-dark ones.
+            noBackground -> {
+                scoreColors?.let {
+                    views.setTextColor(R.id.widget_score_value, if (darkText) it.first else it.second)
+                }
+                views.setTextColor(R.id.widget_centre_change, if (darkText) deltaColors.first else deltaColors.second)
+            }
+            // API 31+: opacity on the background layer only. Colours come as light/dark pairs so
+            // the launcher picks the right one when the theme changes, without a new update.
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+                views.setFloat(R.id.widget_background, "setAlpha", opacity / 100f)
+                scoreColors?.let {
+                    views.setColorInt(R.id.widget_score_value, "setTextColor", it.first, it.second)
+                }
+                views.setColorInt(R.id.widget_centre_change, "setTextColor", deltaColors.first, deltaColors.second)
+            }
+            // On Android 11 and below (API < 31), android:theme on non-root RemoteViews
+            // views is not properly supported and can cause RemoteViews inflation failure
+            // on some builds (e.g. LineageOS on older hardware), showing "Problem loading
+            // widget". The android:theme attribute has been removed from the base layout,
+            // and here we explicitly apply static brand colours (Cream text) so the widget
+            // is always readable regardless of the device's theme engine or colour resolution.
+            // The card is dark in both themes, so the tints use the light-on-dark values.
+            else -> {
+                views.setInt(R.id.widget_background, "setImageAlpha", ((opacity / 100f) * 255).toInt())
+                val cream = Cream.toArgb()
+                views.setTextColor(R.id.widget_device_name, cream)
+                views.setTextColor(R.id.widget_os_name, cream)
+                views.setTextColor(R.id.widget_score_value, scoreColors?.second ?: cream)
+                views.setTextColor(R.id.widget_score_rating, cream)
+                views.setTextColor(R.id.widget_centre_change, deltaColors.second)
+            }
         }
 
         val launchIntent = Intent(context, MainActivity::class.java).apply {
@@ -240,15 +277,17 @@ class PrivacyWidgetProvider : AppWidgetProvider() {
 
         private const val ALARM_REQUEST_CODE = 1001
 
+        /** Smallest size the centre change shrinks to. */
+        private const val CENTRE_CHANGE_MIN_TEXT_DP = 8f
+
+        /** How far each fitting step shrinks the centre change. */
+        private const val CENTRE_CHANGE_STEP_DP = 0.5f
+
         /** Six hours in milliseconds. */
         private const val UPDATE_INTERVAL_MS = 6L * 60 * 60 * 1000
 
         /** 48 hours in milliseconds - privacy change expiry time. */
         private const val CHANGE_EXPIRY_MS = 172_800_000L
-
-        // Static colors for pre-Android 12 widgets where RemoteViews cannot resolve theme colors
-        private val WIDGET_POSITIVE_COLOR = 0xFFA5D6A7.toInt()
-        private val WIDGET_NEGATIVE_COLOR = 0xFFEF9A9A.toInt()
 
         /**
          * Registers an inexact 6-hour repeating alarm.
@@ -337,6 +376,57 @@ class PrivacyWidgetProvider : AppWidgetProvider() {
                 }
             }
             return false
+        }
+
+        /**
+         * Whether the no-background style uses dark text, read from the home wallpaper's colour
+         * hints like Pixel Launcher's labels. No broadcast reaches a manifest receiver when the
+         * wallpaper changes (ACTION_WALLPAPER_CHANGED is not exempt from the implicit-broadcast
+         * limits), so a new wallpaper shows from the next widget update.
+         */
+        private fun noBackgroundUsesDarkText(context: Context): Boolean {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return false
+            val hints = try {
+                WallpaperManager.getInstance(context)
+                    .getWallpaperColors(WallpaperManager.FLAG_SYSTEM)
+                    ?.colorHints
+            } catch (e: Exception) {
+                if (BuildConfig.DEBUG) Log.w(TAG, "Wallpaper colours unavailable", e)
+                null
+            }
+            return WidgetStyle.noBackgroundUsesDarkText(Build.VERSION.SDK_INT, hints)
+        }
+
+        /**
+         * The largest size, up to the layout's own 18sp at this font scale, at which [text] fits the
+         * shield's box on one line. It measures the layout's own TextView (halo padding included),
+         * inflated from the plain context: on the Pixel 8 that measured "↓12" exactly as the launcher
+         * drew it, while a Theme.DeviceDefault wrapper picked a narrower typeface (98 against 116 px).
+         */
+        private fun centreChangeTextSize(context: Context, layout: Int, text: String): Float {
+            val root = LayoutInflater.from(context).inflate(layout, null)
+            val slot = root.findViewById<View>(R.id.widget_divider).layoutParams
+            val change = root.findViewById<TextView>(R.id.widget_centre_change)
+            change.text = text
+            val density = context.resources.displayMetrics.density
+            val min = CENTRE_CHANGE_MIN_TEXT_DP * density
+            var size = change.textSize
+            while (true) {
+                change.setTextSize(TypedValue.COMPLEX_UNIT_PX, size)
+                change.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED)
+                val fits = change.measuredWidth <= slot.width && change.measuredHeight <= slot.height
+                if (fits || size - CENTRE_CHANGE_STEP_DP * density < min) {
+                    if (BuildConfig.DEBUG) {
+                        Log.d(
+                            TAG,
+                            "Centre change \"$text\" at ${size}px, measured " +
+                                "${change.measuredWidth}x${change.measuredHeight} in ${slot.width}x${slot.height}"
+                        )
+                    }
+                    return size
+                }
+                size -= CENTRE_CHANGE_STEP_DP * density
+            }
         }
 
         private fun PrivacyScoreCalculator.ScoreRating.toShortLabel(context: Context): String = context.getString(this.displayName)

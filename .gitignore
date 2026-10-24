@@ -27,6 +27,8 @@ build/
 *.ap_
 *.dex
 release/
+# Release source set (no-op stubs of debug-only code); a release build from git needs it
+!app/src/release/
 /captures
 captures/
 .externalNativeBuild/
@@ -56,3 +58,6 @@ devcheck_decompiled/
 .aider.chat.history.md
 .aider.input.history
 .aider.tags.cache.v4/
+
+# Full device screenshots stay local; only cropped key images are committed
+docs/screens/*/raw/

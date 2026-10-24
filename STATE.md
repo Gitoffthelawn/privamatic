@@ -6,7 +6,8 @@ Older runs move to `docs/state-archive/YYYY-MM.md`.
 ## Current
 
 Released version is v1.5.1 (versionCode 9). F-Droid serves it, and it is installed on the Pixel 9.
-The debug build of v1.5.1 is installed on the Pixel 8.
+`feat/widget-pack` is merged into local `master` with `--no-ff` (2026-10-24, after external review round 1); not pushed.
+The Pixel 8 still runs the build-round-3 debug build (without the L1 fix).
 The Claude Code workflow files are merged into local `master` with `--no-ff`. They are not pushed yet; Oliver pushes. They are:
 - CLAUDE.md and STATE.md;
 - the narrowed `.claude/settings.local.json` (untracked; it now holds only the allow list);
@@ -39,12 +40,29 @@ pre-`c837e59` branch, overwrites or deletes it. Back it up first. The guard hook
   - [x] Room was already excluded with `domain="database"` on `master` (device, before-run).
 - [ ] **Legacy-rules and real-D2D check** (optional): run the same bmgr cycle on an API 30 emulator, and do one phone-to-phone transfer.
 - [ ] **Release note for the backup change** (Oliver agrees the text): trusted apps and settings no longer move to a new phone.
-- [x] **Widget readability: design run.** Paper `docs/decisions/widget-readability.md`; see Runs.
-- [ ] **Widget readability + widget pack: implementation run** (waits on Oliver's option pick). It covers the floor or the no-card style,
-      the icon tint, the score tint, "↓N pts" and font scale 2.0. Gate: repeat the sweep with `contrast.py`. External review applies.
-- [ ] **Widget opacity on Android 8–11 probably does nothing** (`setImageAlpha` on a background-only `ImageView`). Hypothesis; needs an API 30 emulator.
+- [x] **Widget readability: design run.** Paper `docs/decisions/widget-readability.md`; see the archive.
+- [x] **Widget readability + widget pack: implementation run** (`feat/widget-pack`). Merged into local `master` 2026-10-24.
+      (Parked 2026-10-23 after the second layout fix round.)
+  Round 3 was replaced by the centre-change design run. Build rounds 1 and 2 parked; **build round 3 gate clean** (2026-10-24; see Runs).
+  - [x] "↓12" at font 2.0 fits the 40 dp box. `.gitignore` tracks `app/src/release/`. 28 dp sides, 18 sp score, rows aligned at 1.0 and 2.0.
+  - [x] **External review round 1**: no High; L1 accepted and fixed (`e2093fc`), M1 rejected for this release. See Runs.
+- [ ] **Snapshot alarm time:** comments say 23:50, the code sets 23:00 (`SnapshotReceiver.kt:69`), and the inexact daily alarm has an
+      18 h window on the Pixel 8, so a "midnight" snapshot can land as late as 17:00 the next day. Read-only finding; not changed.
+- [ ] **48 h change cap edge:** if the score changes again across midnight, the first change's timestamp is kept, so the cap can hide
+      a fresh change (`ScoreHistoryRepository.kt:93-97`). From reading the code only; not reproduced.
+- [x] **Spec "Out" line** corrected: a font-scale change does trigger widget updates (2026-10-24).
+- [ ] **Widget opacity on Android 8–11 does nothing** (review round 1, M1; rejected for this release by Oliver). Cause (reviewer, confirmed
+      in code, also on `master`): `setImageAlpha` acts on the ImageView's image drawable, but the card is the view's background.
+      Reasons: the card draws fully opaque, which is readable, so only the slider has no effect; a fix changes how the card is drawn
+      on older Android and needs an API 30 emulator, so it is a separate run.
 - [ ] **device-verify ran its sweep from a scratchpad script**, which hides each adb call from the guard hook. The commands matched the prompt, Pixel 8 only.
       Consider a line in the agent file: "run commands inline, never from a script file".
+- [ ] **The 6-hour widget alarm only comes back on boot or a new widget.** A force-stop clears both alarms; opening the app and
+      `MY_PACKAGE_REPLACED` re-arm only the midnight snapshot (`PackageReplacedReceiver.kt:22`, `MainActivity.kt:26`). Seen on the Pixel 8
+      (0 alarms after two force-stops and an install, both back after a reboot). 2026-10-24: three `install -r` in a row kept both alarms,
+      so on the Pixel 8 an update by itself does **not** clear them; the force-stops did. Whether an F-Droid update force-stops: not checked.
+- [ ] **device-verify can't restore a named wallpaper**: the picker has no recents list. Reapplying the lock screen's photo to Home works
+      while the lock screen still has it.
 
 ## Guard hook
 
@@ -84,50 +102,21 @@ It is the real guard. The allow and deny lists are a convenience.
 
 ## Open questions for Oliver
 
-- Widget readability: option A, B or C (recommended B), and the defaults table at the end of `docs/decisions/widget-readability.md`.
+- None open. (Device name at large text: Oliver accepted the ellipsis; added to the spec 2026-10-24.)
 
 ## Runs
 
-### 2026-10-21 — widget readability design run (`docs/widget-readability` → `master`)
+### 2026-10-24 — external review round 1 and merge (`feat/widget-pack` → local `master`)
 
-- [x] Code: on API 31+ the text and icon use fixed Material You tones picked for the card at 100 %. The slider changes only the card's alpha.
-      So the blended background moves through the text's own tone, and contrast dips in the middle of the range.
-- [x] Device, Pixel 8 (device-verify, fresh APK): widget id 16, 3 wallpapers (the phone's photo, White, Black) × light/dark × 0/25/50/75/100 %.
-      Opacity was written via `run-as`, then `ACTION_UPDATE_WIDGET`. Crash buffer empty.
-  - Only 100 % passes for all text. The shield fails everywhere (2.0:1 light, 2.9:1 dark at 100 %).
-  - Mismatched theme and wallpaper fail from 0 % up to 50–75 %. The dark-theme "↓" is olive/lavender, not red.
-  - The measured 100 % values match the tone model to within 0.1, and `floors.py` gives the floors.
-  - Evidence: `docs/screens/2026-10-21-widget-readability/` (cropped sweeps, `contact-sheet.png`, `measurements.md`, `floors.md`, both scripts).
-- [x] Restored: night mode "no". The wallpaper is Floating Himalayas again: crop hint identical, wallpaper area pixel-identical to the baseline (`c1`/`c7`).
-      The test widget was removed. Two older invisible instances (ids 14, 15) were left alone. The debug app's stale `widget_opacity_12` key was overwritten.
-- [ ] Not verified: the ↑ (green) delta (the score only fell), and the Android 8–11 path (no API 30 emulator).
+- [x] Findings `docs/reviews/feat-widget-pack-findings-1.md` (Cursor, non-Claude): no High, so no round 2. Both claims checked in code first.
+- [x] **L1 accepted:** `effectiveOpacity` sent every negative value to no background. New test `effectiveOpacity_negative_drawsAsMinimum`
+      (-5, -1 → 76) failed on the old code (`stored -5.0 expected:<76.0> but was:<0.0>`). Fix: only a value that rounds to 0 is no
+      background; the old test now checks -0.49 instead of -5. `compileDebugKotlin` OK; `testDebugUnitTest --rerun` 185 tests, 0 failures.
+      No device gate: pure mapping, and the settings screen can only store 0 or 76–100. Not device-verified, for that reason.
+- [x] **M1 rejected** for this release (Oliver); reasons and the reviewer's cause in Next and in the findings file's Resolution.
+- [x] Spec: a long device name may end in "…" at large font sizes (Oliver's decision).
+- [x] `assembleRelease` on the branch: BUILD SUCCESSFUL (unsigned APK). Diff against `master` reviewed: no blockers.
+- [x] Merged with `--no-ff`; suite and `assembleRelease` re-run on `master` after the merge (results in the run report).
+      Feature branch and `design/widget-centre-change` kept. Not pushed, not tagged.
 
-### 2026-10-21 — default-app row copy (`fix/default-app-copy` → `master`)
-
-- [x] Investigation (code): on `master` the unknown branch of browser, SMS and email (`DefaultAppsChecker.kt:99/169/304`)
-      showed "Using X (unknown, 0 pts)". It fires for any default app on neither list; the launcher was fixed already.
-      On the Pixel 8 today none of them leaks: Chrome, Fossify Messages and Gmail are all rated (`cmd role get-role-holders`, `resolve-activity`).
-- [x] Fix: the four rows (browser, SMS, email, launcher) take all their text from `strings.xml`: `fmt_default_app_using`,
-      `fmt_default_app_not_rated` (replaces `fmt_launcher_not_rated`), `status_no_default_*`, `status_default_*_unknown`,
-      `fmt_technical_package` and `fmt_technical_error`. The English text is unchanged except for the leak.
-- [x] `PrivacyIssue.appName` carries the name; QuickWinsDetector reads it, and `extractAppName` is gone. Pure pass-through:
-      every quick-win branch is `!isSecure`, where `appName` is the same name the old code parsed back out of "Using …".
-- [x] Scoring unchanged: `DefaultAppsCheckerScoringTest` pins (isSecure, isUnknown, points) for every branch of the five default-app checks.
-      It passed on the unchanged code first (baseline), then after the change. New tests cover the not-rated copy, `appName`,
-      and a quick win whose status text is translated.
-- [x] `compileDebugKotlin` OK; `testDebugUnitTest --rerun`: 18 suites, 160 tests, 0 failures.
-- [x] Device, Pixel 8 (stand-in verify agent, fresh APK). Throwaway placeholders were built in the scratchpad, signed with a
-      throwaway openssl key (the guard hook blocks the JDK key tool), and set as defaults: Test Browser and Test Messages through roles.
-      The EMAIL role refused Test Mail, so Gmail was disabled for user 0 while the screenshots were taken.
-  - Details → Default Apps: "Using Test Browser / Test Messages / Test Mail — not rated yet", each with the Info icon and no chip.
-    The rated comparison "Using Pixel Launcher" shows the −2 chip. The `uiautomator` text has no "pts" or "(unknown".
-    "Package: org.example.teststub.browser" shows when the row is expanded. Crash buffer empty.
-  - Evidence: `docs/screens/2026-10-21-default-app-copy/` (one screen covers all four rows).
-  - Restored: Chrome, Fossify Messages, Pixel Launcher and Gmail (`mailto:`) as before; placeholders uninstalled; `pm list packages org.example.teststub` is empty.
-- [ ] Not verified on a device: the "No default … set" and "Unable to determine …" branches (covered by the unit test only).
-- [x] Own diff review against `master`: no blockers. External review is not required: the QuickWinsDetector change only passes the name through.
-
-### 2026-10-21 — CLAUDE.md tweaks (`chore/claude-md-tweaks` → `master`)
-
-- [x] Found ends with a "Roadmap:" line. Review file names replace `/` with `-`. Backup-test gotcha: run `pm unstop` after `pm clear`. CLAUDE.md is 124 lines.
-- [x] Docs only, so there is no build gate. Diff reviewed against `master`: no blockers. Merged with `--no-ff`.
+Earlier runs of this feature (2026-10-24 build rounds 2–3, 2026-10-23, 2026-10-22 rounds A–D, 2026-10-21 design run): `docs/state-archive/2026-10.md`.

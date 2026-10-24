@@ -116,7 +116,7 @@ private fun getScoreColor(score: Int): Color {
     return when {
         score >= 85 -> MaterialTheme.accentOnSurface // Excellent
         score >= 70 -> MaterialTheme.accentOnSurface // Good
-        score >= 50 -> MaterialTheme.colorScheme.tertiary // Fair (orange-ish)
+        score >= 50 -> MaterialTheme.colorScheme.tertiary // Fair (teal)
         score >= 30 -> MaterialTheme.colorScheme.error // Poor
         else -> MaterialTheme.colorScheme.error // Critical
     }

@@ -9,7 +9,7 @@
     android:initialLayout="@layout/widget_privacy"
     android:configure="com.techtrest.privamatic.WidgetConfigurationActivity"
     android:widgetFeatures="reconfigurable"
-    android:resizeMode="horizontal"
+    android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen"
     android:previewLayout="@layout/widget_privacy"
     android:description="@string/widget_description"

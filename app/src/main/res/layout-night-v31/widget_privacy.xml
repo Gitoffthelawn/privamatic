@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- API 31+ dark mode layout: uses Material You system color tokens for dark theme.
-     system_accent2_800 – elevated dark background with wallpaper tint
-     system_accent1_100 – bright primary text (device name, score)
-     system_accent1_200 – light secondary text (OS name, rating)
-     system_neutral1_500 – shield icon tint -->
+<!-- API 31+ dark card: Material You system tokens, strong enough that every text passes
+     4.5:1 and the shield 3:1 from the minimum card opacity up, on any wallpaper
+     (docs/specs/widget-pack.md).
+     system_accent2_900  – card (drawable-night-v31/widget_background), tone 10
+     system_accent1_50   – device name, score fallback (tone 95)
+     system_accent1_100  – OS name, rating (tone 90)
+     system_neutral1_200 – shield icon tint (tone 80) -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_root"
     android:layout_width="match_parent"
@@ -19,11 +21,13 @@
         android:contentDescription="@null"
         android:importantForAccessibility="no" />
 
+    <!-- Device block at the start edge, score and rating at the end edge, both at the widget
+         padding; the shield centred. While a change is live it takes the shield's place. -->
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
+        android:paddingStart="28dp"
+        android:paddingEnd="28dp"
         android:paddingTop="8dp"
         android:paddingBottom="8dp">
 
@@ -34,125 +38,123 @@
             android:layout_height="40dp"
             android:layout_centerInParent="true"
             android:src="@drawable/ic_widget_shield"
-            android:tint="@android:color/system_neutral1_500"
+            android:tint="@android:color/system_neutral1_200"
             android:contentDescription="@null" />
 
-        <!-- Zero-height anchor at the exact vertical center of the widget.
-             Both text columns position relative to this point so the combined
-             two-line block is geometrically centered, not just one row. -->
+        <!-- While a change is live it takes the shield's place: "↓6" / "↑6", red for a drop, green
+             for a rise (colour set in code). The shield goes invisible, not gone, so the sides keep
+             their anchor. The provider sets a text size that fits the shield's 40dp box. -->
         <TextView
-            android:id="@+id/widget_center_anchor"
-            android:layout_width="0dp"
-            android:layout_height="0dp"
+            android:id="@+id/widget_centre_change"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:layout_centerInParent="true"
-            android:text="" />
-
-        <!-- OS name: sits just below the center anchor (bottom row, left column).
-             This is also the baseline reference for "Good" on the right. -->
-        <TextView
-            android:id="@+id/widget_os_name"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignParentStart="true"
-            android:layout_toStartOf="@id/widget_divider"
-            android:layout_below="@id/widget_center_anchor"
-            android:layout_marginStart="24dp"
-            android:layout_marginTop="1dp"
-            android:paddingEnd="12dp"
-            android:text="GrapheneOS"
-            android:textColor="@android:color/system_accent1_200"
-            android:textSize="14sp"
-            android:maxLines="1"
-            android:ellipsize="end" />
-
-        <!-- Device name: sits just above the center anchor (top row, left column). -->
-        <TextView
-            android:id="@+id/widget_device_name"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignParentStart="true"
-            android:layout_toStartOf="@id/widget_divider"
-            android:layout_above="@id/widget_center_anchor"
-            android:layout_marginStart="24dp"
-            android:layout_marginBottom="1dp"
-            android:paddingEnd="12dp"
-            android:text="Pixel 9"
-            android:textColor="@android:color/system_accent1_100"
+            android:textColor="@android:color/system_accent1_50"
             android:textSize="18sp"
-            android:textStyle="bold"
             android:maxLines="1"
-            android:ellipsize="end" />
+            android:visibility="gone" />
 
-        <!-- Rating: layout_alignBaseline gives the exact same text baseline as OS name.
-             toEndOf + alignParentEnd spans the full right half so gravity=center works. -->
-        <TextView
-            android:id="@+id/widget_score_rating"
+        <!-- Device name over OS name at the start edge, the two lines centred as one block, so at large
+             font sizes neither line is squeezed against the padding. Each text sits in its own wrapper,
+             so the text (and its halo) keeps its own width. Reports the OS name's baseline. -->
+        <LinearLayout
+            android:id="@+id/widget_start_column"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_toEndOf="@id/widget_divider"
-            android:layout_alignParentEnd="true"
-            android:layout_alignBaseline="@id/widget_os_name"
-            android:gravity="center"
-            android:text="@string/score_rating_excellent_name"
-            android:textColor="@android:color/system_accent1_200"
-            android:textSize="14sp"
-            android:maxLines="1" />
+            android:layout_alignParentStart="true"
+            android:layout_toStartOf="@id/widget_divider"
+            android:layout_centerVertical="true"
+            android:layout_marginEnd="12dp"
+            android:baselineAlignedChildIndex="1"
+            android:orientation="vertical">
 
-        <!-- Score container: centers the score value in the right column (top row). -->
-        <LinearLayout
-            android:id="@+id/widget_score_container"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_toEndOf="@id/widget_divider"
-            android:layout_alignParentEnd="true"
-            android:layout_above="@id/widget_score_rating"
-            android:layout_marginBottom="2dp"
-            android:gravity="center"
-            android:orientation="horizontal">
-
-            <!-- Score value -->
-            <TextView
-                android:id="@+id/widget_score_value"
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="85"
-                android:textColor="@android:color/system_accent1_100"
-                android:textSize="24sp"
-                android:textStyle="bold"
-                android:maxLines="1" />
+                android:layout_marginBottom="1dp"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/widget_device_name"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Pixel 9"
+                    android:textColor="@android:color/system_accent1_50"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/widget_os_row"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="1dp"
+                android:baselineAlignedChildIndex="0"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/widget_os_name"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="GrapheneOS"
+                    android:textColor="@android:color/system_accent1_100"
+                    android:textSize="14sp"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
+            </LinearLayout>
         </LinearLayout>
 
-        <!-- Score change increase indicator: XML color resolves via resource qualifiers
-             so theme changes (light/dark) always show the correct color without a
-             programmatic setTextColor call that could become stale. -->
-        <TextView
-            android:id="@+id/widget_privacy_change_up"
+        <!-- Score and rating at the end edge, the score centred over the rating. The score has the
+             device name's size and weight, and the same 1dp + 1dp gap (each rounds to whole pixels alike), so with
+             the rating on the OS name's baseline the score shares the device name's.
+             Too wide: the group moves towards the shield, then ellipsizes. -->
+        <LinearLayout
+            android:id="@+id/widget_score_row"
             android:layout_width="wrap_content"
-            android:layout_height="0dp"
-            android:layout_alignTop="@id/widget_score_container"
-            android:layout_alignBottom="@id/widget_score_rating"
+            android:layout_height="wrap_content"
+            android:layout_toEndOf="@id/widget_divider"
             android:layout_alignParentEnd="true"
-            android:layout_marginEnd="24dp"
-            android:gravity="center_vertical"
-            android:text="↑5"
-            android:textColor="@color/widget_privacy_increase"
-            android:textSize="18sp"
-            android:visibility="gone" />
+            android:layout_alignBaseline="@id/widget_start_column"
+            android:layout_marginStart="12dp"
+            android:baselineAligned="false"
+            android:baselineAlignedChildIndex="0"
+            android:gravity="end"
+            android:orientation="horizontal">
 
-        <!-- Score change decrease indicator -->
-        <TextView
-            android:id="@+id/widget_privacy_change_down"
-            android:layout_width="wrap_content"
-            android:layout_height="0dp"
-            android:layout_alignTop="@id/widget_score_container"
-            android:layout_alignBottom="@id/widget_score_rating"
-            android:layout_alignParentEnd="true"
-            android:layout_marginEnd="24dp"
-            android:gravity="center_vertical"
-            android:text="↓5"
-            android:textColor="@color/widget_privacy_decrease"
-            android:textSize="18sp"
-            android:visibility="gone" />
+            <!-- Score centred above the rating; reports the rating's baseline. -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:baselineAlignedChildIndex="1"
+                android:gravity="center_horizontal"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/widget_score_value"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="1dp"
+                    android:text="85"
+                    android:textColor="@android:color/system_accent1_50"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
+
+                <TextView
+                    android:id="@+id/widget_score_rating"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="1dp"
+                    android:text="@string/score_rating_excellent_name"
+                    android:textColor="@android:color/system_accent1_100"
+                    android:textSize="14sp"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
+            </LinearLayout>
+        </LinearLayout>
 
     </RelativeLayout>
 

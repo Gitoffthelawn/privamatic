@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Halo behind each no-background text: the text's opposite colour at 65 %, so the text keeps at
+     least 3:1 against it on any wallpaper, also while the text colour still follows an older
+     wallpaper (docs/specs/widget-pack.md). A text shadow alone can't reach that. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/widget_text_halo" />
+    <corners android:radius="8dp" />
+</shape>
