@@ -121,5 +121,9 @@ It is the real guard. The allow and deny lists are a convenience.
       `88.328766` (`cmp` identical), override `<map />`, both alarms; wallpaper crop hints as before, only the clock differs outside the widget.
       `score_history`: only `last_update_timestamp` moved. Crash buffer empty, same pid. Pixel 9 not used.
 - [x] For Oliver: `centred-block-f1-bg100-d6.png`, `centred-block-f2-bg100-d6.png` in `docs/screens/widget-centre-change/`.
+- [x] Committed `c9a6c6f` (with `app/src/release/` and the `.gitignore` exception; `git ls-files app/src/release/` lists the stub).
+      `assembleRelease` from a clean detached worktree of `c9a6c6f` (no `local.properties`, `ANDROID_HOME` set): BUILD SUCCESSFUL, unsigned APK.
+      Its dex: 0 hits for `debug_delta`, `debug_clear`, `debug_opacity`, `debug_device_name`, `WidgetDebugOverride` (debug dex: all). Worktree removed.
+- [x] Review inputs: `docs/reviews/feat-widget-pack.diff` (master...feat/widget-pack, 5939 lines) and `-prompt-1.md` (invariants 8–11). STOP.
 
 Earlier runs of this feature (2026-10-23, 2026-10-22 rounds A–D, 2026-10-21 design run): `docs/state-archive/2026-10.md`.
