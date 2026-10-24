@@ -6,7 +6,7 @@ Older runs move to `docs/state-archive/YYYY-MM.md`.
 ## Current
 
 Released version is v1.5.1 (versionCode 9). F-Droid serves it, and it is installed on the Pixel 9.
-The debug build of v1.5.1 is installed on the Pixel 8.
+The Pixel 8 runs the `feat/widget-pack` debug build.
 The Claude Code workflow files are merged into local `master` with `--no-ff`. They are not pushed yet; Oliver pushes. They are:
 - CLAUDE.md and STATE.md;
 - the narrowed `.claude/settings.local.json` (untracked; it now holds only the allow list);
@@ -39,18 +39,19 @@ pre-`c837e59` branch, overwrites or deletes it. Back it up first. The guard hook
   - [x] Room was already excluded with `domain="database"` on `master` (device, before-run).
 - [ ] **Legacy-rules and real-D2D check** (optional): run the same bmgr cycle on an API 30 emulator, and do one phone-to-phone transfer.
 - [ ] **Release note for the backup change** (Oliver agrees the text): trusted apps and settings no longer move to a new phone.
-- [x] **Widget readability: design run.** Paper `docs/decisions/widget-readability.md`; see Runs.
+- [x] **Widget readability: design run.** Paper `docs/decisions/widget-readability.md`; see the archive.
 - [ ] **Widget readability + widget pack: implementation run** (`feat/widget-pack`). **Parked 2026-10-23** after the second
-      layout fix round. Next = **round 3**, decisions already made (Oliver, 2026-10-23):
-  - [ ] Centre the truncated rating in its box (score and "Need…" share a centre at font 2.0).
-  - [ ] Let the no-background score's halo draw past the widget padding (no flat top at font 2.0).
-  - [ ] Halos approved as they are. Thicken the no-background shield outline if it's a small change, and measure it (now worst 5 % 1.2–2.1 in the wrong variant).
-  - [ ] "↓6 pts" at font 1.0 when it fits whole next to the rating; the unit drops only when the end half is too narrow. If it can't fit
-        whole at 1.0, show Oliver the measurement instead. Update the spec's "Change text" call and the changelog line to match.
-  - [ ] Device: a two-digit change and an ↑ change; the device-name and OS halos hugging their text (wrapped in source, never seen on a device).
-  - [ ] Clean → regenerate `docs/reviews/feat-widget-pack.diff` and the round-1 prompt (invariants: no-background text colour from the
-        wallpaper hint, never from pixels near the widget; score number and arrow never truncated) and stop at "external review".
-        Not clean → park again. **No round 4 without Oliver.**
+      layout fix round.
+  Round 3 is **replaced** by the centre-change design run (2026-10-24; paper `docs/decisions/widget-centre-change.md`).
+  - [ ] Oliver chooses (Open questions). Then a fresh implementation round on `feat/widget-pack` from the chosen layout.
+        It carries over: halo thickening of the no-background shield outline; device checks for a two-digit change and ↑;
+        whole-pixel rounding in the fit (width and height); the spec's layout, "Change text" and changelog lines; then external review.
+        If Oliver keeps the end-edge change instead, round 3's own list is in STATE.md at `78ae28e`.
+- [ ] **Snapshot alarm time:** comments say 23:50, the code sets 23:00 (`SnapshotReceiver.kt:69`), and the inexact daily alarm has an
+      18 h window on the Pixel 8, so a "midnight" snapshot can land as late as 17:00 the next day. Read-only finding; not changed.
+- [ ] **48 h change cap edge:** if the score changes again across midnight, the first change's timestamp is kept, so the cap can hide
+      a fresh change (`ScoreHistoryRepository.kt:93-97`). From reading the code only; not reproduced.
+- [ ] **Spec "Out" line is wrong on the Pixel 8:** a font-scale change does trigger widget updates (two within 1.1 s, 2026-10-24).
 - [ ] **Widget opacity on Android 8–11 probably does nothing** (`setImageAlpha` on a background-only `ImageView`). Hypothesis; needs an API 30 emulator.
 - [ ] **device-verify ran its sweep from a scratchpad script**, which hides each adb call from the guard hook. The commands matched the prompt, Pixel 8 only.
       Consider a line in the agent file: "run commands inline, never from a script file".
@@ -93,33 +94,29 @@ It is the real guard. The allow and deny lists are a convenience.
 
 ## Open questions for Oliver
 
-- None open; the widget pack's next steps are decided (Next, round 3).
+- **Widget centre change** (paper section 4; mock-ups in `docs/screens/widget-centre-change/`):
+  1. Adopt the change in the shield's slot? (recommended: yes)
+  2. "pts": never (number only, as released; recommended), or a small second line at font 1.0 only.
+  3. Side inset: 16 dp widget padding (mocked, recommended) or the released 40 dp.
+  4. Shield return lag up to ~10.5 h: accept (recommended), or a new device-waking alarm at midnight or expiry.
 
 ## Runs
 
-### 2026-10-23 — widget pack resumed (`feat/widget-pack`, parked)
+### 2026-10-24 — widget centre change, design run (`design/widget-centre-change`, never merged)
 
-- [x] Oliver's decisions (2026-10-23): no-background text stays readable in the "wrong" colour variant (≥ 3:1 against its halo);
-      the layout is the released v1.5.1 one from his screenshot (positions and sizes); the change shows "↓6" without "pts" (chosen
-      over keeping "pts", which collides with a centred score); score and arrow are never cut. Spec updated (calls, scope, invariant 7, changelog line).
-- [x] Halo: a model of TextView shadows (calibrated: today's shadow gives round A's 1.4–1.6) shows no shadow, even 3 stacked, reaches 3:1
-      for the tints. So each no-background text sits on a rounded halo of the opposite colour at 65 % (`widget_text_halo*`).
-      Device: every text ≥ 4.12 against its halo (worst 5 %) on White, Black and the photo in both variants; table in
-      `docs/screens/2026-10-23-widget-pack/measurements.md`. The shield's thin outline: worst 5 % 1.2–2.1 in the wrong variant (median ≥ 8.2).
-- [x] Refresh after a wallpaper change: nothing cheap exists. Providers get no wallpaper callback (`javap` android-37.2), `ACTION_WALLPAPER_CHANGED`
-      can't reach a manifest receiver, and no framework theme attribute carries the wallpaper's dark-text hint for `setColorAttr`. Not built.
-- [x] Layout: released RelativeLayout geometry; score and rating form one group between two invisible copies of the change
-      (`widget_delta_space_*`) in a row laid out in the reversed direction (`@integer/widget_reversed_layout_direction`, ltr under `-ldrtl`),
-      so the end-side copy is measured first and the shield-side copy shrinks first. Arrow strings back to `fmt_widget_delta_*` ("↑%d"); plurals removed.
-- [x] Device round 1 (layout I built first, then rows per text): Gboard as keyboard → 53 → 44 and "↓9" red on the card, pink on the halo; keyboard restored.
-      Score and rating drifted apart, the arrow's halo was a tall box, and "Needs Attent…" was cut with no background: fixed in round 2.
-- [x] Device round 3 (one group, wrapped arrow, 8 dp no-background margin): font 1.0 as the screenshot (text 41 dp in both sides, centres within 1 px,
-      "Needs Attention" whole beside "↓6"/"↓9"); font 2.0: score and arrow whole, no overlap, "Stock A…"/"Need…". Two open details (Open questions).
-- [x] After round 3, in source only: device-name and OS halos were stretched to the shield (pinned at both edges); now wrapped (test added). **Not device-checked.**
-- [x] `compileDebugKotlin` OK; `testDebugUnitTest --rerun`: 19 suites, 182 tests, 0 failures.
-- [x] Restored (both rounds): test widgets removed, photo wallpaper (home only), font 1.0, light theme, Private DNS unset, keyboard HeliBoard;
-      prefs written back (score_history's `last_update_timestamp` then moved on with the final update). Oliver's widget 22 now shows the new layout
-      (the debug build changed). Crash buffer empty.
-- [ ] Not verified: a two-digit change on the device; ↑ in the new layout; API 26–30.
+- [x] Timer (paper section 1): a stored timestamp checked at each widget update; nothing of its own wakes the device. Nominal 48 h,
+      but the daily baseline normally ends it at the first update after midnight. The 6 h update alarm has a +4 h 30 m window
+      (Pixel 8 `dumpsys alarm`), so the shield comes back up to ~10.5 h late unless the app is opened. Reuse needs nothing new: no stop.
+- [x] Mock-up (`86cb2db`): sides at the 16 dp padding, change in the 40 dp slot sized in code, "pts" only if it fits, debug-forced states.
+      Oliver mid-run: **↓ red, ↑ green** (replaces "rating colour").
+- [x] Pixel 8 sweep: shield/↓6/↓12/↑6 (+ stacked "pts") × font 1.0/2.0 × card 100 %/none, 28 shots, measured.
+      Nothing cut or clipped in the centre; "pts" never fits on one line; ↓12 at 2.0 shrinks to 82 % (card) / 63 % (no background).
+      Fix round 1: one wrap ("↓1/2") from unrounded px; fixed. Left: 1 px over in height (no background, 2.0). Table: `docs/screens/widget-centre-change/measurements.md`.
+- [x] Content description "Score dropped 6 points" / "Score rose 6 points" in the dumps; shield state unchanged.
+- [x] Seen: a font-scale change triggers two widget updates within 1.1 s (the spec says it doesn't).
+- [x] Restored: forced state cleared and its prefs file deleted, `feat/widget-pack` debug build reinstalled, widget area pixel-identical to the
+      baseline, `widget_preferences` identical, `score_history` only `last_update_timestamp` moved, both alarms back, crash buffer empty.
+      Photo wallpaper, light theme, font 1.0, Private DNS unset, HeliBoard; only widget 22. **Its stored opacity was 88.33 %, not 100 %**: kept as found.
+- [ ] Not verified: dark theme and the dark-text layout (edited, not shot); a long rating next to the centre change; API 26–30.
 
-Earlier runs of this feature (2026-10-22 rounds A–D, 2026-10-21 design run): `docs/state-archive/2026-10.md`.
+Earlier runs of this feature (2026-10-23, 2026-10-22 rounds A–D, 2026-10-21 design run): `docs/state-archive/2026-10.md`.
