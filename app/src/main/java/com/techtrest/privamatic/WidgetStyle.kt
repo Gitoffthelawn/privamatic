@@ -1,6 +1,7 @@
 package com.techtrest.privamatic
 
 import com.techtrest.privamatic.data.scanner.PrivacyScoreCalculator.ScoreRating
+import kotlin.math.roundToInt
 
 /**
  * How the widget draws a stored opacity, and its fixed colours.
@@ -35,7 +36,7 @@ object WidgetStyle {
      */
     fun effectiveOpacity(stored: Float): Float = when {
         stored.isNaN() -> MAX_OPACITY
-        stored < 0.5f -> NO_BACKGROUND
+        stored.roundToInt() == 0 -> NO_BACKGROUND
         stored < MIN_CARD_OPACITY -> MIN_CARD_OPACITY
         stored > MAX_OPACITY -> MAX_OPACITY
         else -> stored

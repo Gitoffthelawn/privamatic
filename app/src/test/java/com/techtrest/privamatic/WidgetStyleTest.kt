@@ -27,7 +27,7 @@ class WidgetStyleTest {
 
     @Test
     fun effectiveOpacity_zeroAndRoundsToZero_areNoBackground() {
-        listOf(0f, 0.49f, -5f).forEach {
+        listOf(0f, 0.49f, -0.49f).forEach {
             assertEquals("stored $it", WidgetStyle.NO_BACKGROUND, WidgetStyle.effectiveOpacity(it))
         }
     }
@@ -35,6 +35,14 @@ class WidgetStyleTest {
     @Test
     fun effectiveOpacity_belowMinimum_drawsAsMinimum() {
         listOf(0.5f, 1f, 40f, MIN_CARD_OPACITY - 0.01f).forEach {
+            assertEquals("stored $it", MIN_CARD_OPACITY, WidgetStyle.effectiveOpacity(it))
+        }
+    }
+
+    /** Only a value that rounds to 0 % is no background; a negative one is just below the minimum. */
+    @Test
+    fun effectiveOpacity_negative_drawsAsMinimum() {
+        listOf(-5f, -1f).forEach {
             assertEquals("stored $it", MIN_CARD_OPACITY, WidgetStyle.effectiveOpacity(it))
         }
     }

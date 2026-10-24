@@ -16,7 +16,7 @@ At font scale 2.0 nothing is cut and the change never touches the side text.
   - **Card**, from the minimum (see Measurements) to 100 %;
   - **No background** at 0: text and icon straight on the wallpaper, like launcher labels: dark text with a light glow
     when the home wallpaper's `WallpaperColors` carry `HINT_SUPPORTS_DARK_TEXT` (API 31+), otherwise light text with a dark shadow.
-- Clamp on read: a stored value that rounds to 0 is "no background"; anything else below the minimum is drawn
+- Clamp on read: a stored value that rounds to 0 is "no background"; anything else below the minimum, negatives included, is drawn
   (and shown on the configuration screen) as the minimum. Stored data is never rewritten.
 - Configuration screen: a "Show background" switch (off stores 0; no new key) and a slider from the minimum to 100 %.
 - Stronger card text and icon tokens: light primary T10, secondary T20, shield T30 on a T95 card;
@@ -31,7 +31,8 @@ At font scale 2.0 nothing is cut and the change never touches the side text.
   update's font scale, inflated without a theme wrapper (that one matched the launcher's width); the box never grows.
   The score has the device name's size and weight (18 sp bold), still tinted by rating. Each side's two lines are centred
   vertically as one block (device name over OS name; score over rating, aligned to it), so the score shares the device
-  name's baseline and the rating the OS name's at every font size; a rating too wide for the end side ellipsizes. `resizeMode` gains `vertical`.
+  name's baseline and the rating the OS name's at every font size; a rating too wide for the end side ellipsizes. At large font sizes
+  a long device name may end in "…", like the OS name and the rating. `resizeMode` gains `vertical`.
 - Change timer: the existing one, unchanged (`ScoreHistoryRepository` delta and the 48 h cap). Nothing new wakes the device;
   the shield comes back at the first widget update after the change ends, up to about 10.5 h late (accepted, Oliver 2026-10-24).
 - Debug builds only: the update broadcast takes `debug_delta`, `debug_clear`, `debug_opacity` and `debug_device_name` extras for device checks
@@ -66,6 +67,7 @@ At font scale 2.0 nothing is cut and the change never touches the side text.
 | "↓12" at font 2.0 | Fix the measurement (option a, decided 2026-10-24, round 2): measure the way that matches the launcher's width; the box does not grow. |
 | Shield return lag | Accepted: the shield returns at the next widget update after the change ends; no new alarm (decided 2026-10-24). |
 | Large text | Score number and the change are never cut: the change shrinks to fit the shield's box; score or rating ellipsize only when the end side is too narrow (decided 2026-10-23, kept). |
+| Device name at large text | A long device name may end in "…" at large font sizes, like the OS name and the rating (Oliver, 2026-10-24, after external review round 1). |
 | Colour lag after a wallpaper change | Readable anyway: a halo that keeps 3:1 in the "wrong" variant on White, Black and the photo (decided 2026-10-23). The wallpaper hint stays the rule for the colour. |
 
 ## Wallpaper hint (platform facts, checked 2026-10-22)
