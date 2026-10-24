@@ -208,69 +208,122 @@ class WidgetStyleTest {
     )
 
     /**
-     * Score row: [space at the end edge, score over rating, space at the shield], laid out in the
-     * reversed direction so it measures the end-edge space first and the shield-side space last.
-     * Each space is a copy of the change at its size, so score and rating stay centred in the half
-     * and can't run under the change; if they are too wide they push into the shield-side space first.
+     * Sides at the widget padding, 28dp on both edges (Oliver, 2026-10-24: wider than 16dp, matching the
+     * card's measured top padding of 27.8dp on the Pixel 8): the device block at the
+     * start, score over rating at the end, the score row spanning from the shield to the end edge.
      */
     @Test
-    fun scoreRow_reservesTheChangeOnBothSides() {
+    fun sides_sitAtTheWidgetPadding() {
         allLayouts.forEach { name ->
             val doc = parse("src/main/res/$name.xml")
-            val delta = doc.element("widget_score_delta")
+            val content = doc.element("widget_divider").parentNode as org.w3c.dom.Element
+            assertEquals("$name padding start", "28dp", content.attr("paddingStart"))
+            assertEquals("$name padding end", "28dp", content.attr("paddingEnd"))
+            val column = doc.element("widget_start_column")
+            assertEquals("$name start column", "true", column.attr("layout_alignParentStart"))
+            assertEquals("$name start column margin", "", column.attr("layout_marginStart"))
+            val device = doc.element("widget_device_name").parentNode as org.w3c.dom.Element
+            val os = doc.element("widget_os_row")
+            listOf(device, os).forEach { assertEquals("$name in the start column", column, it.parentNode) }
             val row = doc.element("widget_score_row")
+            assertEquals("$name score row end", "true", row.attr("layout_alignParentEnd"))
+            assertEquals("$name score row gravity", "end", row.attr("gravity"))
+            assertEquals("$name score row direction", "", row.attr("layoutDirection"))
             val children = row.childElements()
-            assertEquals("$name row", 3, children.size)
-            assertEquals("$name end space first", "@+id/widget_delta_space_end", children[0].attr("id"))
-            assertEquals("$name shield space last", "@+id/widget_delta_space_shield", children[2].attr("id"))
+            assertEquals("$name row", 1, children.size)
             assertEquals(
                 "$name score above rating", listOf("@+id/widget_score_value", "@+id/widget_score_rating"),
-                children[1].childElements().map { it.attr("id") }
+                children[0].childElements().map { it.attr("id") }
             )
-            assertEquals("$name direction", "@integer/widget_reversed_layout_direction", row.attr("layoutDirection"))
-            listOf(children[0], children[2]).forEach { space ->
-                assertEquals("$name space size", delta.attr("textSize"), space.attr("textSize"))
-                assertEquals("$name space style", delta.attr("textStyle"), space.attr("textStyle"))
-                assertEquals("$name space height", "0dp", space.attr("layout_height"))
-            }
-            assertEquals("$name change maxLines", "1", delta.attr("maxLines"))
         }
     }
 
     /**
-     * Each space is as wide as the change's footprint from the end edge: its text plus the
-     * change's end margin, its halo padding and a 4dp gap.
+     * The score has the device name's size and weight, and the same 1dp + 1dp gap to the centre line
+     * (a single 2dp rounds to 5 px on the Pixel 8 but two 1dp to 6 px, 1 px off), so with the rating on
+     * the OS name's baseline the score lands on the device name's baseline.
      */
     @Test
-    fun spaces_matchTheChangesFootprint() {
+    fun score_sharesTheDeviceNamesSizeAndBaseline() {
         allLayouts.forEach { name ->
             val doc = parse("src/main/res/$name.xml")
-            val delta = doc.element("widget_score_delta")
-            val margin = dp((delta.parentNode as org.w3c.dom.Element).attr("layout_marginEnd"))
-            val footprint = margin + dp(delta.attr("paddingStart")) + dp(delta.attr("paddingEnd")) + 4
-            listOf("widget_delta_space_end", "widget_delta_space_shield").forEach {
-                val space = doc.element(it)
-                assertEquals("$name $it", footprint, dp(space.attr("paddingStart")) + dp(space.attr("paddingEnd")))
+            val score = doc.element("widget_score_value")
+            val device = doc.element("widget_device_name")
+            assertEquals("$name size", device.attr("textSize"), score.attr("textSize"))
+            assertEquals("$name weight", device.attr("textStyle"), score.attr("textStyle"))
+            assertEquals("$name padding", device.attr("paddingStart") to device.attr("paddingEnd"),
+                score.attr("paddingStart") to score.attr("paddingEnd"))
+            val deviceGap = (device.parentNode as org.w3c.dom.Element).attr("layout_marginBottom")
+            val osGap = doc.element("widget_os_row").attr("layout_marginTop")
+            val scoreGaps = listOf(score.attr("layout_marginBottom"), doc.element("widget_score_rating").attr("layout_marginTop"))
+            assertEquals("$name gaps", listOf("1dp", "1dp", "1dp", "1dp"), listOf(deviceGap, osGap) + scoreGaps)
+            assertEquals("$name rating size", doc.element("widget_os_name").attr("textSize"), doc.element("widget_score_rating").attr("textSize"))
+            assertEquals("$name rating on the OS baseline", "@id/widget_start_column", doc.element("widget_score_row").attr("layout_alignBaseline"))
+        }
+    }
+
+    /**
+     * Each side's two lines are centred as one block (Oliver, 2026-10-24, option i). Positioned from a
+     * centre line instead, the device name was cut 4 px short by the top padding at font 2.0 and its
+     * text sat 4 px below the score. The column reports the OS name's baseline, which the score row's
+     * rating aligns to.
+     */
+    @Test
+    fun startColumn_centresDeviceAndOsAsOneBlock() {
+        allLayouts.forEach { name ->
+            val doc = parse("src/main/res/$name.xml")
+            val column = doc.element("widget_start_column")
+            assertEquals("$name centred", "true", column.attr("layout_centerVertical"))
+            assertEquals("$name vertical", "vertical", column.attr("orientation"))
+            val children = column.childElements()
+            assertEquals("$name two rows", 2, children.size)
+            assertEquals("$name device first", "@+id/widget_device_name", children[0].childElements().single().attr("id"))
+            assertEquals("$name OS second", "@+id/widget_os_row", children[1].attr("id"))
+            assertEquals("$name reports the OS baseline", "1", column.attr("baselineAlignedChildIndex"))
+            assertEquals("$name OS row reports its text", "0", children[1].attr("baselineAlignedChildIndex"))
+            assertTrue("$name no centre anchor", "widget_center_anchor" !in layoutIds("src/main/res/$name.xml"))
+            listOf(children[0], children[1]).forEach {
+                assertEquals("$name rows not pinned", "", it.attr("layout_above") + it.attr("layout_below"))
             }
         }
     }
 
-    /** Reversed means the opposite of the locale: rtl in left-to-right locales, ltr in right-to-left ones. */
+    /**
+     * While a change is live it takes the shield's place: centred in the same box, one line, its
+     * size set in code to fit the shield's 40dp. No maxHeight or maxWidth: maxLines would silently
+     * replace maxHeight (they share one TextView field), which let the mock-up overrun by 1 px.
+     */
     @Test
-    fun reversedDirection_isTheOppositeOfTheLocale() {
-        fun value(dir: String) = parse("src/main/res/$dir/integers.xml").getElementsByTagName("integer").let { list ->
-            (0 until list.length).map { list.item(it) as org.w3c.dom.Element }
-                .single { it.getAttribute("name") == "widget_reversed_layout_direction" }.textContent.trim()
+    fun centreChange_sitsInTheShieldsSlot() {
+        allLayouts.forEach { name ->
+            val doc = parse("src/main/res/$name.xml")
+            val shield = doc.element("widget_divider")
+            val change = doc.element("widget_centre_change")
+            assertEquals("$name same parent", shield.parentNode, change.parentNode)
+            assertEquals("$name shield box", listOf("40dp", "40dp"), listOf(shield.attr("layout_width"), shield.attr("layout_height")))
+            assertEquals("$name centred", "true", change.attr("layout_centerInParent"))
+            assertEquals("$name width", "wrap_content", change.attr("layout_width"))
+            assertEquals("$name height", "wrap_content", change.attr("layout_height"))
+            assertEquals("$name maxLines", "1", change.attr("maxLines"))
+            assertEquals("$name full size", "18sp", change.attr("textSize"))
+            assertEquals("$name maxHeight", "", change.attr("maxHeight"))
+            assertEquals("$name maxWidth", "", change.attr("maxWidth"))
+            assertEquals("$name hidden until a change", "gone", change.attr("visibility"))
         }
-        assertEquals("1", value("values"))   // View.LAYOUT_DIRECTION_RTL
-        assertEquals("0", value("values-ldrtl")) // View.LAYOUT_DIRECTION_LTR
+    }
+
+    /** At font 2.0 the score's halo reaches above the top padding; it must not be cut flat there. */
+    @Test
+    fun noBackgroundLayouts_letHalosDrawIntoThePadding() {
+        listOf("widget_privacy_no_background", "widget_privacy_no_background_dark_text").forEach { name ->
+            val content = parse("src/main/res/layout/$name.xml").element("widget_divider").parentNode as org.w3c.dom.Element
+            assertEquals(name, "false", content.attr("clipToPadding"))
+        }
     }
 
     @Test
     fun noBackgroundLayouts_putEveryTextOnItsHalo() {
-        val texts = listOf(
-            "widget_device_name", "widget_os_name", "widget_score_value", "widget_score_delta", "widget_score_rating"
-        )
+        val texts = listOf("widget_device_name", "widget_os_name", "widget_score_value", "widget_score_rating")
         mapOf(
             "widget_privacy_no_background" to "@drawable/widget_text_halo",
             "widget_privacy_no_background_dark_text" to "@drawable/widget_text_halo_light"
@@ -282,13 +335,13 @@ class WidgetStyleTest {
                 // Pinned at both edges in the RelativeLayout, a text (and its halo) would stretch to the shield.
                 assertEquals("$name $it sits in a wrapper", "LinearLayout", (tv.parentNode as org.w3c.dom.Element).tagName)
             }
+            assertEquals("$name centre change", halo, doc.element("widget_centre_change").attr("background"))
         }
     }
 
     private val sharedIds = listOf(
         "widget_root", "widget_device_name", "widget_os_name", "widget_divider",
-        "widget_score_value", "widget_score_delta", "widget_score_rating",
-        "widget_score_row", "widget_delta_space_end", "widget_delta_space_shield"
+        "widget_score_value", "widget_score_rating", "widget_score_row", "widget_centre_change"
     )
 
     @Test
@@ -319,8 +372,6 @@ class WidgetStyleTest {
 
     private fun org.w3c.dom.Element.childElements(): List<org.w3c.dom.Element> =
         (0 until childNodes.length).map { childNodes.item(it) }.filterIsInstance<org.w3c.dom.Element>()
-
-    private fun dp(value: String): Int = value.removeSuffix("dp").ifEmpty { "0" }.toInt()
 
     private fun org.w3c.dom.Document.element(id: String): org.w3c.dom.Element {
         val all = getElementsByTagName("*")

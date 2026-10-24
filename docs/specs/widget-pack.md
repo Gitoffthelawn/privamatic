@@ -6,8 +6,8 @@ Based on `docs/decisions/widget-readability.md` (option B).
 ## Goal
 
 The home-screen widget is readable at every opacity the user can pick, on any wallpaper and in both themes.
-The score is tinted by its rating, as in the app. The change indicator reads "↓6 pts" and is clearly red or green.
-At font scale 2.0 the score and the indicator never overlap.
+The score is tinted by its rating, as in the app. A change shows as "↓6" or "↑6" in the shield's place, clearly red or green.
+At font scale 2.0 nothing is cut and the change never touches the side text.
 
 ## Scope
 
@@ -22,11 +22,20 @@ At font scale 2.0 the score and the indicator never overlap.
 - Stronger card text and icon tokens: light primary T10, secondary T20, shield T30 on a T95 card;
   dark primary T95, secondary T90, shield T80 on a T10 card (`system_accent2_900`, was T20).
 - Score tint by rating (API 31+ through `RemoteViews.setColorInt` day/night pairs; fixed hex as named constants).
-- Change indicator: "↑6" / "↓6" (number only, as released), 18sp regular, green/red by direction in both themes.
-- Layout: the released v1.5.1 geometry (Oliver's screenshot, 2026-10-23): device block at the start (40dp in), shield
-  centred, score and rating centred in the end half (rating on the OS baseline), the change at the end edge (40dp in),
-  centred on both rows. While a change shows, the score and rating rows reserve its width on both sides, so they stay
-  centred and never run under it; a text too wide for that moves towards the shield, then ellipsizes. `resizeMode` gains `vertical`.
+- Change indicator: "↑6" / "↓6" (number only, no "pts"), red for a drop and green for a rise in both themes. Spoken:
+  "Score dropped 6 points" / "Score rose 6 points".
+- Layout (centre change, Oliver 2026-10-24, `docs/decisions/widget-centre-change.md`): device block at the start edge and
+  score over rating at the end edge, both at the widget's 28 dp padding; the shield centred. While the change timer runs,
+  the change takes the shield's place (the shield goes invisible, so the sides keep their anchor). Its text size is the
+  largest up to 18 sp at which it fits the shield's 40 dp box on one line, measured on the layout's own text view at the
+  update's font scale, inflated without a theme wrapper (that one matched the launcher's width); the box never grows.
+  The score has the device name's size and weight (18 sp bold), still tinted by rating. Each side's two lines are centred
+  vertically as one block (device name over OS name; score over rating, aligned to it), so the score shares the device
+  name's baseline and the rating the OS name's at every font size; a rating too wide for the end side ellipsizes. `resizeMode` gains `vertical`.
+- Change timer: the existing one, unchanged (`ScoreHistoryRepository` delta and the 48 h cap). Nothing new wakes the device;
+  the shield comes back at the first widget update after the change ends, up to about 10.5 h late (accepted, Oliver 2026-10-24).
+- Debug builds only: the update broadcast takes `debug_delta`, `debug_clear`, `debug_opacity` and `debug_device_name` extras for device checks
+  (`src/debug`; release builds compile a no-op from `src/release`).
 - No-background halo: each text sits on a rounded halo of the opposite colour at 65 %, so it keeps 3:1 against it on any
   wallpaper in both colour variants, including the moment between a wallpaper change and the next widget update.
 - Remove the unused widget colours in `values-night-v31/colors.xml`.
@@ -34,7 +43,9 @@ At font scale 2.0 the score and the indicator never overlap.
 
 **Out:**
 - The Android 8–11 slider issue (`setImageAlpha` on a background-only `ImageView`). Report only.
-- The widget update trigger (exported receiver; no update on font-scale change). Report only.
+- The widget update trigger (exported receiver). Report only. A font-scale change does update the widget
+  (two updates within 1.1 s on the Pixel 8, 2026-10-24), so the change's fitted size follows a new font scale.
+- The change timer's logic, the 48-hour cap, the daily snapshot, score history and Room (parked for a separate run).
 
 ## Oliver's calls
 
@@ -46,9 +57,15 @@ At font scale 2.0 the score and the indicator never overlap.
 | No-background score and indicator colour | The dark-theme tints with the text's shadow; with dark text, the light-theme tints (decided 2026-10-22). |
 | No-background text on light wallpapers | Must pass there too: dark text from the wallpaper's `HINT_SUPPORTS_DARK_TEXT`, as Pixel Launcher (decided 2026-10-22). Light glow or none: measured, see Measurements. |
 | Settings | "Show background" switch plus a 76–100 % slider; off stores 0 (decided 2026-10-22; replaces the snapping slider). |
-| Layout | The released v1.5.1 layout, as in Oliver's screenshot of 2026-10-23; positions and text sizes only (colours as above). Replaces the 2026-10-22 layouts. |
-| Change text | "↓6" without "pts", as released: with "pts" the centred score and the change collide at normal text size (decided 2026-10-23). |
-| Large text | Score number and the arrow with its number are never cut; the score or rating moves towards the shield before it gets "…" (decided 2026-10-23). |
+| Layout | The change in the shield's place, sides at the edges (decided 2026-10-24; replaces the released-layout call of 2026-10-23). |
+| Change text | "↓6" / "↑6", no "pts": "pts" never fits the 40 dp box on one line (decided 2026-10-24). |
+| Change colour | Red for a drop, green for a rise (decided 2026-10-24). |
+| Side inset | 28 dp widget padding on both edges (approved by Oliver after the round-2 screenshot). Oliver (2026-10-24, round 2): 24 dp, or the measured top/bottom padding if that isn't about 24. Measured on the Pixel 8: ink 27.8 dp from the top (device name; the score too, once it matches) and 31.2 dp from the bottom, so 28 dp. Replaces 16 dp, too tight against the rounded corners. |
+| Score size | The device name's size and weight, 18 sp bold (was 24 sp); score and device name on one baseline, rating and OS name on another (decided 2026-10-24, round 2; approved after the screenshot). |
+| Rows at font 2.0 | Centre each side's two lines as one block (option i, decided 2026-10-24, round 3): placed from a centre line, the device name was cut short by the top padding at 2.0 and sat 4 px below the score. |
+| "↓12" at font 2.0 | Fix the measurement (option a, decided 2026-10-24, round 2): measure the way that matches the launcher's width; the box does not grow. |
+| Shield return lag | Accepted: the shield returns at the next widget update after the change ends; no new alarm (decided 2026-10-24). |
+| Large text | Score number and the change are never cut: the change shrinks to fit the shield's box; score or rating ellipsize only when the end side is too narrow (decided 2026-10-23, kept). |
 | Colour lag after a wallpaper change | Readable anyway: a halo that keeps 3:1 in the "wrong" variant on White, Black and the photo (decided 2026-10-23). The wallpaper hint stays the rule for the colour. |
 
 ## Wallpaper hint (platform facts, checked 2026-10-22)
@@ -90,7 +107,9 @@ API 26–30 keep their Cream-on-dark card; the score and indicator use the dark-
 4. API 31+ colours follow the launcher's light/dark mode without a new update (XML tokens or `setColorInt` pairs; no single-colour `setTextColor` on the card style).
 5. The no-background text colour comes from the system wallpaper's colour hint (`HINT_SUPPORTS_DARK_TEXT`), never from guessing at pixels near the widget.
 6. The settings screen can only store 0 (switch off) or a value from the minimum to 100; opening it and saving unchanged draws the same widget.
-7. The change never overlaps the score or the rating and is never cut: each row measures the change's space first. Score and rating stay centred in the end half while they fit beside it, then move towards the shield, and only then ellipsize.
+7. The change sits inside the shield's 40 dp box, on one line, never cut; the box never grows, so it can't reach the side text.
+   The shield and the change are never shown together.
+8. Debug-only hooks never reach a release build (checked on the release APK's dex, not by reading code).
 
 ## Milestones
 
@@ -106,6 +125,7 @@ API 26–30 keep their Cream-on-dark card; the score and indicator use the dark-
 | 8 | Round C: dark-text no background | Photo/White/Black: White passes 4.5:1 text and 3:1 icon (or say how close); screenshots before and after the update. |
 | 9 | Round C: settings | Screenshots: switch off/on, slider 76–100 %; save off stores 0, save on stores the slider; the clamp still shows 76 %. |
 | 10 | Round C: layout | 100 % screenshot; start and end inner margins equal (glyph-measured), shield → score gap ≈ 16dp; font scale 2.0 with no overlap and nothing cut but the OS-line ellipsis. |
+| 11 | Centre change | Pixel 8: shield, ↓6, ↓12, ↑6 × font 1.0/2.0 × card 100 %/no background × light/dark, plus the dark-text layout and "Needs Attention" beside ↓12 at 2.0: nothing cut, change inside the 40 dp box, smallest centre–side gap in dp; spoken text switches. Release dex holds no debug hook. |
 
 ## Measurements
 
@@ -192,6 +212,25 @@ Not verified on a device: API 26–30 (legacy card and its tint colours; no API 
   "Needs Attention" beside a change moves towards the shield and stays whole (`layout-font1.png`).
 - Layout, font 2.0: score and arrow whole, nothing overlaps; OS and rating ellipsize (`layout-font2.png`). Open: the cut rating sits
   15 px off the score's centre, and the no-background score halo is clipped by the top padding.
+
+**2026-10-24 (centre change, build round)**, Pixel 8: `docs/screens/widget-centre-change/build-round.md`. **Gate not clean.**
+- At font 2.0, "↓12" is drawn wider than the 40 dp box: 116 px on the card, 120 px with no background, against 105.
+  It is whole and touches nothing (smallest gap 9.1 dp), but it breaks invariant 7.
+  The in-process fit measures narrower than the launcher draws. Everything else fits: all single digits, and every case at font 1.0.
+- The 1 px height overrun is gone (98 × 99). The no-background score halo is no longer cut flat at the top padding.
+- Shield outline 1 → 1.5: worst 5 % of the ring 4.01 → 8.59 on the photo, and 1.27 → 8.59 on White in the wrong variant.
+- Spoken text switches with the state. The dark-text layout works with the change. The release dex holds no debug hook.
+
+**2026-10-24 (build round 2)**, Pixel 8: `docs/screens/widget-centre-change/build-round.md` (round 2). **Gate not clean.**
+- The fit now measures a TextView inflated from the plain context, which matched the launcher to the pixel; every change fits the box.
+- Sides 28 dp: ink 29.0 / 28.6 dp at the sides, 28.2 dp top, 31.6 dp bottom (font 1.0, card).
+- Score 18 sp bold: on the device name's baseline at font 1.0 (0 px), but 4 px above it at font 2.0, where the device name's view is
+  cut short by the top padding. The rating stays on the OS name's baseline.
+
+**2026-10-24 (build round 3)**, Pixel 8: `docs/screens/widget-centre-change/build-round.md` (round 3). **Gate clean.**
+- Each side's two lines centred as one block: score and device name, rating and OS name have identical bounds at font 1.0 and 2.0.
+- Text ink from the card edges: 30.5 dp top / 29.3 dp bottom at font 1.0, 19.0 / 16.4 dp at 2.0; sides 28.2–29.3 dp.
+- A long device name with descenders ("Galaxy S8") keeps its "y" whole at 2.0, but ellipsizes ("Galaxy …").
 
 ## STOP points
 

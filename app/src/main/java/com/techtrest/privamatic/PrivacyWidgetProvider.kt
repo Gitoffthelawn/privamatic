@@ -12,9 +12,12 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.SystemClock
 import android.util.Log
+import android.util.TypedValue
+import android.view.LayoutInflater
 import android.view.View
 import com.techtrest.privamatic.BuildConfig
 import android.widget.RemoteViews
+import android.widget.TextView
 import com.techtrest.privamatic.data.ScoreHistoryRepository
 import com.techtrest.privamatic.data.TrustedAppsAdjuster
 import com.techtrest.privamatic.data.TrustedAppsRepository
@@ -68,6 +71,7 @@ class PrivacyWidgetProvider : AppWidgetProvider() {
                 ComponentName(context, PrivacyWidgetProvider::class.java)
             )
             if (ids.isNotEmpty()) {
+                WidgetDebugOverride.applyExtras(context, intent, ids)
                 onUpdate(context, manager, ids)
             }
         }
@@ -103,6 +107,8 @@ class PrivacyWidgetProvider : AppWidgetProvider() {
                         scoreDelta != 0 &&
                         scoreHistory.deltaFirstAppearedTimestamp != 0L &&
                         (System.currentTimeMillis() - scoreHistory.deltaFirstAppearedTimestamp) <= CHANGE_EXPIRY_MS
+                // Debug builds only: a device check can force the change state; always null in release.
+                val forcedDelta = WidgetDebugOverride.forcedDelta(context)
 
                 for (appWidgetId in appWidgetIds) {
                     updateWidget(
@@ -114,8 +120,8 @@ class PrivacyWidgetProvider : AppWidgetProvider() {
                         scoreText = score.toString(),
                         rating = rating,
                         ratingText = ratingText,
-                        scoreDelta = scoreDelta,
-                        showDelta = showPrivacyChange,
+                        scoreDelta = forcedDelta ?: scoreDelta,
+                        showDelta = if (forcedDelta != null) forcedDelta != 0 else showPrivacyChange,
                         darkText = darkText
                     )
                 }
@@ -171,27 +177,37 @@ class PrivacyWidgetProvider : AppWidgetProvider() {
         }
         val views = RemoteViews(context.packageName, layout)
 
-        views.setTextViewText(R.id.widget_device_name, deviceName)
+        // Debug builds only: a device check can force a long name; always null in release.
+        views.setTextViewText(R.id.widget_device_name, WidgetDebugOverride.forcedDeviceName(context) ?: deviceName)
         views.setTextViewText(R.id.widget_os_name, osName)
         views.setTextViewText(R.id.widget_score_value, scoreText)
         views.setTextViewText(R.id.widget_score_rating, ratingText)
 
+        // While a change is live it takes the shield's place. The shield goes invisible, not gone,
+        // so the sides keep their anchor. Both states are set every time: the launcher reapplies
+        // an update onto the views it already shows.
         val isIncrease = scoreDelta != null && scoreDelta > 0
-        if (showDelta && scoreDelta != null) {
+        if (showDelta && scoreDelta != null && scoreDelta != 0) {
             val changeText = context.getString(
                 if (isIncrease) R.string.fmt_widget_delta_up else R.string.fmt_widget_delta_down,
                 abs(scoreDelta)
             )
-            views.setTextViewText(R.id.widget_score_delta, changeText)
-            views.setViewVisibility(R.id.widget_score_delta, View.VISIBLE)
-            // Invisible copies keep the score and rating centred and clear of the change (see the layout).
-            for (id in DELTA_SPACE_IDS) {
-                views.setTextViewText(id, changeText)
-                views.setViewVisibility(id, View.INVISIBLE)
-            }
+            val textSize = centreChangeTextSize(context, layout, changeText)
+            views.setTextViewText(R.id.widget_centre_change, changeText)
+            views.setTextViewTextSize(R.id.widget_centre_change, TypedValue.COMPLEX_UNIT_PX, textSize)
+            views.setContentDescription(
+                R.id.widget_centre_change,
+                context.resources.getQuantityString(
+                    if (isIncrease) R.plurals.plural_cd_widget_score_rose else R.plurals.plural_cd_widget_score_dropped,
+                    abs(scoreDelta),
+                    abs(scoreDelta)
+                )
+            )
+            views.setViewVisibility(R.id.widget_centre_change, View.VISIBLE)
+            views.setViewVisibility(R.id.widget_divider, View.INVISIBLE)
         } else {
-            views.setViewVisibility(R.id.widget_score_delta, View.GONE)
-            for (id in DELTA_SPACE_IDS) views.setViewVisibility(id, View.GONE)
+            views.setViewVisibility(R.id.widget_centre_change, View.GONE)
+            views.setViewVisibility(R.id.widget_divider, View.VISIBLE)
         }
         val scoreColors = rating?.let { WidgetStyle.scoreColors(it) }
         val deltaColors = WidgetStyle.deltaColors(isIncrease)
@@ -203,7 +219,7 @@ class PrivacyWidgetProvider : AppWidgetProvider() {
                 scoreColors?.let {
                     views.setTextColor(R.id.widget_score_value, if (darkText) it.first else it.second)
                 }
-                views.setTextColor(R.id.widget_score_delta, if (darkText) deltaColors.first else deltaColors.second)
+                views.setTextColor(R.id.widget_centre_change, if (darkText) deltaColors.first else deltaColors.second)
             }
             // API 31+: opacity on the background layer only. Colours come as light/dark pairs so
             // the launcher picks the right one when the theme changes, without a new update.
@@ -212,7 +228,7 @@ class PrivacyWidgetProvider : AppWidgetProvider() {
                 scoreColors?.let {
                     views.setColorInt(R.id.widget_score_value, "setTextColor", it.first, it.second)
                 }
-                views.setColorInt(R.id.widget_score_delta, "setTextColor", deltaColors.first, deltaColors.second)
+                views.setColorInt(R.id.widget_centre_change, "setTextColor", deltaColors.first, deltaColors.second)
             }
             // On Android 11 and below (API < 31), android:theme on non-root RemoteViews
             // views is not properly supported and can cause RemoteViews inflation failure
@@ -228,7 +244,7 @@ class PrivacyWidgetProvider : AppWidgetProvider() {
                 views.setTextColor(R.id.widget_os_name, cream)
                 views.setTextColor(R.id.widget_score_value, scoreColors?.second ?: cream)
                 views.setTextColor(R.id.widget_score_rating, cream)
-                views.setTextColor(R.id.widget_score_delta, deltaColors.second)
+                views.setTextColor(R.id.widget_centre_change, deltaColors.second)
             }
         }
 
@@ -261,8 +277,11 @@ class PrivacyWidgetProvider : AppWidgetProvider() {
 
         private const val ALARM_REQUEST_CODE = 1001
 
-        /** The change's invisible copies on both sides of the score and rating. */
-        private val DELTA_SPACE_IDS = intArrayOf(R.id.widget_delta_space_end, R.id.widget_delta_space_shield)
+        /** Smallest size the centre change shrinks to. */
+        private const val CENTRE_CHANGE_MIN_TEXT_DP = 8f
+
+        /** How far each fitting step shrinks the centre change. */
+        private const val CENTRE_CHANGE_STEP_DP = 0.5f
 
         /** Six hours in milliseconds. */
         private const val UPDATE_INTERVAL_MS = 6L * 60 * 60 * 1000
@@ -376,6 +395,38 @@ class PrivacyWidgetProvider : AppWidgetProvider() {
                 null
             }
             return WidgetStyle.noBackgroundUsesDarkText(Build.VERSION.SDK_INT, hints)
+        }
+
+        /**
+         * The largest size, up to the layout's own 18sp at this font scale, at which [text] fits the
+         * shield's box on one line. It measures the layout's own TextView (halo padding included),
+         * inflated from the plain context: on the Pixel 8 that measured "↓12" exactly as the launcher
+         * drew it, while a Theme.DeviceDefault wrapper picked a narrower typeface (98 against 116 px).
+         */
+        private fun centreChangeTextSize(context: Context, layout: Int, text: String): Float {
+            val root = LayoutInflater.from(context).inflate(layout, null)
+            val slot = root.findViewById<View>(R.id.widget_divider).layoutParams
+            val change = root.findViewById<TextView>(R.id.widget_centre_change)
+            change.text = text
+            val density = context.resources.displayMetrics.density
+            val min = CENTRE_CHANGE_MIN_TEXT_DP * density
+            var size = change.textSize
+            while (true) {
+                change.setTextSize(TypedValue.COMPLEX_UNIT_PX, size)
+                change.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED)
+                val fits = change.measuredWidth <= slot.width && change.measuredHeight <= slot.height
+                if (fits || size - CENTRE_CHANGE_STEP_DP * density < min) {
+                    if (BuildConfig.DEBUG) {
+                        Log.d(
+                            TAG,
+                            "Centre change \"$text\" at ${size}px, measured " +
+                                "${change.measuredWidth}x${change.measuredHeight} in ${slot.width}x${slot.height}"
+                        )
+                    }
+                    return size
+                }
+                size -= CENTRE_CHANGE_STEP_DP * density
+            }
         }
 
         private fun PrivacyScoreCalculator.ScoreRating.toShortLabel(context: Context): String = context.getString(this.displayName)

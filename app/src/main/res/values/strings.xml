@@ -1008,6 +1008,16 @@
         <item quantity="other">Hide (%d)</item>
     </plurals>
 
+    <!-- Spoken text of the widget's change, which shows "↓6" / "↑6" in the shield's place. -->
+    <plurals name="plural_cd_widget_score_rose">
+        <item quantity="one">Score rose %d point</item>
+        <item quantity="other">Score rose %d points</item>
+    </plurals>
+    <plurals name="plural_cd_widget_score_dropped">
+        <item quantity="one">Score dropped %d point</item>
+        <item quantity="other">Score dropped %d points</item>
+    </plurals>
+
     <plurals name="plural_quick_win_points">
         <item quantity="one">+%d pt</item>
         <item quantity="other">+%d pts</item>

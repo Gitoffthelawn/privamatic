@@ -6,7 +6,7 @@ Older runs move to `docs/state-archive/YYYY-MM.md`.
 ## Current
 
 Released version is v1.5.1 (versionCode 9). F-Droid serves it, and it is installed on the Pixel 9.
-The Pixel 8 runs the `feat/widget-pack` debug build.
+The Pixel 8 runs a debug build of `feat/widget-pack` (centre change, build round 3, committed 2026-10-24; waiting for external review).
 The Claude Code workflow files are merged into local `master` with `--no-ff`. They are not pushed yet; Oliver pushes. They are:
 - CLAUDE.md and STATE.md;
 - the narrowed `.claude/settings.local.json` (untracked; it now holds only the allow list);
@@ -42,19 +42,23 @@ pre-`c837e59` branch, overwrites or deletes it. Back it up first. The guard hook
 - [x] **Widget readability: design run.** Paper `docs/decisions/widget-readability.md`; see the archive.
 - [ ] **Widget readability + widget pack: implementation run** (`feat/widget-pack`). **Parked 2026-10-23** after the second
       layout fix round.
-  Round 3 is **replaced** by the centre-change design run (2026-10-24; paper `docs/decisions/widget-centre-change.md`).
-  - [ ] Oliver chooses (Open questions). Then a fresh implementation round on `feat/widget-pack` from the chosen layout.
-        It carries over: halo thickening of the no-background shield outline; device checks for a two-digit change and ↑;
-        whole-pixel rounding in the fit (width and height); the spec's layout, "Change text" and changelog lines; then external review.
-        If Oliver keeps the end-edge change instead, round 3's own list is in STATE.md at `78ae28e`.
+  Round 3 was replaced by the centre-change design run. Build rounds 1 and 2 parked; **build round 3 gate clean** (2026-10-24; see Runs).
+  - [x] "↓12" at font 2.0 fits the 40 dp box. `.gitignore` tracks `app/src/release/`. 28 dp sides, 18 sp score, rows aligned at 1.0 and 2.0.
+  - [ ] **External review round 1** (STOP): Oliver runs `docs/reviews/feat-widget-pack-prompt-1.md` in Cursor and saves the findings.
 - [ ] **Snapshot alarm time:** comments say 23:50, the code sets 23:00 (`SnapshotReceiver.kt:69`), and the inexact daily alarm has an
       18 h window on the Pixel 8, so a "midnight" snapshot can land as late as 17:00 the next day. Read-only finding; not changed.
 - [ ] **48 h change cap edge:** if the score changes again across midnight, the first change's timestamp is kept, so the cap can hide
       a fresh change (`ScoreHistoryRepository.kt:93-97`). From reading the code only; not reproduced.
-- [ ] **Spec "Out" line is wrong on the Pixel 8:** a font-scale change does trigger widget updates (two within 1.1 s, 2026-10-24).
+- [x] **Spec "Out" line** corrected: a font-scale change does trigger widget updates (2026-10-24).
 - [ ] **Widget opacity on Android 8–11 probably does nothing** (`setImageAlpha` on a background-only `ImageView`). Hypothesis; needs an API 30 emulator.
 - [ ] **device-verify ran its sweep from a scratchpad script**, which hides each adb call from the guard hook. The commands matched the prompt, Pixel 8 only.
       Consider a line in the agent file: "run commands inline, never from a script file".
+- [ ] **The 6-hour widget alarm only comes back on boot or a new widget.** A force-stop clears both alarms; opening the app and
+      `MY_PACKAGE_REPLACED` re-arm only the midnight snapshot (`PackageReplacedReceiver.kt:22`, `MainActivity.kt:26`). Seen on the Pixel 8
+      (0 alarms after two force-stops and an install, both back after a reboot). 2026-10-24: three `install -r` in a row kept both alarms,
+      so on the Pixel 8 an update by itself does **not** clear them; the force-stops did. Whether an F-Droid update force-stops: not checked.
+- [ ] **device-verify can't restore a named wallpaper**: the picker has no recents list. Reapplying the lock screen's photo to Home works
+      while the lock screen still has it.
 
 ## Guard hook
 
@@ -94,29 +98,28 @@ It is the real guard. The allow and deny lists are a convenience.
 
 ## Open questions for Oliver
 
-- **Widget centre change** (paper section 4; mock-ups in `docs/screens/widget-centre-change/`):
-  1. Adopt the change in the shield's slot? (recommended: yes)
-  2. "pts": never (number only, as released; recommended), or a small second line at font 1.0 only.
-  3. Side inset: 16 dp widget padding (mocked, recommended) or the released 40 dp.
-  4. Shield return lag up to ~10.5 h: accept (recommended), or a new device-waking alarm at midnight or expiry.
+- **Device name at font 2.0:** a long name ellipsizes ("Galaxy S8" → "Galaxy …" on the card, "Galaxy…" with no background). It always
+  could (`ellipsize="end"`); the spec names the ellipsis only for the OS name and rating. Accept and add it to the spec, or not?
 
 ## Runs
 
-### 2026-10-24 — widget centre change, design run (`design/widget-centre-change`, never merged)
+### 2026-10-24 — widget centre change, build round 3 (`feat/widget-pack`, **gate clean**)
 
-- [x] Timer (paper section 1): a stored timestamp checked at each widget update; nothing of its own wakes the device. Nominal 48 h,
-      but the daily baseline normally ends it at the first update after midnight. The 6 h update alarm has a +4 h 30 m window
-      (Pixel 8 `dumpsys alarm`), so the shield comes back up to ~10.5 h late unless the app is opened. Reuse needs nothing new: no stop.
-- [x] Mock-up (`86cb2db`): sides at the 16 dp padding, change in the 40 dp slot sized in code, "pts" only if it fits, debug-forced states.
-      Oliver mid-run: **↓ red, ↑ green** (replaces "rating colour").
-- [x] Pixel 8 sweep: shield/↓6/↓12/↑6 (+ stacked "pts") × font 1.0/2.0 × card 100 %/none, 28 shots, measured.
-      Nothing cut or clipped in the centre; "pts" never fits on one line; ↓12 at 2.0 shrinks to 82 % (card) / 63 % (no background).
-      Fix round 1: one wrap ("↓1/2") from unrounded px; fixed. Left: 1 px over in height (no background, 2.0). Table: `docs/screens/widget-centre-change/measurements.md`.
-- [x] Content description "Score dropped 6 points" / "Score rose 6 points" in the dumps; shield state unchanged.
-- [x] Seen: a font-scale change triggers two widget updates within 1.1 s (the spec says it doesn't).
-- [x] Restored: forced state cleared and its prefs file deleted, `feat/widget-pack` debug build reinstalled, widget area pixel-identical to the
-      baseline, `widget_preferences` identical, `score_history` only `last_update_timestamp` moved, both alarms back, crash buffer empty.
-      Photo wallpaper, light theme, font 1.0, Private DNS unset, HeliBoard; only widget 22. **Its stored opacity was 88.33 %, not 100 %**: kept as found.
-- [ ] Not verified: dark theme and the dark-text layout (edited, not shot); a long rating next to the centre change; API 26–30.
+- [x] Oliver approved the 28 dp sides and the 18 sp bold score, and chose option i: each side's two lines centred as one block
+      (device over OS in one column; score over rating aligned to its baseline). The centre-line anchor is gone.
+- [x] Debug-only `debug_device_name` extra (debug source set + release no-op + one provider line), for the descender check.
+- [x] `compileDebugKotlin` OK; `testDebugUnitTest --rerun`: 184 tests, 0 failures (new: the start column test).
+- [x] **Gate (device-verify, Pixel 8, 32 sweep shots + C, C2, D):** both baseline pairs have identical node bounds in every shot at
+      font 1.0 and 2.0 (f1 506–569 / 575–626, f2 468–574 / 580–671 px); flat glyph edges within 0.1 px, round overshoot ≤ 0.8 px.
+      All 24 changes inside 105 × 105, log = launcher 24/24. Nothing clipped; only the OS name (and "Needs Attention") ellipsizes at 2.0.
+      Smallest centre–side gap 12.2 dp (bounds) / 15.6 dp (ink, "Needs At…" beside ↓12).
+- [x] Distance from the card edges to text ink: font 1.0 top 30.5 / bottom 29.3 dp (sides 29.0 / 28.6); font 2.0 top 19.0 / bottom 16.4 dp
+      (the blocks sit 25 px from both edges; the ink difference is glyph shape).
+- [x] "Galaxy S8" at 2.0: "y" whole (5.3 px of card or halo below it), but the name ellipsizes (Open questions). My prompt's unquoted
+      `--es` value reached the device as "Galaxy"; the agent's quoted repeat (`"'Galaxy S8'"`) delivered the full name.
+- [x] Dark-text layout on White: dark text and shield in all 9 states. Restored: font 1.0, light, Private DNS unset, widget 22
+      `88.328766` (`cmp` identical), override `<map />`, both alarms; wallpaper crop hints as before, only the clock differs outside the widget.
+      `score_history`: only `last_update_timestamp` moved. Crash buffer empty, same pid. Pixel 9 not used.
+- [x] For Oliver: `centred-block-f1-bg100-d6.png`, `centred-block-f2-bg100-d6.png` in `docs/screens/widget-centre-change/`.
 
 Earlier runs of this feature (2026-10-23, 2026-10-22 rounds A–D, 2026-10-21 design run): `docs/state-archive/2026-10.md`.
