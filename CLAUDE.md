@@ -10,6 +10,12 @@
   - `STATE.md` — progress and evidence.
 
 ## Session
+- Very first, before other work, check `docs/roadmap-inbox.md` (local, gitignored):
+  - If it holds ROADMAP UPDATE blocks: apply them to ROADMAP.md per `~/Documents/project-tracker/bootstrap/contract.md`,
+    update "Last updated", remove the applied blocks from the inbox, and list every change under **Changed** in the report.
+    CHANGE / PARK / DONE lines must match an existing roadmap line; one that doesn't stays in the inbox and goes under **Blocked on me**.
+  - If it is empty, ask Oliver once: "Any decisions from chats since the roadmap was last updated (<date from ROADMAP.md>)?
+    Paste a ROADMAP UPDATE block, or say none." Then continue with the session's actual task.
 - At start, read CLAUDE.md, STATE.md and the relevant spec.
 - Investigate before changing code. Record findings in STATE.md.
 - Make minimal changes. No rewrites.
