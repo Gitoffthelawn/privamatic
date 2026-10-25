@@ -41,7 +41,6 @@ pre-`c837e59` branch, overwrites or deletes it. Back it up first. The guard hook
 ## Blocked on me
 
 - Push `master` and tag v1.5.2 on the release merge commit (commands in the 2026-10-25 release run report).
-- Store texts: agree or reject the proposed `full_description.txt` lines (widget line 25, backups line 30); nothing edited.
 
 ## Done (moved from Next, 2026-10-25)
 
@@ -122,6 +121,7 @@ It is the real guard. The allow and deny lists are a convenience.
       Restored: app drawer open, font scale 1.0 (drawer scroll position differs). Note: `install -r` itself ends the old process.
 - [x] "Switch it off completely" holds on Android 8–11: no background uses its own layout (`PrivacyWidgetProvider.kt:172-176`). Code reading only.
 - [x] Open issues #6, #7, #11: none addressed by 1.5.2. No external review: version, copy and notes only.
+- [x] Store texts (Oliver accepted both proposals): `full_description.txt` widget line 25 and backups line 30 replaced as written; merged into `master` again.
 
 ### 2026-10-25 — keyboard strings and .gitignore (`chore/keyboard-strings-gitignore`)
 
