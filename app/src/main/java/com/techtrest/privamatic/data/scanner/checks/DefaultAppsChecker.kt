@@ -209,9 +209,9 @@ class DefaultAppsChecker(private val context: Context) {
                 return PrivacyIssue(
                     check = PrivacyCheck.DEFAULT_KEYBOARD,
                     isSecure = true,
-                    currentStatus = "Using $friendly",
+                    currentStatus = context.getString(R.string.fmt_default_app_using, friendly),
                     appName = friendly,
-                    technicalDetails = "IME: $currentKeyboard",
+                    technicalDetails = context.getString(R.string.fmt_technical_ime, currentKeyboard),
                     customPointDeduction = 0
                 )
             }
@@ -221,8 +221,8 @@ class DefaultAppsChecker(private val context: Context) {
                 return PrivacyIssue(
                     check = PrivacyCheck.DEFAULT_KEYBOARD,
                     isSecure = true,
-                    currentStatus = "No default keyboard set",
-                    technicalDetails = "IME: $currentKeyboard",
+                    currentStatus = context.getString(R.string.status_no_default_keyboard),
+                    technicalDetails = context.getString(R.string.fmt_technical_ime, currentKeyboard),
                     customPointDeduction = 0
                 )
             }
@@ -233,9 +233,9 @@ class DefaultAppsChecker(private val context: Context) {
             return PrivacyIssue(
                 check = PrivacyCheck.DEFAULT_KEYBOARD,
                 isSecure = false,
-                currentStatus = "Using $appName",
+                currentStatus = context.getString(R.string.fmt_default_app_using, appName),
                 appName = appName,
-                technicalDetails = "IME: $currentKeyboard",
+                technicalDetails = context.getString(R.string.fmt_technical_ime, currentKeyboard),
                 customPointDeduction = 3,
                 flaggedPackages = listOf(keyboardPackage)
             )
@@ -245,8 +245,8 @@ class DefaultAppsChecker(private val context: Context) {
                 check = PrivacyCheck.DEFAULT_KEYBOARD,
                 isSecure = true,
                 isUnknown = true,
-                currentStatus = "Unable to determine default keyboard",
-                technicalDetails = "Error: ${e.message}",
+                currentStatus = context.getString(R.string.status_default_keyboard_unknown),
+                technicalDetails = context.getString(R.string.fmt_technical_error, e.message),
                 customPointDeduction = 0
             )
         }
