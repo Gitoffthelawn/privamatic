@@ -6,8 +6,8 @@ Older runs move to `docs/state-archive/YYYY-MM.md`.
 ## Current
 
 Released version is v1.5.1 (versionCode 9). F-Droid serves it, and it is installed on the Pixel 9.
-`feat/widget-pack` is merged into `master` with `--no-ff` (2026-10-24, after external review round 1) and pushed (`origin/master` = `3f5a553`, checked 2026-10-25).
-The Pixel 8 still runs the build-round-3 debug build (without the L1 fix).
+v1.5.2 (versionCode 10) is prepared on `release/v1.5.2` and merged into local `master` (2026-10-25); not pushed, not tagged.
+The Pixel 8 runs the 1.5.2 debug build (versionCode 10), What's new already dismissed.
 The Claude Code workflow files are merged into `master` with `--no-ff` and pushed. They are:
 - CLAUDE.md and STATE.md;
 - the narrowed `.claude/settings.local.json` (untracked; it now holds only the allow list);
@@ -40,7 +40,8 @@ pre-`c837e59` branch, overwrites or deletes it. Back it up first. The guard hook
 
 ## Blocked on me
 
-- (nothing). Both release-gating items are done; the release run is next (needs Oliver to agree the text).
+- Push `master` and tag v1.5.2 on the release merge commit (commands in the 2026-10-25 release run report).
+- Store texts: agree or reject the proposed `full_description.txt` lines (widget line 25, backups line 30); nothing edited.
 
 ## Done (moved from Next, 2026-10-25)
 
@@ -108,6 +109,20 @@ It is the real guard. The allow and deny lists are a convenience.
 
 ## Runs
 
+### 2026-10-25 — release run v1.5.2 (`release/v1.5.2`, merged into local `master`)
+
+- [x] Version 1.5.1 / 9 → 1.5.2 / 10. Changelog `changelogs/10.txt`: Oliver's four lines verbatim, "-" bullets as in `9.txt`; 456 characters (limit 500).
+- [x] What's new: one release's notes at a time, keyed by `WhatsNew.NOTES_INTRODUCED_IN` (was 8, so 1.5.0/1.5.1 dismissers would see nothing).
+      Now 10 with the same four lines as strings (card draws the bullet). 4 new tests on the shipped values: update from 8, 9 or 1.4.1 shows; fresh install doesn't.
+- [x] Gates: `compileDebugKotlin` OK; `testDebugUnitTest --rerun` 189 tests, 0 failures; `assembleRelease` OK, `app-release-unsigned.apk`,
+      badging versionCode 10 / 1.5.2, `signingConfig = null`, no signature files. Release dex has none of `debug_delta`, `debug_opacity`,
+      `debug_device_name`, `debug_clear`, `widget_debug_override` (debug dex has them, so the check works).
+- [x] Pixel 8, `install -r` over debug 1.5.1 (last seen 9): card "What's new in 1.5.2" showed with all four lines; "Got it" stored 10;
+      Back + `am start` (new activity, no force-stop) showed no card. Widget rendered "Pixel 8 / Stock Android, ↑3, 53 Fair". Crash buffer empty.
+      Restored: app drawer open, font scale 1.0 (drawer scroll position differs). Note: `install -r` itself ends the old process.
+- [x] "Switch it off completely" holds on Android 8–11: no background uses its own layout (`PrivacyWidgetProvider.kt:172-176`). Code reading only.
+- [x] Open issues #6, #7, #11: none addressed by 1.5.2. No external review: version, copy and notes only.
+
 ### 2026-10-25 — keyboard strings and .gitignore (`chore/keyboard-strings-gitignore`)
 
 - [x] Keyboard row: "Using %s" reuses `fmt_default_app_using`; new `status_no_default_keyboard`, `status_default_keyboard_unknown`, `fmt_technical_ime`; error detail reuses `fmt_technical_error`. Wording unchanged, copy voice OK.
@@ -121,17 +136,4 @@ It is the real guard. The allow and deny lists are a convenience.
 - [x] STATE `## Next` in contract format, `## Blocked on me` added, done items moved to `## Done`; "not pushed" lines corrected (`origin/master` = `3f5a553`).
 - [x] CLAUDE.md end-of-run rule points at ROADMAP.md and the contract. No code changes, so no build gate.
 
-### 2026-10-24 — external review round 1 and merge (`feat/widget-pack` → local `master`)
-
-- [x] Findings `docs/reviews/feat-widget-pack-findings-1.md` (Cursor, non-Claude): no High, so no round 2. Both claims checked in code first.
-- [x] **L1 accepted:** `effectiveOpacity` sent every negative value to no background. New test `effectiveOpacity_negative_drawsAsMinimum`
-      (-5, -1 → 76) failed on the old code (`stored -5.0 expected:<76.0> but was:<0.0>`). Fix: only a value that rounds to 0 is no
-      background; the old test now checks -0.49 instead of -5. `compileDebugKotlin` OK; `testDebugUnitTest --rerun` 185 tests, 0 failures.
-      No device gate: pure mapping, and the settings screen can only store 0 or 76–100. Not device-verified, for that reason.
-- [x] **M1 rejected** for this release (Oliver); reasons and the reviewer's cause in Next and in the findings file's Resolution.
-- [x] Spec: a long device name may end in "…" at large font sizes (Oliver's decision).
-- [x] `assembleRelease` on the branch: BUILD SUCCESSFUL (unsigned APK). Diff against `master` reviewed: no blockers.
-- [x] Merged with `--no-ff`; suite and `assembleRelease` re-run on `master` after the merge (results in the run report).
-      Feature branch and `design/widget-centre-change` kept. Not pushed, not tagged.
-
-Earlier runs of this feature (2026-10-24 build rounds 2–3, 2026-10-23, 2026-10-22 rounds A–D, 2026-10-21 design run): `docs/state-archive/2026-10.md`.
+Earlier runs of this feature (2026-10-24 review round 1 and merge, build rounds 2–3, 2026-10-23, 2026-10-22 rounds A–D, 2026-10-21 design run): `docs/state-archive/2026-10.md`.

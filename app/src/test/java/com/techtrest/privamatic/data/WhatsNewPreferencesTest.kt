@@ -75,4 +75,36 @@ class WhatsNewPreferencesTest {
         WhatsNewPreferences(storage).markSeen(9)
         assertTrue(WhatsNewPreferences(storage).shouldShow(10, isUpdate = true, notesIntroducedIn = 10))
     }
+
+    // v1.5.2 (versionCode 10) ships new notes: the shipped WhatsNew values, not a test constant.
+
+    @Test
+    fun `1_5_2 notes are introduced in versionCode 10`() {
+        assertEquals(10, WhatsNew.NOTES_INTRODUCED_IN)
+        assertEquals(4, WhatsNew.items.size)
+    }
+
+    @Test
+    fun `update to 1_5_2 after dismissing on 1_5_1 or 1_5_0 shows the card once`() {
+        for (lastSeen in listOf(8, 9)) {
+            val storage = InMemorySharedPreferences()
+            WhatsNewPreferences(storage).markSeen(lastSeen)
+            assertTrue(WhatsNewPreferences(storage).shouldShow(10, isUpdate = true, notesIntroducedIn = WhatsNew.NOTES_INTRODUCED_IN))
+
+            WhatsNewPreferences(storage).markSeen(10)
+            assertFalse(WhatsNewPreferences(storage).shouldShow(10, isUpdate = true, notesIntroducedIn = WhatsNew.NOTES_INTRODUCED_IN))
+        }
+    }
+
+    @Test
+    fun `update to 1_5_2 from 1_4_1 shows the card`() {
+        assertTrue(WhatsNewPreferences(InMemorySharedPreferences()).shouldShow(10, isUpdate = true, notesIntroducedIn = WhatsNew.NOTES_INTRODUCED_IN))
+    }
+
+    @Test
+    fun `fresh install of 1_5_2 shows nothing`() {
+        val storage = InMemorySharedPreferences()
+        assertFalse(WhatsNewPreferences(storage).shouldShow(10, isUpdate = false, notesIntroducedIn = WhatsNew.NOTES_INTRODUCED_IN))
+        assertFalse(WhatsNewPreferences(storage).shouldShow(10, isUpdate = true, notesIntroducedIn = WhatsNew.NOTES_INTRODUCED_IN))
+    }
 }

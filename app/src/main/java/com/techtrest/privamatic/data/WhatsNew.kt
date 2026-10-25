@@ -17,14 +17,15 @@ private const val NONE = -1
  * (v1.6 plan: notes kept per version, showing every version newer than the last one seen.)
  */
 object WhatsNew {
-    /** versionCode that introduced these notes: v1.5.0. v1.5.1 (9) ships them unchanged. */
-    const val NOTES_INTRODUCED_IN = 8
+    /** versionCode that introduced these notes: v1.5.2. */
+    const val NOTES_INTRODUCED_IN = 10
 
     @StringRes
     val items: List<Int> = listOf(
-        R.string.copy_whats_new_breakdown_moved,
-        R.string.copy_whats_new_unknown_free,
-        R.string.copy_whats_new_detection
+        R.string.copy_whats_new_no_backup,
+        R.string.copy_whats_new_widget_readable,
+        R.string.copy_whats_new_widget_change,
+        R.string.copy_whats_new_widget_large_text
     )
 }
 
