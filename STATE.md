@@ -42,9 +42,7 @@ pre-`c837e59` branch, overwrites or deletes it. Back it up first. The guard hook
 
 ## Blocked on me
 
-- Agree the release note for the backup change: trusted apps and settings no longer move to a new phone.
-- Say where the Koloe17 "android.vending disabled" report came from (#19 is closed with "WORKS"; no issue mentions android.vending).
-- Review `chore/tracker-contract` (not merged, as asked) and say whether to merge.
+- (nothing)
 
 ## Done (moved from Next, 2026-10-25)
 
@@ -64,6 +62,9 @@ pre-`c837e59` branch, overwrites or deletes it. Back it up first. The guard hook
 - [x] [L] Widget readability + widget pack (`feat/widget-pack`, merged `3f5a553` 2026-10-24). Rounds 1–2 parked; round 3 gate clean.
   "↓12" at font 2.0 fits 40 dp; `.gitignore` tracks `app/src/release/`; 28 dp sides, 18 sp score, rows aligned at 1.0 and 2.0.
   External review round 1: no High; L1 fixed (`e2093fc`), M1 rejected for this release.
+- [x] [S] Release note for the backup change, agreed by Oliver 2026-10-21; use exactly:
+  "Privamatic no longer copies any of its data into backups or to a new phone. On a new phone, set up your trusted apps and settings again."
+- [x] [S] Koloe17 report closed: resolved by #19 in 1.4.1; no newer report exists (Oliver, 2026-10-25).
 - [x] [S] Spec "Out" line corrected: a font-scale change does trigger widget updates (2026-10-24).
 
 ## Guard hook
@@ -108,7 +109,7 @@ It is the real guard. The allow and deny lists are a convenience.
 
 ## Runs
 
-### 2026-10-25 — project-tracker contract (`chore/tracker-contract`, not merged)
+### 2026-10-25 — project-tracker contract (`chore/tracker-contract`, merged into local `master`)
 
 - [x] `ROADMAP.md` added from the tracker draft, reconciled against STATE, git log, GitHub and code; gitignored (`git check-ignore` → `.gitignore:66:/ROADMAP.md`).
 - [x] STATE `## Next` in contract format, `## Blocked on me` added, done items moved to `## Done`; "not pushed" lines corrected (`origin/master` = `3f5a553`).
