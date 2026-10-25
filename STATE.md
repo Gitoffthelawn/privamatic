@@ -6,7 +6,7 @@ Older runs move to `docs/state-archive/YYYY-MM.md`.
 ## Current
 
 Released version is v1.5.1 (versionCode 9). F-Droid serves it, and it is installed on the Pixel 9.
-v1.5.2 (versionCode 10) is prepared on `release/v1.5.2` and merged into local `master` (2026-10-25); not pushed, not tagged.
+v1.5.2 (versionCode 10) is tagged on `2a95fa3` and pushed (`origin/master` = `2a95fa3`, tag checked on the remote 2026-10-25); waiting for the F-Droid build.
 The Pixel 8 runs the 1.5.2 debug build (versionCode 10), What's new already dismissed.
 The Claude Code workflow files are merged into `master` with `--no-ff` and pushed. They are:
 - CLAUDE.md and STATE.md;
@@ -40,7 +40,7 @@ pre-`c837e59` branch, overwrites or deletes it. Back it up first. The guard hook
 
 ## Blocked on me
 
-- Push `master` and tag v1.5.2 on the release merge commit (commands in the 2026-10-25 release run report).
+- (nothing). After the F-Droid build is live: check whether to nudge #7 / #11 (fixed in 1.4.1, waiting for confirmation).
 
 ## Done (moved from Next, 2026-10-25)
 
