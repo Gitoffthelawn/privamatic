@@ -1,0 +1,4 @@
+- Privamatic no longer copies any of its data into backups or to a new phone. On a new phone, set up your trusted apps and settings again.
+- Widget: easier to read on any wallpaper. The background is now at least 76 % opaque, or you can switch it off completely.
+- Widget: the score is coloured by its rating, and a change shows as ↓6 in red or ↑6 in green in the middle of the widget.
+- Widget: the score and its change no longer overlap with large text.
