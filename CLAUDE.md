@@ -120,5 +120,8 @@ JAVA_HOME=/home/techtresthome/.local/share/jdk/temurin-21 ./gradlew :app:assembl
 End every run with three headings:
 - **Blocked on me**
 - **Changed**
-- **Found**: ends with a "Roadmap:" line, followed by one line per item, in plain words and without code paths:
-  what this run finished, new items worth putting on the roadmap, and decisions made. If there are none, write "Roadmap: nothing".
+- **Found**: ends with a "Roadmap:" line summarising what changed in ROADMAP.md (or "Roadmap: unchanged").
+
+At the end of every run, per `~/Documents/project-tracker/bootstrap/contract.md`:
+- Update `ROADMAP.md` (gitignored, local only): tick, add, move items, and set the "Last updated" date.
+- Keep STATE.md's `## Next` and `## Blocked on me` current.

@@ -61,3 +61,6 @@ devcheck_decompiled/
 
 # Full device screenshots stay local; only cropped key images are committed
 docs/screens/*/raw/
+
+# Product roadmap for the local project tracker; never pushed (repo is public)
+/ROADMAP.md
