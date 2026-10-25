@@ -956,11 +956,14 @@
     <string name="status_no_default_browser">No default browser set</string>
     <string name="status_no_default_sms">No default SMS app set</string>
     <string name="status_no_default_email">No default email app set</string>
+    <string name="status_no_default_keyboard">No default keyboard set</string>
     <string name="status_no_default_launcher">No default launcher set</string>
     <string name="status_default_browser_unknown">Unable to determine default browser</string>
     <string name="status_default_sms_unknown">Unable to determine default SMS app</string>
     <string name="status_default_email_unknown">Unable to determine default email app</string>
     <string name="status_default_launcher_unknown">Unable to determine default launcher</string>
+    <string name="status_default_keyboard_unknown">Unable to determine default keyboard</string>
+    <string name="fmt_technical_ime">IME: %s</string>
     <string name="fmt_technical_package">Package: %s</string>
     <string name="fmt_technical_error">Error: %s</string>
     <string name="fmt_android_version">Android %s</string>

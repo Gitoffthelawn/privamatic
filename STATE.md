@@ -22,8 +22,6 @@ pre-`c837e59` branch, overwrites or deletes it. Back it up first. The guard hook
 
 ## Next
 
-- [ ] [S] Default Keyboard row copy is still hardcoded English ("Using …", "No default keyboard set", "IME: …").
-  Out of scope for `fix/default-app-copy`; no unknown branch, so it doesn't leak.
 - [ ] [S] Widget update action is open to other apps: `PrivacyWidgetProvider` is exported with `ACTION_UPDATE_WIDGET` (full scan, battery only).
 - [ ] [S] Re-arm the 6-hour widget alarm on app start and `MY_PACKAGE_REPLACED`. A force-stop clears both alarms; only the snapshot is
   re-armed (`PackageReplacedReceiver.kt:22`, `MainActivity.kt:26`). Pixel 8: 0 alarms after two force-stops, both back after a reboot;
@@ -42,10 +40,11 @@ pre-`c837e59` branch, overwrites or deletes it. Back it up first. The guard hook
 
 ## Blocked on me
 
-- (nothing)
+- (nothing). Both release-gating items are done; the release run is next (needs Oliver to agree the text).
 
 ## Done (moved from Next, 2026-10-25)
 
+- [x] [S] Default Keyboard row strings moved to `strings.xml`; `.gitignore` covers `docs/store/`, `docs/store-graphics/`, `docs/audits/` (2026-10-25, run below).
 - [x] [S] Step 1b — trial fix: Default Launcher row debug text. See archive.
 - [x] [S] Same leak in browser, SMS, email rows (2026-10-21, `666a434`).
 - [x] [S] `QuickWinsDetector.extractAppName` parsed UI copy; replaced by `PrivacyIssue.appName` (`666a434`).
@@ -108,6 +107,13 @@ It is the real guard. The allow and deny lists are a convenience.
 - None open. (Device name at large text: Oliver accepted the ellipsis; added to the spec 2026-10-24.)
 
 ## Runs
+
+### 2026-10-25 — keyboard strings and .gitignore (`chore/keyboard-strings-gitignore`)
+
+- [x] Keyboard row: "Using %s" reuses `fmt_default_app_using`; new `status_no_default_keyboard`, `status_default_keyboard_unknown`, `fmt_technical_ime`; error detail reuses `fmt_technical_error`. Wording unchanged, copy voice OK.
+- [x] Scoring: `compileDebugKotlin` OK; `testDebugUnitTest --rerun` 185 tests, 0 failures (includes `DefaultAppsCheckerScoringTest`).
+- [x] Device (Pixel 8, device-verify, no force-stop): row text identical before and after ("Using HeliBoard", "IME: helium314.keyboard/.latin.LatinIME"); crash buffer empty. Image: `docs/screens/2026-10-25-keyboard-row/before-after.png`. Not verified: the "No default keyboard set" and error paths (no way to set them on the device).
+- [x] `git check-ignore`: all three folders and `ROADMAP.md` ignored. `git log --all -- docs/audits ROADMAP.md` empty; nothing tracked there.
 
 ### 2026-10-25 — project-tracker contract (`chore/tracker-contract`, merged into local `master`)
 
