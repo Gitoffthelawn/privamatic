@@ -22,12 +22,12 @@ Trusted Apps let you whitelist FOSS apps that legitimately use accessibility, no
 
 Manual Checks remind you to periodically review location permissions, camera and microphone access, and unused apps — the things that can't be checked automatically.
 
-A home screen widget keeps your privacy score visible at a glance, with Material You theming that adapts to your wallpaper.
+A home screen widget keeps your privacy score visible at a glance: the score is coloured by its rating, any change shows as ↑ or ↓ in the middle, and on Android 12 and newer it takes its colours from your wallpaper. You can turn its background off.
 
 Privacy is built in:
 - Fully offline — no network requests, ever. Privamatic never requests the INTERNET permission, so Android will not let it connect even if it tried; check F-Droid's permission list or the open source code yourself.
 - No accounts, no cloud sync, no analytics
-- All data stays on your device
+- All data stays on your device, and none of it goes into backups or transfers to a new phone
 - Open source (GPLv3)
 
 Works on any Android 8.0+ device. Made with GrapheneOS in mind, and just as useful on CalyxOS, LineageOS or stock Android.
