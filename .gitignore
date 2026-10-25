@@ -64,3 +64,5 @@ docs/screens/*/raw/
 
 # Product roadmap for the local project tracker; never pushed (repo is public)
 /ROADMAP.md
+# Inbox of roadmap decisions from chats; applied to ROADMAP.md at session start
+/docs/roadmap-inbox.md
