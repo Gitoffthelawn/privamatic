@@ -13,7 +13,10 @@
 - Very first, before other work, check `docs/roadmap-inbox.md` (local, gitignored):
   - If it holds ROADMAP UPDATE blocks: apply them to ROADMAP.md per `~/Documents/project-tracker/bootstrap/contract.md`,
     update "Last updated", remove the applied blocks from the inbox, and list every change under **Changed** in the report.
-    CHANGE / PARK / DONE lines must match an existing roadmap line; one that doesn't stays in the inbox and goes under **Blocked on me**.
+    CHANGE / PARK / DONE lines need not match verbatim: match each to the single roadmap item it clearly refers to
+    (same subject; the quote may be partial or paraphrased), apply it, and report "matched '<quote>' → line N".
+    A line that matches no item, or more than one, stays in the inbox and goes under **Blocked on me**.
+    A DONE for an item that is already ticked is not an error: drop it from the inbox and mention it.
   - If it is empty, ask Oliver once: "Any decisions from chats since the roadmap was last updated (<date from ROADMAP.md>)?
     Paste a ROADMAP UPDATE block, or say none." Then continue with the session's actual task.
 - At start, read CLAUDE.md, STATE.md and the relevant spec.
